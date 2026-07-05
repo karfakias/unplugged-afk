@@ -26,6 +26,7 @@ import org.jetbrains.annotations.ApiStatus;
 
 import net.fabricmc.api.ModInitializer;
 
+import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
 import com.sakuraryoko.unplugged_afk.impl.modinit.UnpluggedInit;
 import com.sakuraryoko.corelib.impl.modinit.ModInitManager;
 
@@ -36,7 +37,7 @@ public class UnpluggedAfk implements ModInitializer
 
 	public static void debugLog(String key, Object... args)
 	{
-		if (Reference.DEBUG)
+		if (Reference.DEBUG || ConfigWrap.mainOpt().debugMode)
 		{
 			LOGGER.info(String.format("[DEBUG] %s", key), args);
 		}

@@ -23,9 +23,12 @@ package com.sakuraryoko.unplugged_afk.impl.mixins;
 import java.net.SocketAddress;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+
+import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
 import com.sakuraryoko.unplugged_afk.impl.player.PlayerManager;
 import com.sakuraryoko.unplugged_afk.impl.player.ShadowEntry;
 import com.sakuraryoko.unplugged_afk.impl.player.ShadowEntryList;
+import com.sakuraryoko.unplugged_afk.impl.player.interfaces.IPlayerListInvoker;
 import com.sakuraryoko.unplugged_afk.impl.player.state.ShadowState;
 import org.jetbrains.annotations.ApiStatus;
 
@@ -82,11 +85,20 @@ public abstract class MixinServerLoginPacketListenerImpl
 
 		if (player instanceof ShadowServerPlayer sp)
 		{
-			ShadowEntry entry = ShadowEntryList.getInstance().get(sp);
-
-			if (entry != null)
+			if (sp.isValid())
 			{
-				ShadowEntryList.getInstance().remove(sp);
+				ShadowEntry entry = ShadowEntryList.getInstance().get(sp);
+
+				if (entry != null)
+				{
+					ShadowEntryList.getInstance().remove(sp);
+				}
+
+				//#if MC >= 1.21.10
+				//$$ PlayerManager.getInstance().setShadowState(ProfileWrap.profile(nameAndId), ShadowState.DEFAULT);
+				//#else
+				PlayerManager.getInstance().setShadowState(gameProfile, ShadowState.DEFAULT);
+				//#endif
 			}
 
 			if (player.isInvulnerable() && player.gameMode.isSurvival())
@@ -94,15 +106,15 @@ public abstract class MixinServerLoginPacketListenerImpl
 				player.setInvulnerable(false);
 			}
 
-			//#if MC >= 1.21.10
-			//$$ PlayerManager.getInstance().setShadowState(ProfileWrap.profile(nameAndId), ShadowState.DEFAULT);
-			//#else
-			PlayerManager.getInstance().setShadowState(gameProfile, ShadowState.DEFAULT);
-			//#endif
+			if (ConfigWrap.mess().hideShadowJoin)
+			{
+				((IPlayerListInvoker) instance).unplugged$toggleBroadcastSystemMessage(true);
+			}
 
 			String str = "shadow replaced";
 			sp.kill(InitWrap.text().formatText(str));
 			instance.remove(player);
+			((IPlayerListInvoker) instance).unplugged$toggleBroadcastSystemMessage(false);
 		}
 
 //#if MC >= 1.21.10

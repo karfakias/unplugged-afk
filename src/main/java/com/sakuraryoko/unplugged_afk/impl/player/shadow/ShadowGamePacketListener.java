@@ -72,17 +72,18 @@ public class ShadowGamePacketListener extends ServerGamePacketListenerImpl
 	@Override
 	public void disconnect(@NonNull Component message)
 	{
+		ShadowServerPlayer sp = (ShadowServerPlayer) this.player;
+		if (!sp.isValid()) { return; }
+
 		if (message.getContents() instanceof TranslatableContents text &&
 			(text.getKey().equals("multiplayer.disconnect.idling") ||
 			 text.getKey().equals("multiplayer.disconnect.duplicate_login")))
 		{
-			((ShadowServerPlayer) this.player).kill(message);
+			sp.kill(message);
 		}
 
 		if (!ConfigWrap.unplugged().resetHealthUponDeath)
 		{
-			ShadowServerPlayer sp = (ShadowServerPlayer) this.player;
-			sp.killShadow();
 			sp.kill(message);
 		}
 	}

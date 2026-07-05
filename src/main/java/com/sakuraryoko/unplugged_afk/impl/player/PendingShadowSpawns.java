@@ -84,4 +84,9 @@ public class PendingShadowSpawns
 			}
 		}
 	}
+
+	public void unlock()
+	{
+		this.locked = false;
+	}
 }

@@ -20,13 +20,11 @@
 
 package com.sakuraryoko.unplugged_afk.impl.player;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
 import java.util.UUID;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.VisibleForTesting;
 
@@ -41,21 +39,20 @@ public class ShadowEntryList
 {
 	private static final ShadowEntryList INSTANCE = new ShadowEntryList();
 	public static ShadowEntryList getInstance() { return INSTANCE; }
-	private final List<ShadowEntry> list;
+	private final HashMap<UUID, ShadowEntry> shadowMap;
 
 	private ShadowEntryList()
 	{
-		this.list = new ArrayList<>();
+		this.shadowMap = new HashMap<>();
 	}
 
 	public @Nullable ShadowEntry get(@Nonnull ShadowServerPlayer player)
 	{
-		for (ShadowEntry entry : this.list)
+		UUID uuid = player.getUUID();
+
+		if (this.shadowMap.containsKey(uuid))
 		{
-			if (entry.matches(player))
-			{
-				return entry;
-			}
+			return this.shadowMap.get(uuid);
 		}
 
 		return null;
@@ -72,7 +69,7 @@ public class ShadowEntryList
 				entry.updateShadowState(state);
 			}
 
-			this.list.add(entry);
+			this.shadowMap.put(player.getUUID(), entry);
 			UnpluggedAfk.debugLog("ShadowEntryList(): add({}) --> ADD", entry.name().getString());
 			return entry;
 		}
@@ -82,55 +79,64 @@ public class ShadowEntryList
 
 	public void updateShadow(@Nonnull ShadowServerPlayer player)
 	{
-		for (ShadowEntry entry : this.list)
+		UUID uuid = player.getUUID();
+
+		if (this.shadowMap.containsKey(uuid))
 		{
-			if (entry.matches(player))
+			ShadowEntry entry = this.shadowMap.get(uuid);
+
+			if (entry != null)
 			{
 				entry.setShadowPlayer(player);
-				break;
 			}
+		}
+	}
+
+	protected void syncShadowEntry(@Nonnull ShadowServerPlayer player, ShadowEntry entry)
+	{
+		UUID uuid = player.getUUID();
+
+		if (entry.matches(uuid))
+		{
+			this.shadowMap.remove(uuid);
+			entry.setShadowPlayer(player);
+			this.shadowMap.put(uuid, entry);
 		}
 	}
 
 	public void remove(@Nonnull UUID uuid)
 	{
-		for (ShadowEntry entry : this.list)
+		ShadowEntry entry = this.shadowMap.remove(uuid);
+
+		if (entry != null)
 		{
-			if (entry.matches(uuid))
-			{
-				this.list.remove(entry);
-				entry.handler().unregisterShadowAfk();
-				break;
-			}
+			this.shadowMap.remove(uuid);
+			UnpluggedAfk.debugLog("ShadowEntryList(): remove({}) --> REMOVE", entry.name().getString());
+			entry.handler().unregisterShadowAfk();
 		}
 	}
 
 	public void remove(@Nonnull ShadowServerPlayer player)
 	{
-		for (ShadowEntry entry : this.list)
-		{
-			if (entry.matches(player))
-			{
-				UnpluggedAfk.debugLog("ShadowEntryList(): remove({}) --> REMOVE", entry.name().getString());
-				this.list.remove(entry);
-				entry.handler().unregisterShadowAfk();
-				break;
-			}
-		}
+		this.remove(player.getUUID());
 	}
 
 	@VisibleForTesting
-	public ImmutableList<ShadowEntry> listCopy()
+	public ImmutableMap<UUID, ShadowEntry> shadowMapCopy()
 	{
-		return ImmutableList.copyOf(this.list);
+		ImmutableMap.Builder<UUID, ShadowEntry> builder = ImmutableMap.builder();
+		this.shadowMap.forEach(builder::put);
+		return builder.build();
 	}
 
 	@VisibleForTesting
 	public Component getDebugFormatted(UUID uuid)
 	{
-		for (ShadowEntry entry : this.list)
+		if (this.shadowMap.containsKey(uuid))
 		{
-			if (entry.matches(uuid))
+			ShadowEntry entry = this.shadowMap.get(uuid);
+
+			if (entry != null)
 			{
 				return entry.getDebugFormatted();
 			}

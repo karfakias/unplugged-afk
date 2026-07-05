@@ -102,6 +102,7 @@ import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
 import com.sakuraryoko.unplugged_afk.impl.config.data.options.PlayerOptions;
 import com.sakuraryoko.unplugged_afk.impl.player.state.GameState;
 import com.sakuraryoko.unplugged_afk.impl.player.state.PosState;
+import com.sakuraryoko.unplugged_afk.impl.player.state.ProfileWrap;
 import com.sakuraryoko.unplugged_afk.impl.player.state.ShadowState;
 import com.sakuraryoko.corelib.impl.text.BuiltinTextHandler;
 
@@ -112,8 +113,11 @@ public class ShadowServerPlayer extends ServerPlayer
 	public Runnable startingPosition = () -> {};
 	private boolean freshPlayer;
 	private long freshHoldTime;
+	private int time = 0;
+	private String reason;
 	private long timeout = -1L;
 	private long lastTick = -1L;
+	private boolean isValid = false;
 
 	//#if MC >= 1.20.2
 	//$$ public ShadowServerPlayer(MinecraftServer server, ServerLevel level, GameProfile profile, ClientInformation ci)
@@ -313,7 +317,9 @@ public class ShadowServerPlayer extends ServerPlayer
 			shadow.getAbilities().flying = game.flying();
 		}
 
+		shadow.time = state.time();
 		shadow.timeout = state.timeout();
+		shadow.reason = state.reason();
 		shadow.freshPlayer = true;
 		shadow.freshHoldTime = System.currentTimeMillis();
 
@@ -325,6 +331,9 @@ public class ShadowServerPlayer extends ServerPlayer
 			entry.handler().registerShadowAfk(shadow, state);
 			entry.setShadowPlayer(shadow);
 		}
+
+		UnpluggedAfk.debugLog("createShadowFromConfigPhase2: player: ['{}'/{}]", ProfileWrap.name(profile), ProfileWrap.id(profile));
+		shadow.isValid = true;
 
 		return shadow;
 	}
@@ -372,8 +381,6 @@ public class ShadowServerPlayer extends ServerPlayer
 		server.getPlayerList().placeNewPlayer(new ShadowConnection(PacketFlow.SERVERBOUND), shadow);
 		//#endif
 
-		((IPlayerListInvoker) server.getPlayerList()).unplugged$toggleBroadcastSystemMessage(false);
-
 		//#if MC >= 1.21.10
 		//$$ loadPlayerNbt(shadow);
 		//#endif
@@ -400,12 +407,16 @@ public class ShadowServerPlayer extends ServerPlayer
 			shadow.getAbilities().flying = player.getAbilities().flying;
 		}
 
+		((IPlayerListInvoker) server.getPlayerList()).unplugged$toggleBroadcastSystemMessage(false);
+
 		if (time <= 0)
 		{
 			time = 129600;      // Hard coded in case of stupid
 		}
 
+		shadow.time = time;
 		shadow.timeout = (time * 60L) * 1000L;
+		shadow.reason = reason;
 		shadow.freshPlayer = true;
 		shadow.freshHoldTime = System.currentTimeMillis();
 
@@ -418,6 +429,9 @@ public class ShadowServerPlayer extends ServerPlayer
 			entry.handler().registerShadowAfk(shadow, state);
 			entry.setShadowPlayer(shadow);
 		}
+
+		UnpluggedAfk.debugLog("createShadow: player: ['{}'/{}]", ProfileWrap.name(profile), ProfileWrap.id(profile));
+		shadow.isValid = true;
 
 		return shadow;
 	}
@@ -447,22 +461,33 @@ public class ShadowServerPlayer extends ServerPlayer
 	//#if MC >= 1.20.2
 	//$$ public static ShadowServerPlayer respawnShadow(MinecraftServer server, ServerLevel level, GameProfile profile, ClientInformation ci)
 	//$$ {
-	//$$ return new ShadowServerPlayer(server, level, profile, ci);
+		//$$ ShadowServerPlayer shadow = new ShadowServerPlayer(server, level, profile, ci);
+		//$$ UnpluggedAfk.debugLog("respawnShadow: player: ['{}'/{}]", ProfileWrap.name(profile), ProfileWrap.id(profile));
+		//$$ shadow.isValid = true;
+		//$$ return shadow;
 	//$$ }
 	//#elseif MC >= 1.19.3
 	//$$ public static ShadowServerPlayer respawnShadow(MinecraftServer server, ServerLevel level, GameProfile profile)
 	//$$ {
-		//$$ return new ShadowServerPlayer(server, level, profile);
+		//$$ ShadowServerPlayer shadow = new ShadowServerPlayer(server, level, profile);
+		//$$ UnpluggedAfk.debugLog("respawnShadow: player: ['{}'/{}]", ProfileWrap.name(profile), ProfileWrap.id(profile));
+		//$$ shadow.isValid = true;
+		//$$ return shadow;
 	//$$ }
 	//#else
 	public static ShadowServerPlayer respawnShadow(MinecraftServer server, ServerLevel level, GameProfile profile, @Nullable ProfilePublicKey profilePublicKey)
 	{
-		return new ShadowServerPlayer(server, level, profile, profilePublicKey);
+		ShadowServerPlayer shadow = new ShadowServerPlayer(server, level, profile, profilePublicKey);
+		UnpluggedAfk.debugLog("respawnShadow: player: ['{}'/{}]", ProfileWrap.name(profile), ProfileWrap.id(profile));
+		shadow.isValid = true;
+		return shadow;
 	}
 	//#endif
 
 	private void createShadowPost(MinecraftServer server)
 	{
+		GameProfile profile = this.getGameProfile();
+		UnpluggedAfk.debugLog("createShadowPost: player: ['{}'/{}]", ProfileWrap.name(profile), ProfileWrap.id(profile));
 		server.getPlayerList().broadcastAll(new ClientboundRotateHeadPacket(this, (byte) (this.yHeadRot * 256 / 360)),
 				//#if MC >= 1.20.1
 				//$$ this.serverLevel().dimension());
@@ -477,9 +502,24 @@ public class ShadowServerPlayer extends ServerPlayer
 		//#endif
 	}
 
+	public boolean isValid()
+	{
+		return this.isValid;
+	}
+
+	public int getTimer()
+	{
+		return this.time;
+	}
+
 	public long getTimeout()
 	{
 		return this.timeout;
+	}
+
+	public String getReason()
+	{
+		return this.reason;
 	}
 
 	public void updateTimeOut(long timeout)
@@ -651,7 +691,7 @@ public class ShadowServerPlayer extends ServerPlayer
 
 				Component reason = BuiltinTextHandler.getInstance().formatTextSafe(mess);
 				this.kill(reason);
-				this.killShadow();
+				server.getPlayerList().remove(this);
 			}
 		}
 	}
@@ -680,6 +720,7 @@ public class ShadowServerPlayer extends ServerPlayer
 		ShadowEntryList.getInstance().remove(this);
 		PlayerManager.getInstance().updatePlayerData(this);
 		PlayerManager.getInstance().resetShadowState(this);
+		this.isValid = false;
 	}
 
 	private void dismount()

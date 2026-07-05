@@ -36,17 +36,10 @@ public record ShadowState(boolean enabled, int time, long timeout, String reason
 	@Override
 	public boolean equals(Object o)
 	{
-		if (o == this)
-		{
-			return true;
-		}
-		if (o == null || !(o instanceof ShadowState))
-		{
-			return false;
-		}
+		if (o == this) { return true; }
+		if (!(o instanceof ShadowState s)) { return false; }
 
-		ShadowState s = (ShadowState) o;
-		return this.enabled == s.enabled && this.timeout == s.timeout;
+		return this.enabled == s.enabled && this.time == s.time;
 	}
 
 	@Override
@@ -64,6 +57,11 @@ public record ShadowState(boolean enabled, int time, long timeout, String reason
 	public @NonNull String toString()
 	{
 		return "ShadowState{" + "enabled=" + this.enabled + ", time=" + this.time + ", timeout=" + this.timeout + ", reason=" + this.reason + '}';
+	}
+
+	public boolean isEmpty()
+	{
+		return this.equals(DEFAULT.ensureValid());
 	}
 
 	public Component getDebugFormatted()

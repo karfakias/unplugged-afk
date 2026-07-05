@@ -24,7 +24,7 @@ import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
 import org.jetbrains.annotations.ApiStatus;
 
 import com.sakuraryoko.unplugged_afk.impl.commands.server.UnpluggedAdminCommand;
-import com.sakuraryoko.unplugged_afk.impl.commands.server.UnpluggedAfkCommand;
+import com.sakuraryoko.unplugged_afk.impl.commands.server.UnpluggedCommand;
 import com.sakuraryoko.corelib.impl.commands.CommandManager;
 
 @ApiStatus.Internal
@@ -36,7 +36,7 @@ public class CommandRegister
 
         if (ConfigWrap.mainOpt().unpluggedAfkEnabled)
         {
-            CommandManager.getInstance().registerCommandHandler(new UnpluggedAfkCommand());
+            CommandManager.getInstance().registerCommandHandler(new UnpluggedCommand());
         }
     }
 }

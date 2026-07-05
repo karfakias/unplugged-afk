@@ -43,8 +43,6 @@ public record ShadowEntryHandler(ShadowEntry entry)
     @ApiStatus.Internal
     public void registerShadowAfk(@Nonnull ShadowServerPlayer player, ShadowState state)
     {
-        if (this.entry().shadowEnabled()) { return; }
-
         int time = state.time();
         String reason = state.reason();
         long shadowTimeout = -1L;

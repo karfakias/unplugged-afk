@@ -153,7 +153,7 @@ public abstract class MixinPlayerList implements IPlayerListInvoker
 //#endif
 	{
 		//#if MC >= 1.20.2
-		//$$ if (player instanceof ShadowServerPlayer sp)
+		//$$ if (player instanceof ShadowServerPlayer sp && !sp.isValid())
 		//$$ {
 			//$$ ShadowServerPlayer newSp = ShadowServerPlayer.respawnShadow(server, level, profile, ci);
 			//$$ newSp.updateTimeOut(sp.getTimeout());
@@ -174,7 +174,7 @@ public abstract class MixinPlayerList implements IPlayerListInvoker
 
 		//$$ return original.call(server, level, profile, ci);
 		//#elseif MC >= 1.19.3
-		//$$ if (player instanceof ShadowServerPlayer sp)
+		//$$ if (player instanceof ShadowServerPlayer sp && !sp.isValid())
 		//$$ {
 			//$$ ShadowServerPlayer newSp = ShadowServerPlayer.respawnShadow(server, level, profile);
 			//$$ newSp.updateTimeOut(sp.getTimeout());
@@ -195,17 +195,19 @@ public abstract class MixinPlayerList implements IPlayerListInvoker
 
 		//$$ return original.call(server, level, profile);
 		//#else
-		if (player instanceof ShadowServerPlayer sp)
+		if (player instanceof ShadowServerPlayer sp && !sp.isValid())
 		{
 			ShadowServerPlayer newSp = ShadowServerPlayer.respawnShadow(server, level, profile, profilePublicKey);
 			newSp.updateTimeOut(sp.getTimeout());
 			ShadowEntryList.getInstance().updateShadow(newSp);
 			ShadowEntry entry = ShadowEntryList.getInstance().get(newSp);
 			ShadowState state = PlayerManager.getInstance().getShadowState(profile);
+
 			if (!state.enabled())
 			{
 				state = new ShadowState(true, state.time(), newSp.getTimeout(), state.reason());
 				PlayerManager.getInstance().setShadowState(profile, state);
+
 				if (entry != null)
 				{
 					entry.updateShadowState(state);

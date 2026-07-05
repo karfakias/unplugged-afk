@@ -48,6 +48,7 @@ public class ShadowEntry
 	private @Nullable ShadowServerPlayer shadowPlayer;
 	private final ShadowEntryHandler handler;
 	private boolean shadowEnabled;
+	private int time;
 	private long shadowStartTimeMs;
 	private long shadowStartTimeEpoch;
 	private long shadowTimeout;
@@ -58,6 +59,7 @@ public class ShadowEntry
 	{
 		this.shadowPlayer = null;
 		this.shadowEnabled = false;
+		this.time = 0;
 		this.shadowStartTimeMs = -1L;
 		this.shadowStartTimeEpoch = -1L;
 		this.shadowTimeout = -1L;
@@ -102,6 +104,11 @@ public class ShadowEntry
 	public boolean shadowEnabled()
 	{
 		return this.shadowEnabled;
+	}
+
+	public int shadowTimer()
+	{
+		return this.time;
 	}
 
 	public long shadowStartTimeEpoch()
@@ -218,6 +225,7 @@ public class ShadowEntry
 	public void updateShadowState(ShadowState state)
 	{
 		this.shadowEnabled = state.enabled();
+		this.setTimer(state.time());
 		this.setShadowTimeout(state.timeout());
 		this.setReason(state.reason());
 
@@ -235,6 +243,12 @@ public class ShadowEntry
 	public void clearShadow()
 	{
 		this.shadowPlayer = null;
+	}
+
+	@ApiStatus.Internal
+	public void setTimer(int time)
+	{
+		this.time = time;
 	}
 
 	@ApiStatus.Internal
@@ -346,6 +360,7 @@ public class ShadowEntry
 	public void reset()
 	{
 		this.shadowEnabled = false;
+		this.time = 0;
 		this.shadowStartTimeMs = -1L;
 		this.shadowStartTimeEpoch = -1L;
 		this.shadowTimeout = -1L;

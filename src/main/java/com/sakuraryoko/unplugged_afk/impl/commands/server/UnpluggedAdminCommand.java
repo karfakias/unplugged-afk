@@ -22,10 +22,10 @@ package com.sakuraryoko.unplugged_afk.impl.commands.server;
 
 import java.util.List;
 import java.util.UUID;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.jetbrains.annotations.ApiStatus;
 
+import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -50,6 +50,7 @@ import com.sakuraryoko.unplugged_afk.impl.player.ShadowEntryList;
 import com.sakuraryoko.corelib.api.commands.IServerCommand;
 import com.sakuraryoko.corelib.api.modinit.ModInitData;
 import com.sakuraryoko.corelib.impl.config.ConfigManager;
+import com.sakuraryoko.unplugged_afk.impl.player.state.ProfileWrap;
 
 import static net.minecraft.commands.Commands.argument;
 import static net.minecraft.commands.Commands.literal;
@@ -174,7 +175,7 @@ public class UnpluggedAdminCommand implements IServerCommand
 
     private int listPlayerMap(CommandContext<CommandSourceStack> ctx)
     {
-        ImmutableMap<UUID, PlayerEntry> playerMap = PlayerManager.getInstance().getPlayerMap();
+        ImmutableMap<UUID, PlayerEntry> playerMap = PlayerManager.getInstance().playerMapCopy();
         MutableComponent text = Component.literal("");
         int count = 0;
 
@@ -210,20 +211,30 @@ public class UnpluggedAdminCommand implements IServerCommand
         ctx.getSource().sendSuccess(text, false);
         //#endif
 
+        if (ctx.getSource().isPlayer() && ctx.getSource().getPlayer() instanceof ServerPlayer)
+        {
+            GameProfile profile = ctx.getSource().getPlayer().getGameProfile();
+            UnpluggedAfk.debugLog("listPlayerMap: by: ['{}'/{}]", ProfileWrap.name(profile), ProfileWrap.id(profile));
+        }
+        else
+        {
+            UnpluggedAfk.debugLog("listPlayerMap: by: [console/unknown]");
+        }
+
         return 1;
     }
 
     private int listShadowMap(CommandContext<CommandSourceStack> ctx)
     {
-        ImmutableList<ShadowEntry> list = ShadowEntryList.getInstance().listCopy();
+        ImmutableMap<UUID, ShadowEntry> map = ShadowEntryList.getInstance().shadowMapCopy();
         MutableComponent text = Component.literal("");
         int count = 0;
 
         text.append(
-                InitWrap.text().formatText("\n§dShadow List:")
+                InitWrap.text().formatText("\n§dShadow Map:")
         );
 
-        for (ShadowEntry entry : list)
+        for (ShadowEntry entry : map.values())
         {
             text.append(
                     InitWrap.text().formatText(
@@ -245,6 +256,16 @@ public class UnpluggedAdminCommand implements IServerCommand
         //#else
         ctx.getSource().sendSuccess(text, false);
         //#endif
+
+        if (ctx.getSource().isPlayer() && ctx.getSource().getPlayer() instanceof ServerPlayer)
+        {
+            GameProfile profile = ctx.getSource().getPlayer().getGameProfile();
+            UnpluggedAfk.debugLog("listShadowMap: by: ['{}'/{}]", ProfileWrap.name(profile), ProfileWrap.id(profile));
+        }
+        else
+        {
+            UnpluggedAfk.debugLog("listShadowMap: by: [console/unknown]");
+        }
 
         return 1;
     }
@@ -282,16 +303,32 @@ public class UnpluggedAdminCommand implements IServerCommand
         ctx.getSource().sendSuccess(text, false);
         //#endif
 
+        GameProfile profile = player.getGameProfile();
+
+        if (ctx.getSource().isPlayer() && ctx.getSource().getPlayer() instanceof ServerPlayer)
+        {
+            GameProfile ctxProfile = ctx.getSource().getPlayer().getGameProfile();
+            UnpluggedAfk.debugLog("infoPlayer: by: ['{}'/{}] for player: ['{}'/{}]",
+                                  ProfileWrap.name(ctxProfile), ProfileWrap.id(ctxProfile),
+                                  ProfileWrap.name(profile), ProfileWrap.id(profile)
+            );
+        }
+        else
+        {
+            UnpluggedAfk.debugLog("infoPlayer: by: [console/unknown] for player: ['{}'/{}]", ProfileWrap.name(profile), ProfileWrap.id(profile));
+        }
+
         return 1;
     }
 
     private int purgePlayers(CommandContext<CommandSourceStack> ctx)
     {
         ServerPlayer player = ctx.getSource().getPlayer();
-        ImmutableMap<UUID, PlayerEntry> map = PlayerManager.getInstance().getPlayerMap();
+        ImmutableMap<UUID, PlayerEntry> playerMap = PlayerManager.getInstance().playerMapCopy();
+        ImmutableMap<UUID, ShadowEntry> shadowMap = ShadowEntryList.getInstance().shadowMapCopy();
         int count = 0;
 
-        for (UUID uuid : map.keySet())
+        for (UUID uuid : playerMap.keySet())
         {
             if (player != null)
             {
@@ -310,15 +347,26 @@ public class UnpluggedAdminCommand implements IServerCommand
         }
 
         // Resync
-        PlayerManager.getInstance().onServerResync(ctx.getSource().getServer());
-        map = PlayerManager.getInstance().getPlayerMap();
-        String result = String.format("§ePurged: §c%d §eplayers, and then resynced §a%d §ecurrent players§r", count, map.size());
+        PlayerManager.getInstance().onServerResync(ctx.getSource().getServer(), playerMap, shadowMap);
+        playerMap = PlayerManager.getInstance().playerMapCopy();
+        shadowMap = ShadowEntryList.getInstance().shadowMapCopy();
+        String result = String.format("§ePurged: §c%d §eplayers, and then resynced §a%d §ecurrent players, with §6%d shadows§r", count, playerMap.size(), shadowMap.size());
 
         //#if MC >= 1.20.1
         //$$ ctx.getSource().sendSuccess(() -> InitWrap.text().formatText(result), false);
         //#else
         ctx.getSource().sendSuccess(InitWrap.text().formatText(result), false);
         //#endif
+
+        if (ctx.getSource().isPlayer() && ctx.getSource().getPlayer() instanceof ServerPlayer)
+        {
+            GameProfile profile = ctx.getSource().getPlayer().getGameProfile();
+            UnpluggedAfk.debugLog("purgePlayers: by: ['{}'/{}]", ProfileWrap.name(profile), ProfileWrap.id(profile));
+        }
+        else
+        {
+            UnpluggedAfk.debugLog("purgePlayers: by: [console/unknown]");
+        }
 
         return 1;
     }

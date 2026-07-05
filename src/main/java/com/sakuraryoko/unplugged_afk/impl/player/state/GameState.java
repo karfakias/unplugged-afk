@@ -44,13 +44,18 @@ public record GameState(String gameMode, boolean flying)
 		if (this == o) { return true; }
 		if (o == null || getClass() != o.getClass()) { return false; }
 		GameState gameState = (GameState) o;
-		return Objects.equals(this.gameMode, gameState.gameMode) && this.flying == gameState.flying;
+		return this.gameMode.equals(gameState.gameMode()) && this.flying == gameState.flying;
 	}
 
 	@Override
 	public int hashCode()
 	{
 		return Objects.hash(this.gameMode, this.flying);
+	}
+
+	public boolean isEmpty()
+	{
+		return GameWrap.defMode().equals(this);
 	}
 
 	public Component getDebugFormatted()

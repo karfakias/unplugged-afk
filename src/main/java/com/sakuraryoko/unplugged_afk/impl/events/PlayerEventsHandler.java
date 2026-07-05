@@ -51,13 +51,12 @@ public class PlayerEventsHandler implements IPlayerEventsDispatch
 	{
 		if (player instanceof ShadowServerPlayer) { return; }
 		PlayerManager.getInstance().syncProfile(profile);
-		PlayerManager.getInstance().updatePlayerData(player);
 	}
 
 	@Override
 	public void onPlayerJoinPre(ServerPlayer player, Connection connection)
 	{
-		// TODO
+		PlayerManager.getInstance().updatePlayerData(player);
 	}
 
 	@Override
@@ -69,9 +68,9 @@ public class PlayerEventsHandler implements IPlayerEventsDispatch
 	@Override
 	public void onPlayerRespawn(ServerPlayer newPlayer)
 	{
+		PlayerManager.getInstance().updatePlayerData(newPlayer);
 		if (newPlayer instanceof ShadowServerPlayer) { return; }
 		PlayerManager.getInstance().syncProfile(newPlayer.getGameProfile());
-		PlayerManager.getInstance().updatePlayerData(newPlayer);
 	}
 
 	@Override
@@ -84,7 +83,7 @@ public class PlayerEventsHandler implements IPlayerEventsDispatch
 	public void onTick(ServerPlayer player)
 	{
 		PosState pos = PlayerManager.getInstance().getPosState(player.getUUID());
-		if (pos.matches(player)) { return; }
+		if (!pos.isEmpty() && pos.matches(player)) { return; }
 		PlayerManager.getInstance().updatePlayerData(player);
 	}
 

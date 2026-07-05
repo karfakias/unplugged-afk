@@ -41,7 +41,7 @@ public class ServerEventsHandler implements IServerEventsDispatch
 	@Override
 	public void onStarting(MinecraftServer server)
 	{
-		// TODO
+		PendingShadowSpawns.INSTANCE.unlock();
 	}
 
 	@Override
@@ -77,6 +77,7 @@ public class ServerEventsHandler implements IServerEventsDispatch
 	public void onTick(MinecraftServer server)
 	{
 		PendingShadowSpawns.INSTANCE.tick(server);
+		PlayerManager.getInstance().onTick(server);
 	}
 
 	@Override

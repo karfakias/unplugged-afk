@@ -37,17 +37,19 @@ import net.minecraft.server.level.ServerPlayer;
 //#endif
 
 import com.sakuraryoko.unplugged_afk.impl.Reference;
+import com.sakuraryoko.unplugged_afk.impl.UnpluggedAfk;
 import com.sakuraryoko.unplugged_afk.impl.commands.PermsWrap;
 import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
 import com.sakuraryoko.unplugged_afk.impl.modinit.InitWrap;
 import com.sakuraryoko.unplugged_afk.impl.player.shadow.ShadowServerPlayer;
 import com.sakuraryoko.corelib.api.commands.IServerCommand;
+import com.sakuraryoko.unplugged_afk.impl.player.state.ProfileWrap;
 
 import static net.minecraft.commands.Commands.argument;
 import static net.minecraft.commands.Commands.literal;
 
 @ApiStatus.Internal
-public class UnpluggedAfkCommand implements IServerCommand
+public class UnpluggedCommand implements IServerCommand
 {
     @Override
     public void register(CommandDispatcher<CommandSourceStack> dispatcher, CommandBuildContext registryAccess, Commands.CommandSelection environment)
@@ -70,7 +72,7 @@ public class UnpluggedAfkCommand implements IServerCommand
     @Override
     public String getName()
     {
-        return "unplugged-afk";
+        return "unplugged";
     }
 
     @Override
@@ -82,14 +84,11 @@ public class UnpluggedAfkCommand implements IServerCommand
     private int setUnpluggedAfk(CommandContext<CommandSourceStack> context, int time, String reason)
     {
         CommandSourceStack src = context.getSource();
-        if (src.getPlayer() == null)
-        {
-            return 0;
-        }
+        if (src.getPlayer() == null) { return 0; }
 
         if (!ConfigWrap.mainOpt().unpluggedAfkEnabled)
         {
-            String msg = "§c/unplugged-afk Command is not enabled§r";
+            String msg = "§c/unplugged Command is not enabled§r";
             //#if MC >= 1.20.1
             //$$ context.getSource().sendSuccess(() -> InitWrap.text().formatTextSafe(msg), false);
             //#else
@@ -136,6 +135,7 @@ public class UnpluggedAfkCommand implements IServerCommand
             }
         }
 
+        UnpluggedAfk.debugLog("setUnpluggedAfk: player: ['{}'/{}] // T: {}m, R: '{}'", ProfileWrap.name(profile), ProfileWrap.id(profile), time, reason);
         ShadowServerPlayer.createShadow(server, player, time, reason);
 
         return 1;

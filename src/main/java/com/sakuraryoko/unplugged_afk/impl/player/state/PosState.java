@@ -48,8 +48,7 @@ public record PosState(String location, int x, int y, int z, float yaw, float pi
 
 		if (this.location().equals(posState.location()))
 		{
-			return  this.x() == posState.x() && this.y() == posState.y() && this.z() == posState.z() &&
-					this.yaw() == posState.yaw() && this.pitch() == posState.pitch();
+			return  this.x() == posState.x() && this.y() == posState.y() && this.z() == posState.z();
 		}
 
 		return false;
@@ -65,6 +64,11 @@ public record PosState(String location, int x, int y, int z, float yaw, float pi
 		result = 31 * result + Float.floatToIntBits(this.yaw());
 		result = 31 * result + Float.floatToIntBits(this.pitch());
 		return result;
+	}
+
+	public boolean isEmpty()
+	{
+		return this.x() == 0 && this.y() == 0 && this.z() == 0;
 	}
 
 	public boolean matches(@Nonnull ServerPlayer player)
