@@ -1,0 +1,141 @@
+/*
+ * This file is part of the Unplugged-AFK project, licensed under the
+ * GNU Lesser General Public License v3.0
+ *
+ * Copyright (C) 2026  Sakura-Ryoko and contributors
+ *
+ * Unplugged-AFK is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Unplugged-AFK is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with Unplugged-AFK.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+package com.sakuraryoko.unplugged_afk.impl.player.shadow;
+
+import java.util.List;
+import javax.annotation.Nonnull;
+
+import com.google.common.collect.ImmutableList;
+import org.jetbrains.annotations.ApiStatus;
+
+import net.minecraft.network.protocol.game.ClientboundPlayerInfoPacket;
+//#if MC >= 1.19.3
+//$$ import net.minecraft.network.protocol.game.ClientboundPlayerInfoRemovePacket;
+//#endif
+//#if MC >= 1.21.11
+//$$ import net.minecraft.server.permissions.Permissions;
+//#endif
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.players.PlayerList;
+
+import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
+import com.sakuraryoko.unplugged_afk.impl.player.interfaces.IPlayerListInvoker;
+
+@ApiStatus.Internal
+public class ShadowPlayerUtils
+{
+	@ApiStatus.Internal
+	public static ImmutableList<ShadowServerPlayer> getShadows(@Nonnull MinecraftServer server)
+	{
+		ImmutableList.Builder<ShadowServerPlayer> builder = ImmutableList.builder();
+		PlayerList pl = server.getPlayerList();
+		List<ServerPlayer> players = pl.getPlayers();
+		((IPlayerListInvoker) pl).unplugged$toggleBroadcastSystemMessage(false);
+
+		for (ServerPlayer player : players)
+		{
+			if (player instanceof ShadowServerPlayer sp)
+			{
+				builder.add(sp);
+			}
+		}
+
+		return builder.build();
+	}
+
+	@ApiStatus.Internal
+	public static void hideAllShadowsFromPlayer(@Nonnull MinecraftServer server, @Nonnull ServerPlayer player)
+	{
+		if (ConfigWrap.unplugged().unpluggedHidePlayer)
+		{
+			ImmutableList<ShadowServerPlayer> shadows = getShadows(server);
+			boolean result = false;
+
+			if (ConfigWrap.unplugged().unpluggedHideFromOps && isOpWrap(player))
+			{
+				result = true;
+			}
+			else if (!isOpWrap(player))
+			{
+				result = true;
+			}
+
+			if (result)
+			{
+				for (ShadowServerPlayer shadow : shadows)
+				{
+					sendRemovePacketToPlayerWrap(shadow, player);
+				}
+			}
+		}
+	}
+
+	@ApiStatus.Internal
+	protected static void sendHidePlayerPacket(@Nonnull MinecraftServer server, @Nonnull ShadowServerPlayer sp)
+	{
+		if (ConfigWrap.unplugged().unpluggedHidePlayer)
+		{
+			PlayerList pl = server.getPlayerList();
+			List<ServerPlayer> players = pl.getPlayers();
+			((IPlayerListInvoker) pl).unplugged$toggleBroadcastSystemMessage(false);
+
+			for (ServerPlayer player : players)
+			{
+				boolean result = false;
+
+				if (ConfigWrap.unplugged().unpluggedHideFromOps && isOpWrap(player))
+				{
+					result = true;
+				}
+				else if (!isOpWrap(player))
+				{
+					result = true;
+				}
+
+				if (result)
+				{
+					sendRemovePacketToPlayerWrap(sp, player);
+				}
+			}
+		}
+	}
+
+	@ApiStatus.Internal
+	protected static boolean isOpWrap(@Nonnull ServerPlayer player)
+	{
+		//#if MC >= 1.21.11
+		//$$ return player.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER);
+		//#else
+		return player.hasPermissions(2);
+		//#endif
+	}
+
+	@ApiStatus.Internal
+	protected static void sendRemovePacketToPlayerWrap(@Nonnull ShadowServerPlayer sp, @Nonnull ServerPlayer player)
+	{
+		//#if MC >= 1.19.3
+		//$$ player.connection.send(new ClientboundPlayerInfoRemovePacket(List.of(sp.getUUID())));
+		//#else
+		player.connection.send(new ClientboundPlayerInfoPacket(ClientboundPlayerInfoPacket.Action.REMOVE_PLAYER, List.of(sp)));
+		//#endif
+	}
+}

@@ -22,9 +22,11 @@ package com.sakuraryoko.unplugged_afk.impl.config.data.options;
 
 import java.util.UUID;
 
+import com.sakuraryoko.corelib.api.log.AnsiLogger;
 import com.sakuraryoko.unplugged_afk.impl.player.state.*;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import com.mojang.authlib.GameProfile;
 
@@ -64,12 +66,14 @@ public class PlayerOptions implements IConfigOption
 	@Override
 	public PlayerOptions copy(IConfigOption other)
 	{
-		PlayerOptions opts = (PlayerOptions) other;
-		this.uuid = opts.uuid;
-		this.name = opts.name;
-		this.state = opts.state.ensureValid();
-		this.pos = opts.pos;
-		this.game = opts.game;
+		if (other instanceof PlayerOptions opts)
+		{
+			this.uuid = opts.uuid;
+			this.name = opts.name;
+			this.state = opts.state.ensureValid();
+			this.pos = opts.pos;
+			this.game = opts.game;
+		}
 
 		return this;
 	}
@@ -77,6 +81,9 @@ public class PlayerOptions implements IConfigOption
 	@Override
 	public boolean equals(Object o)
 	{
+		if (this == o) { return true; }
+		if (o == null || getClass() != o.getClass()) { return false; }
+
 		if (o instanceof PlayerOptions opt)
 		{
 			// Only match the UUID
@@ -94,11 +101,26 @@ public class PlayerOptions implements IConfigOption
 	public static PlayerOptions fromProfile(@NotNull GameProfile profile, ShadowState state)
 	{
 		PlayerOptions opts = new PlayerOptions();
+
 		opts.uuid = ProfileWrap.id(profile);
 		opts.name = ProfileWrap.name(profile);
 		opts.state = state.ensureValid();
 		opts.pos = PosWrap.defaultPos();
 		opts.game = GameWrap.defMode();
+
 		return opts;
+	}
+
+	@VisibleForTesting
+	public void dump()
+	{
+		AnsiLogger logger = new AnsiLogger(PlayerOptions.class, true, true);
+
+		logger.debug("Player Options:");
+		logger.debug(" - Name : {}", this.name);
+		logger.debug(" - UUID : {}", this.uuid.toString());
+		logger.debug(" - State: {}", this.state.toString());
+		logger.debug(" - Pos  : {}", this.pos.toString());
+		logger.debug(" - Game : {}", this.game.toString());
 	}
 }

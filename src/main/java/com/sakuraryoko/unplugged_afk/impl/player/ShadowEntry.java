@@ -313,15 +313,18 @@ public class ShadowEntry
 			);
 		}
 
-		text.append(
-				InitWrap.text().formatText("§r\n - §7UUID: ")
-		).append(
-				InitWrap.text().formatText(
-						this.profile() != null
-						? ProfileWrap.id(Objects.requireNonNull(this.profile())).toString()
-						: "§c<NULL>"
-				)
-		);
+		if (!ConfigWrap.mainOpt().reducedListDebugInfo)
+		{
+			text.append(
+					InitWrap.text().formatText("§r\n - §7UUID: ")
+			).append(
+					InitWrap.text().formatText(
+							this.profile() != null
+							? ProfileWrap.id(Objects.requireNonNull(this.profile())).toString()
+							: "§c<NULL>"
+					)
+			);
+		}
 
 		text.append(
 				InitWrap.text().formatText("§r\n - §7Shadow: ")
@@ -336,16 +339,19 @@ public class ShadowEntry
 			).append(
 					InitWrap.text().formatText(this.getShadowTimeoutFormatted())
 			);
-			text.append(
-					InitWrap.text().formatText("§r\n - §7Duration: ")
-			).append(
-					InitWrap.text().formatText(this.getShadowDurationFormatted())
-			);
-			text.append(
-					InitWrap.text().formatText("§r\n - §7Since: ")
-			).append(
-					InitWrap.text().formatText(this.getShadowStartTimeEpochFormatted())
-			);
+
+			if (!ConfigWrap.mainOpt().reducedListDebugInfo)
+			{
+				text.append(
+						InitWrap.text().formatText("§r\n - §7Duration: ")
+				).append(
+						InitWrap.text().formatText(this.getShadowDurationFormatted())
+				).append(
+						InitWrap.text().formatText("§r\n - §7Since: ")
+				).append(
+						InitWrap.text().formatText(this.getShadowStartTimeEpochFormatted())
+				);
+			}
 			text.append(
 					InitWrap.text().formatText("§r\n - §7Reason: ")
 			).append(

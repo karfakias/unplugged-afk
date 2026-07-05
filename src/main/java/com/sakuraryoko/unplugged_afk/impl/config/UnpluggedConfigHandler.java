@@ -170,7 +170,20 @@ public class UnpluggedConfigHandler implements IConfigDispatch
         CONFIG.PLAYERS.clear();
         newConf.PLAYERS.forEach(
                 player ->
-                        CONFIG.PLAYERS.add(new PlayerOptions(player))
+                {
+                    PlayerOptions newEntry = new PlayerOptions(player);
+
+                    if (!newEntry.pos.equals(player.pos))
+                    {
+                        newEntry.pos = player.pos;
+                    }
+                    if (!newEntry.game.equals(player.game))
+                    {
+                        newEntry.game = player.game;
+                    }
+
+                    CONFIG.PLAYERS.add(newEntry);
+                }
         );      // Deep copy
 
         return CONFIG;

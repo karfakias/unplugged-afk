@@ -78,6 +78,7 @@ import net.minecraft.server.level.ServerPlayer;
 //$$ import net.minecraft.world.level.portal.DimensionTransition;
 //#endif
 import net.minecraft.server.players.GameProfileCache;
+import net.minecraft.server.players.PlayerList;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -220,7 +221,7 @@ public class ShadowServerPlayer extends ServerPlayer
 				UnpluggedAfk.LOGGER.warn("createShadowFromConfig: Blocking banned player: ['{}'/{}]", name, uuid.toString());
 			}
 
-			PlayerManager.getInstance().remove(uuid);
+			PlayerManager.getInstance().remove(uuid, true);
 			return;
 		}
 
@@ -267,6 +268,12 @@ public class ShadowServerPlayer extends ServerPlayer
 	                                                               ShadowState state, PosState pos, GameState game)
 	{
 		GameType gameType = GameType.byName(game.gameMode(), GameType.DEFAULT_MODE);
+		PlayerList pl = server.getPlayerList();
+
+		if (ConfigWrap.mess().hideShadowJoin)
+		{
+			((IPlayerListInvoker) pl).unplugged$toggleBroadcastSystemMessage(true);
+		}
 
 		//#if MC >= 1.20.2
 		//$$ ShadowServerPlayer shadow = new ShadowServerPlayer(server, level, profile, ClientInformation.createDefault());
@@ -283,11 +290,11 @@ public class ShadowServerPlayer extends ServerPlayer
 		//#endif
 
 		//#if MC >= 1.20.6
-		//$$ server.getPlayerList().placeNewPlayer(new ShadowConnection(PacketFlow.SERVERBOUND), shadow, new CommonListenerCookie(profile, 0, ClientInformation.createDefault(), true));
+		//$$ pl.placeNewPlayer(new ShadowConnection(PacketFlow.SERVERBOUND), shadow, new CommonListenerCookie(profile, 0, ClientInformation.createDefault(), true));
 		//#elseif MC >= 1.20.2
-		//$$ server.getPlayerList().placeNewPlayer(new ShadowConnection(PacketFlow.SERVERBOUND), shadow, new CommonListenerCookie(profile, 0, ClientInformation.createDefault()));
+		//$$ pl.placeNewPlayer(new ShadowConnection(PacketFlow.SERVERBOUND), shadow, new CommonListenerCookie(profile, 0, ClientInformation.createDefault()));
 		//#else
-		server.getPlayerList().placeNewPlayer(new ShadowConnection(PacketFlow.SERVERBOUND), shadow);
+		pl.placeNewPlayer(new ShadowConnection(PacketFlow.SERVERBOUND), shadow);
 		//#endif
 
 		//#if MC >= 1.21.10
@@ -317,6 +324,8 @@ public class ShadowServerPlayer extends ServerPlayer
 			shadow.getAbilities().flying = game.flying();
 		}
 
+		((IPlayerListInvoker) pl).unplugged$toggleBroadcastSystemMessage(false);
+
 		shadow.time = state.time();
 		shadow.timeout = state.timeout();
 		shadow.reason = state.reason();
@@ -341,6 +350,7 @@ public class ShadowServerPlayer extends ServerPlayer
 	public static ShadowServerPlayer createShadow(MinecraftServer server, ServerPlayer player, int time, String reason)
 	{
 		Component kickMsg = BuiltinTextHandler.getInstance().formatText(ConfigWrap.mess().shadowKickMessage);
+		PlayerList pl = server.getPlayerList();
 
 		if (kickMsg == null || kickMsg.toString().isEmpty())
 		{
@@ -349,10 +359,10 @@ public class ShadowServerPlayer extends ServerPlayer
 
 		if (ConfigWrap.mess().hideShadowJoin)
 		{
-			((IPlayerListInvoker) server.getPlayerList()).unplugged$toggleBroadcastSystemMessage(true);
+			((IPlayerListInvoker) pl).unplugged$toggleBroadcastSystemMessage(true);
 		}
 
-		server.getPlayerList().remove(player);
+		pl.remove(player);
 		player.connection.disconnect(kickMsg);
 
 		//#if MC >= 1.20.1
@@ -374,11 +384,11 @@ public class ShadowServerPlayer extends ServerPlayer
 		//#endif
 
 		//#if MC >= 1.20.6
-		//$$ server.getPlayerList().placeNewPlayer(new ShadowConnection(PacketFlow.SERVERBOUND), shadow, new CommonListenerCookie(profile, 0, player.clientInformation(), true));
+		//$$ pl.placeNewPlayer(new ShadowConnection(PacketFlow.SERVERBOUND), shadow, new CommonListenerCookie(profile, 0, player.clientInformation(), true));
 		//#elseif MC >= 1.20.2
-		//$$ server.getPlayerList().placeNewPlayer(new ShadowConnection(PacketFlow.SERVERBOUND), shadow, new CommonListenerCookie(profile, 0, player.clientInformation()));
+		//$$ pl.placeNewPlayer(new ShadowConnection(PacketFlow.SERVERBOUND), shadow, new CommonListenerCookie(profile, 0, player.clientInformation()));
 		//#else
-		server.getPlayerList().placeNewPlayer(new ShadowConnection(PacketFlow.SERVERBOUND), shadow);
+		pl.placeNewPlayer(new ShadowConnection(PacketFlow.SERVERBOUND), shadow);
 		//#endif
 
 		//#if MC >= 1.21.10
@@ -407,7 +417,7 @@ public class ShadowServerPlayer extends ServerPlayer
 			shadow.getAbilities().flying = player.getAbilities().flying;
 		}
 
-		((IPlayerListInvoker) server.getPlayerList()).unplugged$toggleBroadcastSystemMessage(false);
+		((IPlayerListInvoker) pl).unplugged$toggleBroadcastSystemMessage(false);
 
 		if (time <= 0)
 		{
@@ -498,8 +508,13 @@ public class ShadowServerPlayer extends ServerPlayer
 //		server.getPlayerList().broadcastAll(new ClientboundPlayerInfoPacket(ClientboundPlayerInfoPacket.Action.UPDATE_GAME_MODE, this));
 //		server.getPlayerList().broadcastAll(new ClientboundPlayerInfoPacket(ClientboundPlayerInfoPacket.Action.UPDATE_LATENCY, this));
 		//#if MC >= 1.19.3
-		//$$ server.getPlayerList().broadcastAll(new ClientboundPlayerInfoUpdatePacket(ClientboundPlayerInfoUpdatePacket.Action.UPDATE_LISTED, this));
+		//$$ if (!ConfigWrap.unplugged().unpluggedHidePlayer)
+		//$$ {
+			//$$ server.getPlayerList().broadcastAll(new ClientboundPlayerInfoUpdatePacket(ClientboundPlayerInfoUpdatePacket.Action.UPDATE_LISTED, this));
+		//$$ }
 		//#endif
+
+		ShadowPlayerUtils.sendHidePlayerPacket(server, this);
 	}
 
 	public boolean isValid()
@@ -689,9 +704,16 @@ public class ShadowServerPlayer extends ServerPlayer
 					mess = "Shadow Expired";
 				}
 
+				if (ConfigWrap.mess().hideShadowJoin)
+				{
+					((IPlayerListInvoker) server.getPlayerList()).unplugged$toggleBroadcastSystemMessage(true);
+				}
+
 				Component reason = BuiltinTextHandler.getInstance().formatTextSafe(mess);
 				this.kill(reason);
 				server.getPlayerList().remove(this);
+
+				((IPlayerListInvoker) server.getPlayerList()).unplugged$toggleBroadcastSystemMessage(false);
 			}
 		}
 	}
@@ -717,7 +739,7 @@ public class ShadowServerPlayer extends ServerPlayer
 
 	public void killShadow()
 	{
-		ShadowEntryList.getInstance().remove(this);
+		ShadowEntryList.getInstance().remove(this, false);
 		PlayerManager.getInstance().updatePlayerData(this);
 		PlayerManager.getInstance().resetShadowState(this);
 		this.isValid = false;

@@ -30,6 +30,8 @@ public class UnpluggedOptions implements IConfigOption
 	public int defaultShadowTimeout;
 	public int unpluggedAfkCommandPermissions;
 	public boolean unpluggedAfkDisableDamage;
+	public boolean unpluggedHidePlayer;
+	public boolean unpluggedHideFromOps;
 
 	public UnpluggedOptions()
 	{
@@ -43,6 +45,8 @@ public class UnpluggedOptions implements IConfigOption
 		this.defaultShadowTimeout = 129600;
 		this.unpluggedAfkCommandPermissions = 0;
 		this.unpluggedAfkDisableDamage = false;
+		this.unpluggedHidePlayer = false;
+		this.unpluggedHideFromOps = false;
 	}
 
 	@Override
@@ -54,6 +58,8 @@ public class UnpluggedOptions implements IConfigOption
 		this.defaultShadowTimeout = opts.defaultShadowTimeout;
 		this.unpluggedAfkCommandPermissions = opts.unpluggedAfkCommandPermissions;
 		this.unpluggedAfkDisableDamage = opts.unpluggedAfkDisableDamage;
+		this.unpluggedHidePlayer = opts.unpluggedHidePlayer;
+		this.unpluggedHideFromOps = opts.unpluggedHideFromOps;
 
 		return this;
 	}

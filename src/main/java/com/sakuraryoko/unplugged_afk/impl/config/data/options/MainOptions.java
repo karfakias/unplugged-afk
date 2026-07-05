@@ -29,6 +29,7 @@ public class MainOptions implements IConfigOption
 {
     public boolean unpluggedAfkEnabled;
     public boolean debugMode;
+    public boolean reducedListDebugInfo;
 
     public MainOptions()
     {
@@ -39,6 +40,7 @@ public class MainOptions implements IConfigOption
     {
         this.unpluggedAfkEnabled = true;
         this.debugMode = false;
+        this.reducedListDebugInfo = true;
     }
 
     @Override
@@ -48,6 +50,7 @@ public class MainOptions implements IConfigOption
 
         this.unpluggedAfkEnabled = opts.unpluggedAfkEnabled;
         this.debugMode = opts.debugMode;
+        this.reducedListDebugInfo = opts.reducedListDebugInfo;
 
         return this;
     }

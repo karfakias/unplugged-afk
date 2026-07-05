@@ -45,7 +45,7 @@ public class PendingShadowSpawns
 		this.locked = false;
 	}
 
-	protected void scheduleSpawn(PlayerOptions opts)
+	public void scheduleSpawn(PlayerOptions opts)
 	{
 		this.pendingSpawnsList.add(opts);
 	}

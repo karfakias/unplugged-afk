@@ -25,11 +25,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 import javax.annotation.Nonnull;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.VisibleForTesting;
 
 import com.mojang.authlib.GameProfile;
+import com.mojang.brigadier.context.CommandContext;
+import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -83,16 +86,20 @@ public class PlayerManager
 	@ApiStatus.Internal
 	public void syncFromConfig(@Nonnull PlayerOptions opt)
 	{
-		this.addOrUpdateProfile(ProfileWrap.profile(opt.uuid, opt.name), opt.state);
+		this.addOrUpdateProfile(ProfileWrap.profile(opt.uuid, opt.name), opt.state, opt.pos, opt.game);
 	}
 
 	@ApiStatus.Internal
 	private void addOrUpdateProfile(@Nonnull GameProfile profile, ShadowState state)
 	{
+		this.addOrUpdateProfile(profile, state, PosWrap.defaultPos(), GameWrap.defMode());
+	}
+
+	@ApiStatus.Internal
+	private void addOrUpdateProfile(@Nonnull GameProfile profile, ShadowState state, PosState pos, GameState game)
+	{
 		UUID uuid = ProfileWrap.id(profile);
 		String name = ProfileWrap.name(profile);
-		PosState pos = PosWrap.defaultPos();
-		GameState game = GameWrap.defMode();
 		PlayerEntry newEntry = new PlayerEntry(uuid, name, state, pos, game);
 
 		if (this.players.containsKey(uuid))
@@ -259,9 +266,9 @@ public class PlayerManager
 		this.setShadowState(player.getGameProfile(), ShadowState.DEFAULT);
 	}
 
-	public void remove(@Nonnull UUID uuid)
+	public void remove(@Nonnull UUID uuid, boolean silent)
 	{
-		ShadowEntryList.getInstance().remove(uuid);
+		ShadowEntryList.getInstance().remove(uuid, silent);
 		this.players.remove(uuid);
 		ConfigWrap.players().removeIf(opt -> opt.uuid.equals(uuid));
 	}
@@ -335,6 +342,87 @@ public class PlayerManager
 		}
 	}
 
+	@ApiStatus.Internal
+	public ImmutableList<GameProfile> getSpawnCommandSuggestions(@Nonnull CommandContext<CommandSourceStack> ctx)
+	{
+		ImmutableList.Builder<GameProfile> builder = ImmutableList.builder();
+		MinecraftServer server = ctx.getSource().getServer();
+		PlayerList playerList = server.getPlayerList();
+		final List<ServerPlayer> players = playerList.getPlayers();
+
+		this.players.forEach(
+				(uuid, entry) ->
+				{
+					boolean found = false;
+
+					for (ServerPlayer player : players)
+					{
+						if (player.getUUID().equals(uuid))
+						{
+							found = true;
+							break;
+						}
+					}
+
+					if (!found)
+					{
+						builder.add(ProfileWrap.profile(entry.uuid(), entry.name()));
+					}
+				}
+		);
+
+		return builder.build();
+	}
+
+	@ApiStatus.Internal
+	public ImmutableList<GameProfile> getKillCommandSuggestions(@Nonnull CommandContext<CommandSourceStack> ctx)
+	{
+		ImmutableList.Builder<GameProfile> builder = ImmutableList.builder();
+		MinecraftServer server = ctx.getSource().getServer();
+		PlayerList playerList = server.getPlayerList();
+		final List<ServerPlayer> players = playerList.getPlayers();
+
+		this.players.forEach(
+				(uuid, entry) ->
+				{
+					boolean found = false;
+
+					if (entry.state().enabled())
+					{
+						for (ServerPlayer player : players)
+						{
+							if (player.getUUID().equals(uuid))
+							{
+								found = true;
+								break;
+							}
+						}
+					}
+					else
+					{
+						for (ServerPlayer player : players)
+						{
+							if (player.getUUID().equals(uuid) && player instanceof ShadowServerPlayer sp)
+							{
+								// Fix desynced player
+								ShadowState newState = new ShadowState(true, sp.getTimer(), sp.getTimeout(), sp.getReason());
+								this.setShadowState(player.getGameProfile(), newState);
+								found = true;
+								break;
+							}
+						}
+					}
+
+					if (found)
+					{
+						builder.add(ProfileWrap.profile(entry.uuid(), entry.name()));
+					}
+				}
+		);
+
+		return builder.build();
+	}
+
 	@VisibleForTesting
 	public ImmutableMap<UUID, PlayerEntry> playerMapCopy()
 	{
@@ -377,7 +465,7 @@ public class PlayerManager
 		if (stop) { return dirty; }
 
 		// Spawn shadow configured players
-		List<PlayerOptions> config = new ArrayList<>(ConfigWrap.players());
+		ImmutableList<PlayerOptions> config = ImmutableList.copyOf(ConfigWrap.players());
 
 		for (PlayerOptions entry : config)
 		{
@@ -405,7 +493,7 @@ public class PlayerManager
 	@ApiStatus.Internal
 	private boolean syncConfigEach(ServerPlayer player)
 	{
-		List<PlayerOptions> oldConfig = new ArrayList<>(ConfigWrap.players());
+		ImmutableList<PlayerOptions> oldConfig = ImmutableList.copyOf(ConfigWrap.players());
 		List<PlayerOptions> newConfig = new ArrayList<>();
 		String name = player.getName().getString();
 		UUID uuid = player.getUUID();
@@ -445,42 +533,44 @@ public class PlayerManager
 		// FIXME -- Something is still broken here.
 		for (PlayerOptions entry : oldConfig)
 		{
-			if (!found && entry.uuid.equals(uuid))
+			PlayerOptions newEntry = new PlayerOptions(entry);
+
+			if (newEntry.uuid.equals(uuid))
 			{
-				if (entry.state.isEmpty() || !entry.state.equals(state))
+				if (newEntry.state.isEmpty() || !newEntry.state.equals(state))
 				{
-					entry.state = state;
+					newEntry.state = state;
 					dirty = true;
 				}
-				if (entry.pos.isEmpty() || !entry.pos.equals(pos))
+				if (newEntry.pos.isEmpty() || !newEntry.pos.equals(pos))
 				{
-					entry.pos = pos;
+					newEntry.pos = pos;
 					dirty = true;
 				}
-				if (entry.game.isEmpty() || !entry.game.equals(game))
+				if (newEntry.game.isEmpty() || !newEntry.game.equals(game))
 				{
-					entry.game = game;
+					newEntry.game = game;
 					dirty = true;
 				}
-				if (entry.name.isEmpty() || entry.name.equals(uuid.toString()) || !entry.name.equals(name))
+				if (newEntry.name.isEmpty() || newEntry.name.equals(uuid.toString()) || !newEntry.name.equals(name))
 				{
-					entry.name = name;
+					newEntry.name = name;
 					dirty = true;
 				}
 
 				found = true;
 			}
 
-			newConfig.add(entry);
+			newConfig.add(newEntry);
 		}
 
 		if (!found)
 		{
-			PlayerOptions opt = PlayerOptions.fromProfile(player.getGameProfile(), state);
-			opt.state = state;
-			opt.pos = pos;
-			opt.game = game;
-			newConfig.add(opt);
+			PlayerOptions newEntry = PlayerOptions.fromProfile(player.getGameProfile(), state);
+			newEntry.state = state;
+			newEntry.pos = pos;
+			newEntry.game = game;
+			newConfig.add(newEntry);
 			dirty = true;
 		}
 
@@ -490,23 +580,23 @@ public class PlayerManager
 
 			for (PlayerOptions entry : newConfig)
 			{
-				PlayerOptions opt = new PlayerOptions(entry);
+				PlayerOptions newEntry = new PlayerOptions(entry);
 
 				// Double Verify
-				if (!opt.state.equals(state))
+				if (!newEntry.state.equals(state))
 				{
-					opt.state = state;
+					newEntry.state = state;
 				}
-				if (!opt.pos.equals(pos))
+				if (!newEntry.pos.equals(pos))
 				{
-					opt.pos = pos;
+					newEntry.pos = pos;
 				}
-				if (!opt.game.equals(game))
+				if (!newEntry.game.equals(game))
 				{
-					opt.game = game;
+					newEntry.game = game;
 				}
 
-				ConfigWrap.players().add(opt);
+				ConfigWrap.players().add(newEntry);
 			}
 
 			return true;
@@ -516,11 +606,37 @@ public class PlayerManager
 	}
 
 	@ApiStatus.Internal
+	public void flushToConfig()
+	{
+		List<PlayerOptions> newConfig = new ArrayList<>();
+
+		this.players.forEach(
+				(uuid, playerEntry) ->
+				{
+					PlayerOptions newEntry = new PlayerOptions();
+					newEntry.uuid = uuid;
+					newEntry.name = playerEntry.name();
+					newEntry.state = playerEntry.state();
+					newEntry.pos = playerEntry.pos();
+					newEntry.game = playerEntry.game();
+
+					newConfig.add(newEntry);
+				}
+		);
+
+		ConfigWrap.players().clear();
+		for (PlayerOptions entry : newConfig)
+		{
+			ConfigWrap.players().add(entry);
+		}
+	}
+
+	@ApiStatus.Internal
 	public void onServerStop(@Nonnull MinecraftServer server)
 	{
 		UnpluggedAfk.debugLog("onServerStop --> syncConfig()");
 
-		this.syncConfig(server, true);
+		this.flushToConfig();
 		UnpluggedAfk.debugLog("onServerStop(): flushing config ...");
 		ConfigManager.getInstance().saveEach(UnpluggedConfigHandler.getInstance());
 	}
@@ -655,8 +771,8 @@ public class PlayerManager
 
 		if (!this.players.containsKey(uuid))
 		{
-			this.addOrUpdateProfile(player.getGameProfile(), ShadowState.DEFAULT);
-			this.updatePlayerData(player);
+			this.addOrUpdateProfile(player.getGameProfile(), ShadowState.DEFAULT, PosWrap.of(player), GameWrap.of(player));
+//			this.updatePlayerData(player);
 			UnpluggedAfk.debugLog("onTickEach() sync: ['{}'/{}] --> added missing player", player.getName().getString(), uuid.toString());
 			return true;
 		}

@@ -91,7 +91,7 @@ public abstract class MixinServerLoginPacketListenerImpl
 
 				if (entry != null)
 				{
-					ShadowEntryList.getInstance().remove(sp);
+					ShadowEntryList.getInstance().remove(sp, false);
 				}
 
 				//#if MC >= 1.21.10

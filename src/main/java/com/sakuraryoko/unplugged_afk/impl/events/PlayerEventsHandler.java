@@ -27,9 +27,11 @@ import org.jspecify.annotations.Nullable;
 import com.mojang.authlib.GameProfile;
 import net.minecraft.network.Connection;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 
 import com.sakuraryoko.unplugged_afk.impl.player.PlayerManager;
+import com.sakuraryoko.unplugged_afk.impl.player.shadow.ShadowPlayerUtils;
 import com.sakuraryoko.unplugged_afk.impl.player.shadow.ShadowServerPlayer;
 import com.sakuraryoko.unplugged_afk.impl.player.state.PosState;
 import com.sakuraryoko.corelib.api.events.IPlayerEventsDispatch;
@@ -59,10 +61,24 @@ public class PlayerEventsHandler implements IPlayerEventsDispatch
 		PlayerManager.getInstance().updatePlayerData(player);
 	}
 
+	private MinecraftServer getServerWrap(ServerPlayer player)
+	{
+		//#if MC >= 1.21.8
+		//$$ return player.level().getServer();
+		//#else
+		return player.getServer();
+		//#endif
+	}
+
 	@Override
 	public void onPlayerJoinPost(ServerPlayer player, Connection connection)
 	{
 		PlayerManager.getInstance().updatePlayerData(player);
+		MinecraftServer server = this.getServerWrap(player);
+		if (server != null)
+		{
+			ShadowPlayerUtils.hideAllShadowsFromPlayer(server, player);
+		}
 	}
 
 	@Override
@@ -71,6 +87,12 @@ public class PlayerEventsHandler implements IPlayerEventsDispatch
 		PlayerManager.getInstance().updatePlayerData(newPlayer);
 		if (newPlayer instanceof ShadowServerPlayer) { return; }
 		PlayerManager.getInstance().syncProfile(newPlayer.getGameProfile());
+		MinecraftServer server = this.getServerWrap(newPlayer);
+
+		if (server != null)
+		{
+			ShadowPlayerUtils.hideAllShadowsFromPlayer(server, newPlayer);
+		}
 	}
 
 	@Override

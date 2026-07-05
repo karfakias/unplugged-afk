@@ -104,7 +104,7 @@ public class ShadowEntryList
 		}
 	}
 
-	public void remove(@Nonnull UUID uuid)
+	public void remove(@Nonnull UUID uuid, boolean silent)
 	{
 		ShadowEntry entry = this.shadowMap.remove(uuid);
 
@@ -116,9 +116,9 @@ public class ShadowEntryList
 		}
 	}
 
-	public void remove(@Nonnull ShadowServerPlayer player)
+	public void remove(@Nonnull ShadowServerPlayer player, boolean silent)
 	{
-		this.remove(player.getUUID());
+		this.remove(player.getUUID(), silent);
 	}
 
 	@VisibleForTesting

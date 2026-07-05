@@ -26,6 +26,7 @@ import org.jspecify.annotations.NonNull;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 
+import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
 import com.sakuraryoko.unplugged_afk.impl.modinit.InitWrap;
 
 @ApiStatus.Internal
@@ -72,15 +73,20 @@ public record ShadowState(boolean enabled, int time, long timeout, String reason
 				InitWrap.text().formatText("§rEN: ")
 		).append(
 				InitWrap.text().formatText(this.enabled ? "§6Y§r" : "§aN§r")
-		).append(
-				InitWrap.text().formatText("§r / HT: ")
-		).append(
-				InitWrap.text().formatText(String.format("§e%d§r", this.time))
-		).append(
-				InitWrap.text().formatText("§r / TO: ")
-		).append(
-				InitWrap.text().formatText(String.format("§e%d§r", this.timeout))
-		).append(
+		);
+		if (!ConfigWrap.mainOpt().reducedListDebugInfo)
+		{
+			text.append(
+					InitWrap.text().formatText("§r / HT: ")
+			).append(
+					InitWrap.text().formatText(String.format("§e%d§r", this.time))
+			).append(
+					InitWrap.text().formatText("§r / TO: ")
+			).append(
+					InitWrap.text().formatText(String.format("§e%d§r", this.timeout))
+			);
+		}
+		text.append(
 				InitWrap.text().formatText("§r / R: §e")
 		).append(
 				InitWrap.text().formatText(this.reason.isEmpty() ? "<EMPTY>" : this.reason)

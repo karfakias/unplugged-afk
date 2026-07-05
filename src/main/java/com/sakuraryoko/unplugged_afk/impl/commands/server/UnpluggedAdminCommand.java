@@ -22,35 +22,48 @@ package com.sakuraryoko.unplugged_afk.impl.commands.server;
 
 import java.util.List;
 import java.util.UUID;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.jetbrains.annotations.ApiStatus;
 
 import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+//#if MC >= 26.2
+//$$ import net.minecraft.world.entity.EntityTypes;
+//#endif
+import net.minecraft.server.players.PlayerList;
+import net.minecraft.world.entity.EntityType;
 
-import com.sakuraryoko.unplugged_afk.impl.UnpluggedAfk;
-import com.sakuraryoko.unplugged_afk.impl.Reference;
-import com.sakuraryoko.unplugged_afk.impl.commands.PermsWrap;
-import com.sakuraryoko.unplugged_afk.impl.config.UnpluggedConfigHandler;
-import com.sakuraryoko.unplugged_afk.impl.modinit.UnpluggedInit;
-import com.sakuraryoko.unplugged_afk.impl.modinit.InitWrap;
-import com.sakuraryoko.unplugged_afk.impl.player.PlayerEntry;
-import com.sakuraryoko.unplugged_afk.impl.player.PlayerManager;
-import com.sakuraryoko.unplugged_afk.impl.player.ShadowEntry;
-import com.sakuraryoko.unplugged_afk.impl.player.ShadowEntryList;
 import com.sakuraryoko.corelib.api.commands.IServerCommand;
 import com.sakuraryoko.corelib.api.modinit.ModInitData;
 import com.sakuraryoko.corelib.impl.config.ConfigManager;
+import com.sakuraryoko.unplugged_afk.impl.Reference;
+import com.sakuraryoko.unplugged_afk.impl.UnpluggedAfk;
+import com.sakuraryoko.unplugged_afk.impl.commands.PermsWrap;
+import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
+import com.sakuraryoko.unplugged_afk.impl.config.UnpluggedConfigHandler;
+import com.sakuraryoko.unplugged_afk.impl.config.data.options.PlayerOptions;
+import com.sakuraryoko.unplugged_afk.impl.modinit.InitWrap;
+import com.sakuraryoko.unplugged_afk.impl.modinit.UnpluggedInit;
+import com.sakuraryoko.unplugged_afk.impl.player.*;
+import com.sakuraryoko.unplugged_afk.impl.player.interfaces.IPlayerListInvoker;
+import com.sakuraryoko.unplugged_afk.impl.player.shadow.ShadowServerPlayer;
 import com.sakuraryoko.unplugged_afk.impl.player.state.ProfileWrap;
+import com.sakuraryoko.unplugged_afk.impl.player.state.ShadowState;
 
 import static net.minecraft.commands.Commands.argument;
 import static net.minecraft.commands.Commands.literal;
@@ -100,6 +113,66 @@ public class UnpluggedAdminCommand implements IServerCommand
                         .then(literal("purge")
                                       .requires(PermsWrap.check(this.getNode()+".purge", 4))
                                       .executes(this::purgePlayers)
+                        )
+                        .then(literal("spawn")
+                                      .requires(PermsWrap.check(this.getNode()+".spawn", 4))
+                                      .then(argument("shadow", StringArgumentType.string())
+                                                    .suggests(
+                                                            (ctx, builder) ->
+                                                                    SharedSuggestionProvider.suggest(
+                                                                            PlayerManager.getInstance().getSpawnCommandSuggestions(ctx),
+                                                                            builder,
+                                                                            ProfileWrap::name,
+                                                                            this::formatTooltip
+                                                                    )
+                                                    )
+                                                    .requires(PermsWrap.check(this.getNode()+".spawn", 4))
+                                                    .executes(ctx ->
+                                                              {
+                                                                  String result = StringArgumentType.getString(ctx, "shadow");
+                                                                  return this.createShadow(ctx, result, -1, "");
+                                                              }
+                                                    )
+                                                    .then(argument("time", IntegerArgumentType.integer(1))
+                                                                  .requires(PermsWrap.check(this.getNode()+".spawn", 4))
+                                                                  .executes(ctx ->
+                                                                            {
+                                                                                String result = StringArgumentType.getString(ctx, "shadow");
+                                                                                return this.createShadow(ctx, result, IntegerArgumentType.getInteger(ctx, "time"), "");
+                                                                            }
+                                                                  )
+                                                                  .then(argument("reason", StringArgumentType.greedyString())
+                                                                                .requires(PermsWrap.check(this.getNode()+".spawn", 4))
+                                                                                .executes(ctx ->
+                                                                                          {
+                                                                                              String result = StringArgumentType.getString(ctx, "shadow");
+                                                                                              return this.createShadow(ctx, result, IntegerArgumentType.getInteger(ctx, "time"), StringArgumentType.getString(ctx, "reason"));
+                                                                                          }
+                                                                                )
+                                                                  )
+                                                    )
+                                      )
+                        )
+                        .then(literal("kill")
+                                      .requires(PermsWrap.check(this.getNode()+".kill", 4))
+                                      .then(argument("target", StringArgumentType.string())
+                                                    .suggests(
+                                                            (ctx, builder) ->
+                                                                    SharedSuggestionProvider.suggest(
+                                                                            PlayerManager.getInstance().getKillCommandSuggestions(ctx),
+                                                                            builder,
+                                                                            ProfileWrap::name,
+                                                                            this::formatTooltip
+                                                                    )
+                                                    )
+                                                    .requires(PermsWrap.check(this.getNode()+".kill", 4))
+                                                    .executes(ctx ->
+                                                              {
+                                                                  String result = StringArgumentType.getString(ctx, "target");
+                                                                  return this.killShadow(ctx, result);
+                                                              }
+                                                    )
+                                      )
                         )
         );
     }
@@ -328,20 +401,22 @@ public class UnpluggedAdminCommand implements IServerCommand
         ImmutableMap<UUID, ShadowEntry> shadowMap = ShadowEntryList.getInstance().shadowMapCopy();
         int count = 0;
 
+        PlayerManager.getInstance().flushToConfig();
+
         for (UUID uuid : playerMap.keySet())
         {
             if (player != null)
             {
                 if (!uuid.equals(player.getUUID()))
                 {
-                    PlayerManager.getInstance().remove(uuid);
+                    PlayerManager.getInstance().remove(uuid, true);
                     count++;
                 }
             }
             else
             {
                 // Via console command, probably.
-                PlayerManager.getInstance().remove(uuid);
+                PlayerManager.getInstance().remove(uuid, true);
                 count++;
             }
         }
@@ -366,6 +441,189 @@ public class UnpluggedAdminCommand implements IServerCommand
         else
         {
             UnpluggedAfk.debugLog("purgePlayers: by: [console/unknown]");
+        }
+
+        return 1;
+    }
+
+    @ApiStatus.Internal
+    private Component formatTooltip(GameProfile profile)
+    {
+        MutableComponent result = Component.literal(ProfileWrap.name(profile));
+        //#if MC >= 1.21.5
+        //$$ HoverEvent hoverEvent = new HoverEvent.ShowEntity(
+        //#else
+        HoverEvent hoverEvent = new HoverEvent(HoverEvent.Action.SHOW_ENTITY,
+        //#endif
+                                               new HoverEvent.EntityTooltipInfo(this.getEntityTypeWrap(),
+                                                                                ProfileWrap.id(profile),
+                                                                                Component.literal(ProfileWrap.name(profile))
+                                               )
+        );
+        result.withStyle(style -> style.withHoverEvent(hoverEvent));
+        return result;
+    }
+
+    @ApiStatus.Internal
+    private EntityType<?> getEntityTypeWrap()
+    {
+        //#if MC >= 26.2
+        //$$ return EntityTypes.PLAYER;
+        //#else
+        return EntityType.PLAYER;
+        //#endif
+    }
+
+    @ApiStatus.Internal
+    private int createShadow(CommandContext<CommandSourceStack> ctx, String result, int time, String reason)
+    {
+        ImmutableList<GameProfile> list = PlayerManager.getInstance().getSpawnCommandSuggestions(ctx);
+        boolean found = false;
+        String reply = "";
+
+        if (time < 0)
+        {
+            time = ConfigWrap.unplugged().defaultShadowTimeout;
+
+            if (time < 0)
+            {
+                time = 129600;
+            }
+        }
+        if (reason == null || reason.isEmpty())
+        {
+            reason = ConfigWrap.mess().defaultShadowReason;
+
+            if (reason == null || reason.isEmpty())
+            {
+                reason = "§rnone";
+            }
+        }
+
+        for (GameProfile entry : list)
+        {
+            if (ProfileWrap.name(entry).equals(result))
+            {
+                try
+                {
+                    PlayerOptions opts = ConfigWrap.players().stream()
+                            .filter(opt -> opt.uuid.equals(ProfileWrap.id(entry)))
+                                                   .findFirst()
+                                                   .orElseThrow();
+
+                    UnpluggedAfk.debugLog("createShadow: Scheduling Shadow player: ['{}'/{}]", opts.name, opts.uuid.toString());
+                    reply = "§eScheduling shadow spawn for: §7"+ result + "§r";
+                    opts.state = new ShadowState(true, time, (time * 60L) * 1000L, reason);
+                    PlayerManager.getInstance().setShadowState(entry, opts.state);
+                    PlayerManager.getInstance().flushToConfig();
+                    PendingShadowSpawns.INSTANCE.unlock();
+                    PendingShadowSpawns.INSTANCE.scheduleSpawn(opts);
+                }
+                catch (Exception e)
+                {
+                    reply = "§cException: "+ e.getLocalizedMessage() + "§r";
+                }
+
+                found = true;
+                break;
+            }
+        }
+
+        if (!found)
+        {
+            reply = "§cNo matching player found§r";
+        }
+
+        final String finalReply = reply;
+
+        //#if MC >= 1.20.1
+        //$$ ctx.getSource().sendSuccess(() -> InitWrap.text().formatText(finalReply), false);
+        //#else
+        ctx.getSource().sendSuccess(InitWrap.text().formatText(finalReply), false);
+        //#endif
+
+        if (ctx.getSource().isPlayer() && ctx.getSource().getPlayer() instanceof ServerPlayer)
+        {
+            GameProfile profile = ctx.getSource().getPlayer().getGameProfile();
+            UnpluggedAfk.debugLog("createShadow: by: ['{}'/{}] // result: {}", ProfileWrap.name(profile), ProfileWrap.id(profile), finalReply);
+        }
+        else
+        {
+            UnpluggedAfk.debugLog("createShadow: by: [console/unknown] // result: {}", finalReply);
+        }
+
+        return 1;
+    }
+
+    @ApiStatus.Internal
+    private int killShadow(CommandContext<CommandSourceStack> ctx, String result)
+    {
+        ImmutableList<GameProfile> list = PlayerManager.getInstance().getKillCommandSuggestions(ctx);
+        boolean found = false;
+        String reply = "";
+
+        for (GameProfile entry : list)
+        {
+            if (ProfileWrap.name(entry).equals(result))
+            {
+                try
+                {
+                    MinecraftServer server = ctx.getSource().getServer();
+                    PlayerList playerList = server.getPlayerList();
+                    List<ServerPlayer> players = playerList.getPlayers();
+
+                    for (ServerPlayer player : players)
+                    {
+                        if (player.getUUID().equals(ProfileWrap.id(entry)) && player instanceof ShadowServerPlayer sp)
+                        {
+                            UnpluggedAfk.debugLog("killShadow: Killing Shadow player: ['{}'/{}]", ProfileWrap.name(entry), ProfileWrap.id(entry).toString());
+                            reply = "§eKilling shadow: §7"+ ProfileWrap.name(entry) + "§r";
+
+                            if (ConfigWrap.mess().hideShadowJoin)
+                            {
+                                ((IPlayerListInvoker) playerList).unplugged$toggleBroadcastSystemMessage(true);
+                            }
+
+                            Component message = Component.literal("Killed");
+                            sp.kill(message);
+                            playerList.remove(player);
+                            ((IPlayerListInvoker) playerList).unplugged$toggleBroadcastSystemMessage(false);
+
+                            break;
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    reply = "§cException: "+ e.getLocalizedMessage() + "§r";
+                }
+
+                found = true;
+                break;
+            }
+        }
+
+        if (!found)
+        {
+            reply = "§cNo matching shadow player found§r";
+        }
+
+        final String finalReply = reply;
+
+        //#if MC >= 1.20.1
+        //$$ ctx.getSource().sendSuccess(() -> InitWrap.text().formatText(finalReply), false);
+        //#else
+        ctx.getSource().sendSuccess(InitWrap.text().formatText(finalReply), false);
+        //#endif
+
+        if (ctx.getSource().isPlayer() && ctx.getSource().getPlayer() instanceof ServerPlayer)
+        {
+            GameProfile profile = ctx.getSource().getPlayer().getGameProfile();
+            UnpluggedAfk.debugLog("killShadow: by: ['{}'/{}] // result: {}", ProfileWrap.name(profile), ProfileWrap.id(profile), finalReply);
+        }
+        else
+        {
+            UnpluggedAfk.debugLog("killShadow: by: [console/unknown] // result: {}", finalReply);
         }
 
         return 1;

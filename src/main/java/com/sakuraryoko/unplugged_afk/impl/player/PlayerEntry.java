@@ -27,6 +27,7 @@ import org.jspecify.annotations.NonNull;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 
+import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
 import com.sakuraryoko.unplugged_afk.impl.modinit.InitWrap;
 import com.sakuraryoko.unplugged_afk.impl.player.state.GameState;
 import com.sakuraryoko.unplugged_afk.impl.player.state.PosState;
@@ -100,23 +101,32 @@ public record PlayerEntry(UUID uuid, String name, ShadowState state, PosState po
 				InitWrap.text().formatText("\n - §7Name: ")
 		).append(
 				InitWrap.text().formatText(this.name())
-		).append(
-				InitWrap.text().formatText("\n - §7UUID: ")
-		).append(
-				InitWrap.text().formatText(this.uuid().toString())
-		).append(
-				InitWrap.text().formatText("\n - §7Game: ")
-		).append(
-				this.game().getDebugFormatted()
-		).append(
+		);
+		if (!ConfigWrap.mainOpt().reducedListDebugInfo)
+		{
+			text.append(
+					InitWrap.text().formatText("\n - §7UUID: ")
+			).append(
+					InitWrap.text().formatText(this.uuid().toString())
+			).append(
+					InitWrap.text().formatText("\n - §7Game: ")
+			).append(
+					this.game().getDebugFormatted()
+			);
+		}
+		text.append(
 				InitWrap.text().formatText("\n - §7Position: ")
 		).append(
 				this.pos().getDebugFormatted()
-		).append(
-				InitWrap.text().formatText("\n - §7Shadow: ")
-		).append(
-				this.state().getDebugFormatted()
 		);
+		if (!ConfigWrap.mainOpt().reducedListDebugInfo || this.state().enabled())
+		{
+			text.append(
+					InitWrap.text().formatText("\n - §7Shadow: ")
+			).append(
+					this.state().getDebugFormatted()
+			);
+		}
 
 		return text;
 	}
