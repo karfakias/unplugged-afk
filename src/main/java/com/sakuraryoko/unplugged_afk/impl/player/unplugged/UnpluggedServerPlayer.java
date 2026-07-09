@@ -701,7 +701,7 @@ public class UnpluggedServerPlayer extends ServerPlayer
 
 				if (mess == null || mess.isEmpty())
 				{
-					mess = "Shadow Expired";
+					mess = "§eUnplugged expired§r";
 				}
 
 				if (ConfigWrap.mess().hideUnpluggedJoin)

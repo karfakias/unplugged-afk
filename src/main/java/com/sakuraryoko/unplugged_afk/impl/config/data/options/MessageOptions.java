@@ -57,8 +57,8 @@ public class MessageOptions implements IConfigOption
 		this.hideUnpluggedJoin = false;
 		this.displayDuration = true;
 		this.defaultUnpluggedReason = "§7unplugged§r";
-		this.unpluggedKickMessage = "§6Unplugged§r";
-		this.unpluggedExpiredReason = "§eYou didn't come back in time§r";
+		this.unpluggedKickMessage = "§6Congrats, you've been unplugged§r";
+		this.unpluggedExpiredReason = "§eTimeout expired§r";
 		this.unpluggedStarted = "§r §eis now unplugged§r";
 		this.unpluggedPunctuation = "§e,§r ";
 		this.unpluggedReturned = "§r §eis no longer unplugged§r";
