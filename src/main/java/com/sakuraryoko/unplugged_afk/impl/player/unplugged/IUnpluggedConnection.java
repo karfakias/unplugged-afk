@@ -18,13 +18,13 @@
  * along with Unplugged-AFK.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.sakuraryoko.unplugged_afk.impl.player.shadow;
+package com.sakuraryoko.unplugged_afk.impl.player.unplugged;
 
 import io.netty.channel.Channel;
 import org.jetbrains.annotations.ApiStatus;
 
 @ApiStatus.Internal
-public interface IShadowConnection
+public interface IUnpluggedConnection
 {
 	void setChannel(Channel channel);
 }

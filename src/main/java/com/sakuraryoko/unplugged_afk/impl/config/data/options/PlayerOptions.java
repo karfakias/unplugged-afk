@@ -30,7 +30,6 @@ import org.jetbrains.annotations.VisibleForTesting;
 
 import com.mojang.authlib.GameProfile;
 
-import com.sakuraryoko.unplugged_afk.impl.player.state.*;
 import com.sakuraryoko.corelib.api.config.IConfigOption;
 
 @ApiStatus.Internal
@@ -38,7 +37,7 @@ public class PlayerOptions implements IConfigOption
 {
 	public UUID uuid;
 	public String name;
-	public ShadowState state;
+	public UnpluggedState state;
 	public PosState pos;
 	public GameState game;
 
@@ -58,7 +57,7 @@ public class PlayerOptions implements IConfigOption
 	{
 		this.uuid = UUID.randomUUID();
 		this.name = this.uuid.toString();
-		this.state = ShadowState.DEFAULT;
+		this.state = UnpluggedState.DEFAULT;
 		this.pos = PosWrap.defaultPos();
 		this.game = GameWrap.defMode();
 	}
@@ -95,10 +94,10 @@ public class PlayerOptions implements IConfigOption
 
 	public static PlayerOptions fromProfile(@NotNull GameProfile profile)
 	{
-		return fromProfile(profile, ShadowState.DEFAULT);
+		return fromProfile(profile, UnpluggedState.DEFAULT);
 	}
 
-	public static PlayerOptions fromProfile(@NotNull GameProfile profile, ShadowState state)
+	public static PlayerOptions fromProfile(@NotNull GameProfile profile, UnpluggedState state)
 	{
 		PlayerOptions opts = new PlayerOptions();
 

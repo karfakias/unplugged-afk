@@ -34,7 +34,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import com.sakuraryoko.unplugged_afk.impl.player.shadow.ShadowServerPlayer;
+import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedServerPlayer;
 
 @Mixin(Entity.class)
 @ApiStatus.Internal
@@ -58,8 +58,8 @@ public abstract class MixinEntity
 	//#endif
 	private void unplugged$isControlledByLocalInstance(CallbackInfoReturnable<Boolean> cir)
 	{
-		if ((Object) this instanceof ShadowServerPlayer ||
-			this.getControllingPassenger() instanceof ShadowServerPlayer)
+		if ((Object) this instanceof UnpluggedServerPlayer ||
+		    this.getControllingPassenger() instanceof UnpluggedServerPlayer)
 		{
 			cir.setReturnValue(!this.level.isClientSide());
 		}

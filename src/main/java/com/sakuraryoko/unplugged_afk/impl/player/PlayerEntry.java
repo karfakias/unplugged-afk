@@ -31,12 +31,12 @@ import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
 import com.sakuraryoko.unplugged_afk.impl.modinit.InitWrap;
 import com.sakuraryoko.unplugged_afk.impl.player.state.GameState;
 import com.sakuraryoko.unplugged_afk.impl.player.state.PosState;
-import com.sakuraryoko.unplugged_afk.impl.player.state.ShadowState;
+import com.sakuraryoko.unplugged_afk.impl.player.state.UnpluggedState;
 
 @ApiStatus.Internal
-public record PlayerEntry(UUID uuid, String name, ShadowState state, PosState pos, GameState game)
+public record PlayerEntry(UUID uuid, String name, UnpluggedState state, PosState pos, GameState game)
 {
-	public PlayerEntry updateState(ShadowState state)
+	public PlayerEntry updateState(UnpluggedState state)
 	{
 		return new PlayerEntry(this.uuid(), this.name(), state, this.pos(), this.game());
 	}
@@ -51,7 +51,7 @@ public record PlayerEntry(UUID uuid, String name, ShadowState state, PosState po
 		return new PlayerEntry(this.uuid(), name, this.state(), pos, game);
 	}
 
-	public PlayerEntry updateAll(ShadowState state, PosState pos, GameState game)
+	public PlayerEntry updateAll(UnpluggedState state, PosState pos, GameState game)
 	{
 		return new PlayerEntry(this.uuid(), this.name(), state, pos, game);
 	}

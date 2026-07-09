@@ -61,9 +61,9 @@ import com.sakuraryoko.unplugged_afk.impl.modinit.InitWrap;
 import com.sakuraryoko.unplugged_afk.impl.modinit.UnpluggedInit;
 import com.sakuraryoko.unplugged_afk.impl.player.*;
 import com.sakuraryoko.unplugged_afk.impl.player.interfaces.IPlayerListInvoker;
-import com.sakuraryoko.unplugged_afk.impl.player.shadow.ShadowServerPlayer;
+import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedServerPlayer;
 import com.sakuraryoko.unplugged_afk.impl.player.state.ProfileWrap;
-import com.sakuraryoko.unplugged_afk.impl.player.state.ShadowState;
+import com.sakuraryoko.unplugged_afk.impl.player.state.UnpluggedState;
 
 import static net.minecraft.commands.Commands.argument;
 import static net.minecraft.commands.Commands.literal;
@@ -76,33 +76,33 @@ public class UnpluggedAdminCommand implements IServerCommand
     {
         dispatcher.register(
                 literal(this.getName())
-                        .requires(PermsWrap.check(this.getNode(), 4))
+                        .requires(PermsWrap.check(this.getNode(), ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
                         .executes(this::about)
                         .then(literal("save")
-                                      .requires(PermsWrap.check(this.getNode()+".save", 4))
+                                      .requires(PermsWrap.check(this.getNode()+".save", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
                                       .executes(this::save)
                         )
                         .then(literal("reload")
-                                      .requires(PermsWrap.check(this.getNode()+".reload", 4))
+                                      .requires(PermsWrap.check(this.getNode()+".reload", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
                                       .executes(this::reload)
                         )
                         .then(literal("list")
-                                      .requires(PermsWrap.check(this.getNode()+".list", 4))
+                                      .requires(PermsWrap.check(this.getNode()+".list", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
                                       .then(literal("players")
-                                                    .requires(PermsWrap.check(this.getNode()+".list.players", 4))
+                                                    .requires(PermsWrap.check(this.getNode()+".list.players", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
                                                     .executes(this::listPlayerMap)
                                       )
                                       .then(literal("shadows")
-                                                    .requires(PermsWrap.check(this.getNode()+".list.shadows", 4))
+                                                    .requires(PermsWrap.check(this.getNode()+".list.shadows", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
                                                     .executes(this::listShadowMap)
                                       )
                                       .then(literal("all")
-                                                    .requires(PermsWrap.check(this.getNode()+".list.all", 4))
+                                                    .requires(PermsWrap.check(this.getNode()+".list.all", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
                                                     .executes(this::listAll)
                                       )
                         )
                         .then(literal("info")
-                                      .requires(PermsWrap.check(this.getNode()+".info", 4))
+                                      .requires(PermsWrap.check(this.getNode()+".info", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
                                       .executes(this::infoPlayer)
                                       .then(argument("player", EntityArgument.player())
                                                     .executes(ctx ->
@@ -111,11 +111,11 @@ public class UnpluggedAdminCommand implements IServerCommand
                                       )
                         )
                         .then(literal("purge")
-                                      .requires(PermsWrap.check(this.getNode()+".purge", 4))
+                                      .requires(PermsWrap.check(this.getNode()+".purge", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
                                       .executes(this::purgePlayers)
                         )
                         .then(literal("spawn")
-                                      .requires(PermsWrap.check(this.getNode()+".spawn", 4))
+                                      .requires(PermsWrap.check(this.getNode()+".spawn", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
                                       .then(argument("shadow", StringArgumentType.string())
                                                     .suggests(
                                                             (ctx, builder) ->
@@ -126,7 +126,7 @@ public class UnpluggedAdminCommand implements IServerCommand
                                                                             this::formatTooltip
                                                                     )
                                                     )
-                                                    .requires(PermsWrap.check(this.getNode()+".spawn", 4))
+                                                    .requires(PermsWrap.check(this.getNode()+".spawn", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
                                                     .executes(ctx ->
                                                               {
                                                                   String result = StringArgumentType.getString(ctx, "shadow");
@@ -134,7 +134,7 @@ public class UnpluggedAdminCommand implements IServerCommand
                                                               }
                                                     )
                                                     .then(argument("time", IntegerArgumentType.integer(1))
-                                                                  .requires(PermsWrap.check(this.getNode()+".spawn", 4))
+                                                                  .requires(PermsWrap.check(this.getNode()+".spawn", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
                                                                   .executes(ctx ->
                                                                             {
                                                                                 String result = StringArgumentType.getString(ctx, "shadow");
@@ -142,7 +142,7 @@ public class UnpluggedAdminCommand implements IServerCommand
                                                                             }
                                                                   )
                                                                   .then(argument("reason", StringArgumentType.greedyString())
-                                                                                .requires(PermsWrap.check(this.getNode()+".spawn", 4))
+                                                                                .requires(PermsWrap.check(this.getNode()+".spawn", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
                                                                                 .executes(ctx ->
                                                                                           {
                                                                                               String result = StringArgumentType.getString(ctx, "shadow");
@@ -154,7 +154,7 @@ public class UnpluggedAdminCommand implements IServerCommand
                                       )
                         )
                         .then(literal("kill")
-                                      .requires(PermsWrap.check(this.getNode()+".kill", 4))
+                                      .requires(PermsWrap.check(this.getNode()+".kill", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
                                       .then(argument("target", StringArgumentType.string())
                                                     .suggests(
                                                             (ctx, builder) ->
@@ -165,7 +165,7 @@ public class UnpluggedAdminCommand implements IServerCommand
                                                                             this::formatTooltip
                                                                     )
                                                     )
-                                                    .requires(PermsWrap.check(this.getNode()+".kill", 4))
+                                                    .requires(PermsWrap.check(this.getNode()+".kill", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
                                                     .executes(ctx ->
                                                               {
                                                                   String result = StringArgumentType.getString(ctx, "target");
@@ -299,7 +299,7 @@ public class UnpluggedAdminCommand implements IServerCommand
 
     private int listShadowMap(CommandContext<CommandSourceStack> ctx)
     {
-        ImmutableMap<UUID, ShadowEntry> map = ShadowEntryList.getInstance().shadowMapCopy();
+        ImmutableMap<UUID, UnpluggedEntry> map = UnpluggedEntryList.getInstance().shadowMapCopy();
         MutableComponent text = Component.literal("");
         int count = 0;
 
@@ -307,7 +307,7 @@ public class UnpluggedAdminCommand implements IServerCommand
                 InitWrap.text().formatText("\n§dShadow Map:")
         );
 
-        for (ShadowEntry entry : map.values())
+        for (UnpluggedEntry entry : map.values())
         {
             text.append(
                     InitWrap.text().formatText(
@@ -367,7 +367,7 @@ public class UnpluggedAdminCommand implements IServerCommand
         ).append(
                 InitWrap.text().formatText("\n§9Shadow Info: ")
         ).append(
-                ShadowEntryList.getInstance().getDebugFormatted(player.getUUID())
+                UnpluggedEntryList.getInstance().getDebugFormatted(player.getUUID())
         );
 
         //#if MC >= 1.20.1
@@ -398,7 +398,7 @@ public class UnpluggedAdminCommand implements IServerCommand
     {
         ServerPlayer player = ctx.getSource().getPlayer();
         ImmutableMap<UUID, PlayerEntry> playerMap = PlayerManager.getInstance().playerMapCopy();
-        ImmutableMap<UUID, ShadowEntry> shadowMap = ShadowEntryList.getInstance().shadowMapCopy();
+        ImmutableMap<UUID, UnpluggedEntry> shadowMap = UnpluggedEntryList.getInstance().shadowMapCopy();
         int count = 0;
 
         PlayerManager.getInstance().flushToConfig();
@@ -424,7 +424,7 @@ public class UnpluggedAdminCommand implements IServerCommand
         // Resync
         PlayerManager.getInstance().onServerResync(ctx.getSource().getServer(), playerMap, shadowMap);
         playerMap = PlayerManager.getInstance().playerMapCopy();
-        shadowMap = ShadowEntryList.getInstance().shadowMapCopy();
+        shadowMap = UnpluggedEntryList.getInstance().shadowMapCopy();
         String result = String.format("§ePurged: §c%d §eplayers, and then resynced §a%d §ecurrent players, with §6%d shadows§r", count, playerMap.size(), shadowMap.size());
 
         //#if MC >= 1.20.1
@@ -483,7 +483,7 @@ public class UnpluggedAdminCommand implements IServerCommand
 
         if (time < 0)
         {
-            time = ConfigWrap.unplugged().defaultShadowTimeout;
+            time = ConfigWrap.unplugged().defaultUnpluggedTimeout;
 
             if (time < 0)
             {
@@ -492,7 +492,7 @@ public class UnpluggedAdminCommand implements IServerCommand
         }
         if (reason == null || reason.isEmpty())
         {
-            reason = ConfigWrap.mess().defaultShadowReason;
+            reason = ConfigWrap.mess().defaultUnpluggedReason;
 
             if (reason == null || reason.isEmpty())
             {
@@ -513,11 +513,11 @@ public class UnpluggedAdminCommand implements IServerCommand
 
                     UnpluggedAfk.debugLog("createShadow: Scheduling Shadow player: ['{}'/{}]", opts.name, opts.uuid.toString());
                     reply = "§eScheduling shadow spawn for: §7"+ result + "§r";
-                    opts.state = new ShadowState(true, time, (time * 60L) * 1000L, reason);
+                    opts.state = new UnpluggedState(true, time, (time * 60L) * 1000L, reason);
                     PlayerManager.getInstance().setShadowState(entry, opts.state);
                     PlayerManager.getInstance().flushToConfig();
-                    PendingShadowSpawns.INSTANCE.unlock();
-                    PendingShadowSpawns.INSTANCE.scheduleSpawn(opts);
+                    PendingUnpluggedSpawns.INSTANCE.unlock();
+                    PendingUnpluggedSpawns.INSTANCE.scheduleSpawn(opts);
                 }
                 catch (Exception e)
                 {
@@ -574,12 +574,12 @@ public class UnpluggedAdminCommand implements IServerCommand
 
                     for (ServerPlayer player : players)
                     {
-                        if (player.getUUID().equals(ProfileWrap.id(entry)) && player instanceof ShadowServerPlayer sp)
+                        if (player.getUUID().equals(ProfileWrap.id(entry)) && player instanceof UnpluggedServerPlayer sp)
                         {
                             UnpluggedAfk.debugLog("killShadow: Killing Shadow player: ['{}'/{}]", ProfileWrap.name(entry), ProfileWrap.id(entry).toString());
                             reply = "§eKilling shadow: §7"+ ProfileWrap.name(entry) + "§r";
 
-                            if (ConfigWrap.mess().hideShadowJoin)
+                            if (ConfigWrap.mess().hideUnpluggedJoin)
                             {
                                 ((IPlayerListInvoker) playerList).unplugged$toggleBroadcastSystemMessage(true);
                             }

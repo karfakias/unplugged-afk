@@ -41,7 +41,7 @@ import com.sakuraryoko.unplugged_afk.impl.UnpluggedAfk;
 import com.sakuraryoko.unplugged_afk.impl.commands.PermsWrap;
 import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
 import com.sakuraryoko.unplugged_afk.impl.modinit.InitWrap;
-import com.sakuraryoko.unplugged_afk.impl.player.shadow.ShadowServerPlayer;
+import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedServerPlayer;
 import com.sakuraryoko.corelib.api.commands.IServerCommand;
 import com.sakuraryoko.unplugged_afk.impl.player.state.ProfileWrap;
 
@@ -56,13 +56,13 @@ public class UnpluggedCommand implements IServerCommand
     {
         dispatcher.register(
                 literal(this.getName())
-                        .requires(PermsWrap.check(this.getNode(), ConfigWrap.unplugged().unpluggedAfkCommandPermissions))
+                        .requires(PermsWrap.check(this.getNode(), ConfigWrap.unplugged().unpluggedCommandPermissions))
                         .executes(ctx -> this.setUnpluggedAfk(ctx, -1, ""))
                         .then(argument("time", IntegerArgumentType.integer(1))
-                                      .requires(PermsWrap.check(this.getNode(), ConfigWrap.unplugged().unpluggedAfkCommandPermissions))
+                                      .requires(PermsWrap.check(this.getNode(), ConfigWrap.unplugged().unpluggedCommandPermissions))
                                       .executes(ctx -> this.setUnpluggedAfk(ctx, IntegerArgumentType.getInteger(ctx, "time"), ""))
                                       .then(argument("reason", StringArgumentType.greedyString())
-                                                    .requires(PermsWrap.check(this.getNode(), ConfigWrap.unplugged().unpluggedAfkCommandPermissions))
+                                                    .requires(PermsWrap.check(this.getNode(), ConfigWrap.unplugged().unpluggedCommandPermissions))
                                                     .executes(ctx -> this.setUnpluggedAfk(ctx, IntegerArgumentType.getInteger(ctx, "time"), StringArgumentType.getString(ctx, "reason")))
                                       )
                         )
@@ -118,7 +118,7 @@ public class UnpluggedCommand implements IServerCommand
 
         if (time < 0)
         {
-            time = ConfigWrap.unplugged().defaultShadowTimeout;
+            time = ConfigWrap.unplugged().defaultUnpluggedTimeout;
 
             if (time < 0)
             {
@@ -127,7 +127,7 @@ public class UnpluggedCommand implements IServerCommand
         }
         if (reason == null || reason.isEmpty())
         {
-            reason = ConfigWrap.mess().defaultShadowReason;
+            reason = ConfigWrap.mess().defaultUnpluggedReason;
 
             if (reason == null || reason.isEmpty())
             {
@@ -136,7 +136,7 @@ public class UnpluggedCommand implements IServerCommand
         }
 
         UnpluggedAfk.debugLog("setUnpluggedAfk: player: ['{}'/{}] // T: {}m, R: '{}'", ProfileWrap.name(profile), ProfileWrap.id(profile), time, reason);
-        ShadowServerPlayer.createShadow(server, player, time, reason);
+        UnpluggedServerPlayer.createShadow(server, player, time, reason);
 
         return 1;
     }

@@ -31,22 +31,22 @@ import org.jetbrains.annotations.VisibleForTesting;
 import net.minecraft.network.chat.Component;
 
 import com.sakuraryoko.unplugged_afk.impl.UnpluggedAfk;
-import com.sakuraryoko.unplugged_afk.impl.player.shadow.ShadowServerPlayer;
-import com.sakuraryoko.unplugged_afk.impl.player.state.ShadowState;
+import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedServerPlayer;
+import com.sakuraryoko.unplugged_afk.impl.player.state.UnpluggedState;
 
 @ApiStatus.Internal
-public class ShadowEntryList
+public class UnpluggedEntryList
 {
-	private static final ShadowEntryList INSTANCE = new ShadowEntryList();
-	public static ShadowEntryList getInstance() { return INSTANCE; }
-	private final HashMap<UUID, ShadowEntry> shadowMap;
+	private static final UnpluggedEntryList INSTANCE = new UnpluggedEntryList();
+	public static UnpluggedEntryList getInstance() { return INSTANCE; }
+	private final HashMap<UUID, UnpluggedEntry> shadowMap;
 
-	private ShadowEntryList()
+	private UnpluggedEntryList()
 	{
 		this.shadowMap = new HashMap<>();
 	}
 
-	public @Nullable ShadowEntry get(@Nonnull ShadowServerPlayer player)
+	public @Nullable UnpluggedEntry get(@Nonnull UnpluggedServerPlayer player)
 	{
 		UUID uuid = player.getUUID();
 
@@ -58,11 +58,11 @@ public class ShadowEntryList
 		return null;
 	}
 
-	public @Nullable ShadowEntry add(@Nonnull ShadowServerPlayer player, ShadowState state)
+	public @Nullable UnpluggedEntry add(@Nonnull UnpluggedServerPlayer player, UnpluggedState state)
 	{
 		if (this.get(player) == null)
 		{
-			ShadowEntry entry = ShadowEntry.create(player);
+			UnpluggedEntry entry = UnpluggedEntry.create(player);
 
 			if (state.enabled())
 			{
@@ -77,13 +77,13 @@ public class ShadowEntryList
 		return this.get(player);
 	}
 
-	public void updateShadow(@Nonnull ShadowServerPlayer player)
+	public void updateShadow(@Nonnull UnpluggedServerPlayer player)
 	{
 		UUID uuid = player.getUUID();
 
 		if (this.shadowMap.containsKey(uuid))
 		{
-			ShadowEntry entry = this.shadowMap.get(uuid);
+			UnpluggedEntry entry = this.shadowMap.get(uuid);
 
 			if (entry != null)
 			{
@@ -92,7 +92,7 @@ public class ShadowEntryList
 		}
 	}
 
-	protected void syncShadowEntry(@Nonnull ShadowServerPlayer player, ShadowEntry entry)
+	protected void syncShadowEntry(@Nonnull UnpluggedServerPlayer player, UnpluggedEntry entry)
 	{
 		UUID uuid = player.getUUID();
 
@@ -106,7 +106,7 @@ public class ShadowEntryList
 
 	public void remove(@Nonnull UUID uuid, boolean silent)
 	{
-		ShadowEntry entry = this.shadowMap.remove(uuid);
+		UnpluggedEntry entry = this.shadowMap.remove(uuid);
 
 		if (entry != null)
 		{
@@ -116,15 +116,15 @@ public class ShadowEntryList
 		}
 	}
 
-	public void remove(@Nonnull ShadowServerPlayer player, boolean silent)
+	public void remove(@Nonnull UnpluggedServerPlayer player, boolean silent)
 	{
 		this.remove(player.getUUID(), silent);
 	}
 
 	@VisibleForTesting
-	public ImmutableMap<UUID, ShadowEntry> shadowMapCopy()
+	public ImmutableMap<UUID, UnpluggedEntry> shadowMapCopy()
 	{
-		ImmutableMap.Builder<UUID, ShadowEntry> builder = ImmutableMap.builder();
+		ImmutableMap.Builder<UUID, UnpluggedEntry> builder = ImmutableMap.builder();
 		this.shadowMap.forEach(builder::put);
 		return builder.build();
 	}
@@ -134,7 +134,7 @@ public class ShadowEntryList
 	{
 		if (this.shadowMap.containsKey(uuid))
 		{
-			ShadowEntry entry = this.shadowMap.get(uuid);
+			UnpluggedEntry entry = this.shadowMap.get(uuid);
 
 			if (entry != null)
 			{

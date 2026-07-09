@@ -27,11 +27,11 @@ import net.minecraft.network.Connection;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-import com.sakuraryoko.unplugged_afk.impl.player.shadow.IShadowConnection;
+import com.sakuraryoko.unplugged_afk.impl.player.unplugged.IUnpluggedConnection;
 
 @Mixin(Connection.class)
 @ApiStatus.Internal
-public abstract class MixinConnection implements IShadowConnection
+public abstract class MixinConnection implements IUnpluggedConnection
 {
 	@Override
 	@Accessor

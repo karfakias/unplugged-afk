@@ -33,7 +33,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 
-import com.sakuraryoko.unplugged_afk.impl.player.shadow.ShadowServerPlayer;
+import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedServerPlayer;
 
 @Mixin(TickRateManager.class)
 @ApiStatus.Internal
@@ -57,6 +57,6 @@ public abstract class MixinTickRateManager
 	@Unique
 	private static boolean isNotFake(Entity e)
 	{
-		return e instanceof Player && !(e instanceof ShadowServerPlayer);
+		return e instanceof Player && !(e instanceof UnpluggedServerPlayer);
 	}
 }

@@ -18,7 +18,7 @@
  * along with Unplugged-AFK.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.sakuraryoko.unplugged_afk.impl.player.shadow;
+package com.sakuraryoko.unplugged_afk.impl.player.unplugged;
 
 import java.util.List;
 import javax.annotation.Nonnull;
@@ -41,19 +41,19 @@ import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
 import com.sakuraryoko.unplugged_afk.impl.player.interfaces.IPlayerListInvoker;
 
 @ApiStatus.Internal
-public class ShadowPlayerUtils
+public class UnpluggedPlayerUtils
 {
 	@ApiStatus.Internal
-	public static ImmutableList<ShadowServerPlayer> getShadows(@Nonnull MinecraftServer server)
+	public static ImmutableList<UnpluggedServerPlayer> getShadows(@Nonnull MinecraftServer server)
 	{
-		ImmutableList.Builder<ShadowServerPlayer> builder = ImmutableList.builder();
+		ImmutableList.Builder<UnpluggedServerPlayer> builder = ImmutableList.builder();
 		PlayerList pl = server.getPlayerList();
 		List<ServerPlayer> players = pl.getPlayers();
 		((IPlayerListInvoker) pl).unplugged$toggleBroadcastSystemMessage(false);
 
 		for (ServerPlayer player : players)
 		{
-			if (player instanceof ShadowServerPlayer sp)
+			if (player instanceof UnpluggedServerPlayer sp)
 			{
 				builder.add(sp);
 			}
@@ -67,7 +67,7 @@ public class ShadowPlayerUtils
 	{
 		if (ConfigWrap.unplugged().unpluggedHidePlayer)
 		{
-			ImmutableList<ShadowServerPlayer> shadows = getShadows(server);
+			ImmutableList<UnpluggedServerPlayer> shadows = getShadows(server);
 			boolean result = false;
 
 			if (ConfigWrap.unplugged().unpluggedHideFromOps && isOpWrap(player))
@@ -81,7 +81,7 @@ public class ShadowPlayerUtils
 
 			if (result)
 			{
-				for (ShadowServerPlayer shadow : shadows)
+				for (UnpluggedServerPlayer shadow : shadows)
 				{
 					sendRemovePacketToPlayerWrap(shadow, player);
 				}
@@ -90,7 +90,7 @@ public class ShadowPlayerUtils
 	}
 
 	@ApiStatus.Internal
-	protected static void sendHidePlayerPacket(@Nonnull MinecraftServer server, @Nonnull ShadowServerPlayer sp)
+	protected static void sendHidePlayerPacket(@Nonnull MinecraftServer server, @Nonnull UnpluggedServerPlayer sp)
 	{
 		if (ConfigWrap.unplugged().unpluggedHidePlayer)
 		{
@@ -130,7 +130,7 @@ public class ShadowPlayerUtils
 	}
 
 	@ApiStatus.Internal
-	protected static void sendRemovePacketToPlayerWrap(@Nonnull ShadowServerPlayer sp, @Nonnull ServerPlayer player)
+	protected static void sendRemovePacketToPlayerWrap(@Nonnull UnpluggedServerPlayer sp, @Nonnull ServerPlayer player)
 	{
 		//#if MC >= 1.19.3
 		//$$ player.connection.send(new ClientboundPlayerInfoRemovePacket(List.of(sp.getUUID())));

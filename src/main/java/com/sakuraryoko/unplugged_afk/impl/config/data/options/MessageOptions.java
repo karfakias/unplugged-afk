@@ -32,14 +32,14 @@ import com.sakuraryoko.corelib.api.time.TimeFormat;
 public class MessageOptions implements IConfigOption
 {
 	public boolean broadcastMessages;
-	public boolean hideShadowJoin;
+	public boolean hideUnpluggedJoin;
 	public boolean displayDuration;
-	public String defaultShadowReason;
-	public String shadowKickMessage;
-	public String shadowExpiredReason;
-	public String shadowStarted;
-	public String shadowPunctuation;
-	public String shadowReturned;
+	public String defaultUnpluggedReason;
+	public String unpluggedKickMessage;
+	public String unpluggedExpiredReason;
+	public String unpluggedStarted;
+	public String unpluggedPunctuation;
+	public String unpluggedReturned;
 	public String whenReturnDurationPrefix;
 	public String whenReturnDurationSuffix;
 	public DurationOption duration;
@@ -54,14 +54,14 @@ public class MessageOptions implements IConfigOption
 	public void defaults()
 	{
 		this.broadcastMessages = false;
-		this.hideShadowJoin = false;
+		this.hideUnpluggedJoin = false;
 		this.displayDuration = true;
-		this.defaultShadowReason = "§7shadowing§r";
-		this.shadowKickMessage = "§6Shadow activation§r";
-		this.shadowExpiredReason = "§eYou didn't come back in time§r";
-		this.shadowStarted = "§r §eis now shadowed§r";
-		this.shadowPunctuation = "§e,§r ";
-		this.shadowReturned = "§r §eis no longer shadowed§r";
+		this.defaultUnpluggedReason = "§7unplugged§r";
+		this.unpluggedKickMessage = "§6Unplugged§r";
+		this.unpluggedExpiredReason = "§eYou didn't come back in time§r";
+		this.unpluggedStarted = "§r §eis now unplugged§r";
+		this.unpluggedPunctuation = "§e,§r ";
+		this.unpluggedReturned = "§r §eis no longer unplugged§r";
 		this.whenReturnDurationPrefix = " §7(Gone for: §a";
 		this.whenReturnDurationSuffix = "§7)";
 		this.duration = new DurationOption();
@@ -76,14 +76,14 @@ public class MessageOptions implements IConfigOption
 		MessageOptions opts = (MessageOptions) opt;
 
 		this.broadcastMessages = opts.broadcastMessages;
-		this.hideShadowJoin = opts.hideShadowJoin;
+		this.hideUnpluggedJoin = opts.hideUnpluggedJoin;
 		this.displayDuration = opts.displayDuration;
-		this.defaultShadowReason = opts.defaultShadowReason;
-		this.shadowKickMessage = opts.shadowKickMessage;
-		this.shadowExpiredReason = opts.shadowExpiredReason;
-		this.shadowStarted = opts.shadowStarted;
-		this.shadowPunctuation = opts.shadowPunctuation;
-		this.shadowReturned = opts.shadowReturned;
+		this.defaultUnpluggedReason = opts.defaultUnpluggedReason;
+		this.unpluggedKickMessage = opts.unpluggedKickMessage;
+		this.unpluggedExpiredReason = opts.unpluggedExpiredReason;
+		this.unpluggedStarted = opts.unpluggedStarted;
+		this.unpluggedPunctuation = opts.unpluggedPunctuation;
+		this.unpluggedReturned = opts.unpluggedReturned;
 		this.whenReturnDurationPrefix = !opts.whenReturnDurationPrefix.isEmpty() ? opts.whenReturnDurationPrefix : " §7(Gone for: §a";
 		this.whenReturnDurationSuffix = !opts.whenReturnDurationSuffix.isEmpty() ? opts.whenReturnDurationSuffix : "§7)";
 		this.duration.copy(opts.duration);

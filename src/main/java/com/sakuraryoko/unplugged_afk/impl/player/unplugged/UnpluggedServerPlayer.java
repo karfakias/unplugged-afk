@@ -18,14 +18,14 @@
  * along with Unplugged-AFK.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.sakuraryoko.unplugged_afk.impl.player.shadow;
+package com.sakuraryoko.unplugged_afk.impl.player.unplugged;
 
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.sakuraryoko.unplugged_afk.impl.player.PlayerManager;
-import com.sakuraryoko.unplugged_afk.impl.player.ShadowEntry;
-import com.sakuraryoko.unplugged_afk.impl.player.ShadowEntryList;
+import com.sakuraryoko.unplugged_afk.impl.player.UnpluggedEntry;
+import com.sakuraryoko.unplugged_afk.impl.player.UnpluggedEntryList;
 import com.sakuraryoko.unplugged_afk.impl.player.interfaces.IPlayerListInvoker;
 import org.jetbrains.annotations.ApiStatus;
 import org.jspecify.annotations.NonNull;
@@ -104,12 +104,12 @@ import com.sakuraryoko.unplugged_afk.impl.config.data.options.PlayerOptions;
 import com.sakuraryoko.unplugged_afk.impl.player.state.GameState;
 import com.sakuraryoko.unplugged_afk.impl.player.state.PosState;
 import com.sakuraryoko.unplugged_afk.impl.player.state.ProfileWrap;
-import com.sakuraryoko.unplugged_afk.impl.player.state.ShadowState;
+import com.sakuraryoko.unplugged_afk.impl.player.state.UnpluggedState;
 import com.sakuraryoko.corelib.impl.text.BuiltinTextHandler;
 
 @ApiStatus.Internal
 @SuppressWarnings("EntityConstructor")
-public class ShadowServerPlayer extends ServerPlayer
+public class UnpluggedServerPlayer extends ServerPlayer
 {
 	public Runnable startingPosition = () -> {};
 	private boolean freshPlayer;
@@ -121,17 +121,17 @@ public class ShadowServerPlayer extends ServerPlayer
 	private boolean isValid = false;
 
 	//#if MC >= 1.20.2
-	//$$ public ShadowServerPlayer(MinecraftServer server, ServerLevel level, GameProfile profile, ClientInformation ci)
+	//$$ public UnpluggedServerPlayer(MinecraftServer server, ServerLevel level, GameProfile profile, ClientInformation ci)
 	//$$ {
 		//$$ super(server, level, profile, ci);
 	//$$ }
 	//#elseif MC >= 1.19.3
-	//$$ public ShadowServerPlayer(MinecraftServer server, ServerLevel level, GameProfile profile)
+	//$$ public UnpluggedServerPlayer(MinecraftServer server, ServerLevel level, GameProfile profile)
 	//$$ {
 		//$$ super(server, level, profile);
 	//$$ }
 	//#else
-	public ShadowServerPlayer(MinecraftServer server, ServerLevel level, GameProfile profile, @Nullable ProfilePublicKey profilePublicKey)
+	public UnpluggedServerPlayer(MinecraftServer server, ServerLevel level, GameProfile profile, @Nullable ProfilePublicKey profilePublicKey)
 	{
 		super(server, level, profile, profilePublicKey);
 	}
@@ -154,7 +154,7 @@ public class ShadowServerPlayer extends ServerPlayer
 	{
 		UUID uuid = opts.uuid;
 		String name = opts.name;
-		ShadowState state = opts.state;
+		UnpluggedState state = opts.state;
 		PosState pos = opts.pos;
 		GameState game = opts.game;
 		ResourceLocation id = ResourceLocation.tryParse(pos.location());
@@ -264,23 +264,23 @@ public class ShadowServerPlayer extends ServerPlayer
 		//#endif
 	}
 
-	private static ShadowServerPlayer createShadowFromConfigPhase2(MinecraftServer server, ServerLevel level, GameProfile profile,
-	                                                               ShadowState state, PosState pos, GameState game)
+	private static UnpluggedServerPlayer createShadowFromConfigPhase2(MinecraftServer server, ServerLevel level, GameProfile profile,
+	                                                                  UnpluggedState state, PosState pos, GameState game)
 	{
 		GameType gameType = GameType.byName(game.gameMode(), GameType.DEFAULT_MODE);
 		PlayerList pl = server.getPlayerList();
 
-		if (ConfigWrap.mess().hideShadowJoin)
+		if (ConfigWrap.mess().hideUnpluggedJoin)
 		{
 			((IPlayerListInvoker) pl).unplugged$toggleBroadcastSystemMessage(true);
 		}
 
 		//#if MC >= 1.20.2
-		//$$ ShadowServerPlayer shadow = new ShadowServerPlayer(server, level, profile, ClientInformation.createDefault());
+		//$$ UnpluggedServerPlayer shadow = new UnpluggedServerPlayer(server, level, profile, ClientInformation.createDefault());
 		//#elseif MC >= 1.19.3
-		//$$ ShadowServerPlayer shadow = new ShadowServerPlayer(server, level, profile);
+		//$$ UnpluggedServerPlayer shadow = new UnpluggedServerPlayer(server, level, profile);
 		//#else
-		ShadowServerPlayer shadow = new ShadowServerPlayer(server, level, profile, null);
+		UnpluggedServerPlayer shadow = new UnpluggedServerPlayer(server, level, profile, null);
 		//#endif
 
 		//#if MC >= 1.21.10
@@ -290,11 +290,11 @@ public class ShadowServerPlayer extends ServerPlayer
 		//#endif
 
 		//#if MC >= 1.20.6
-		//$$ pl.placeNewPlayer(new ShadowConnection(PacketFlow.SERVERBOUND), shadow, new CommonListenerCookie(profile, 0, ClientInformation.createDefault(), true));
+		//$$ pl.placeNewPlayer(new UnpluggedConnection(PacketFlow.SERVERBOUND), shadow, new CommonListenerCookie(profile, 0, ClientInformation.createDefault(), true));
 		//#elseif MC >= 1.20.2
-		//$$ pl.placeNewPlayer(new ShadowConnection(PacketFlow.SERVERBOUND), shadow, new CommonListenerCookie(profile, 0, ClientInformation.createDefault()));
+		//$$ pl.placeNewPlayer(new UnpluggedConnection(PacketFlow.SERVERBOUND), shadow, new CommonListenerCookie(profile, 0, ClientInformation.createDefault()));
 		//#else
-		pl.placeNewPlayer(new ShadowConnection(PacketFlow.SERVERBOUND), shadow);
+		pl.placeNewPlayer(new UnpluggedConnection(PacketFlow.SERVERBOUND), shadow);
 		//#endif
 
 		//#if MC >= 1.21.10
@@ -333,7 +333,7 @@ public class ShadowServerPlayer extends ServerPlayer
 		shadow.freshHoldTime = System.currentTimeMillis();
 
 		PlayerManager.getInstance().setShadowState(profile, state);
-		ShadowEntry entry = ShadowEntryList.getInstance().add(shadow, state);
+		UnpluggedEntry entry = UnpluggedEntryList.getInstance().add(shadow, state);
 
 		if (entry != null)
 		{
@@ -347,9 +347,9 @@ public class ShadowServerPlayer extends ServerPlayer
 		return shadow;
 	}
 
-	public static ShadowServerPlayer createShadow(MinecraftServer server, ServerPlayer player, int time, String reason)
+	public static UnpluggedServerPlayer createShadow(MinecraftServer server, ServerPlayer player, int time, String reason)
 	{
-		Component kickMsg = BuiltinTextHandler.getInstance().formatText(ConfigWrap.mess().shadowKickMessage);
+		Component kickMsg = BuiltinTextHandler.getInstance().formatText(ConfigWrap.mess().unpluggedKickMessage);
 		PlayerList pl = server.getPlayerList();
 
 		if (kickMsg == null || kickMsg.toString().isEmpty())
@@ -357,7 +357,7 @@ public class ShadowServerPlayer extends ServerPlayer
 			kickMsg = Component.translatable("multiplayer.disconnect.duplicate_login");
 		}
 
-		if (ConfigWrap.mess().hideShadowJoin)
+		if (ConfigWrap.mess().hideUnpluggedJoin)
 		{
 			((IPlayerListInvoker) pl).unplugged$toggleBroadcastSystemMessage(true);
 		}
@@ -372,11 +372,11 @@ public class ShadowServerPlayer extends ServerPlayer
 		//#endif
 		GameProfile profile = player.getGameProfile();
 		//#if MC >= 1.20.2
-		//$$ ShadowServerPlayer shadow = new ShadowServerPlayer(server, level, profile, player.clientInformation());
+		//$$ UnpluggedServerPlayer shadow = new UnpluggedServerPlayer(server, level, profile, player.clientInformation());
 		//#elseif MC >= 1.19.3
-		//$$ ShadowServerPlayer shadow = new ShadowServerPlayer(server, level, profile);
+		//$$ UnpluggedServerPlayer shadow = new UnpluggedServerPlayer(server, level, profile);
 		//#else
-		ShadowServerPlayer shadow = new ShadowServerPlayer(server, level, profile, player.getProfilePublicKey());
+		UnpluggedServerPlayer shadow = new UnpluggedServerPlayer(server, level, profile, player.getProfilePublicKey());
 		//#endif
 
 		//#if MC >= 1.19.3
@@ -384,11 +384,11 @@ public class ShadowServerPlayer extends ServerPlayer
 		//#endif
 
 		//#if MC >= 1.20.6
-		//$$ pl.placeNewPlayer(new ShadowConnection(PacketFlow.SERVERBOUND), shadow, new CommonListenerCookie(profile, 0, player.clientInformation(), true));
+		//$$ pl.placeNewPlayer(new UnpluggedConnection(PacketFlow.SERVERBOUND), shadow, new CommonListenerCookie(profile, 0, player.clientInformation(), true));
 		//#elseif MC >= 1.20.2
-		//$$ pl.placeNewPlayer(new ShadowConnection(PacketFlow.SERVERBOUND), shadow, new CommonListenerCookie(profile, 0, player.clientInformation()));
+		//$$ pl.placeNewPlayer(new UnpluggedConnection(PacketFlow.SERVERBOUND), shadow, new CommonListenerCookie(profile, 0, player.clientInformation()));
 		//#else
-		pl.placeNewPlayer(new ShadowConnection(PacketFlow.SERVERBOUND), shadow);
+		pl.placeNewPlayer(new UnpluggedConnection(PacketFlow.SERVERBOUND), shadow);
 		//#endif
 
 		//#if MC >= 1.21.10
@@ -430,9 +430,9 @@ public class ShadowServerPlayer extends ServerPlayer
 		shadow.freshPlayer = true;
 		shadow.freshHoldTime = System.currentTimeMillis();
 
-		ShadowState state = new ShadowState(true, time, shadow.timeout, reason);
+		UnpluggedState state = new UnpluggedState(true, time, shadow.timeout, reason);
 		PlayerManager.getInstance().setShadowState(profile, state);
-		ShadowEntry entry = ShadowEntryList.getInstance().add(shadow, state);
+		UnpluggedEntry entry = UnpluggedEntryList.getInstance().add(shadow, state);
 
 		if (entry != null)
 		{
@@ -448,7 +448,7 @@ public class ShadowServerPlayer extends ServerPlayer
 
 	//#if MC >= 1.21.10
 	//$$ private final static Logger DUMB_LOGGER = LoggerFactory.getLogger(Reference.MOD_ID);
-	//$$ private static void loadPlayerNbt(ShadowServerPlayer player)
+	//$$ private static void loadPlayerNbt(UnpluggedServerPlayer player)
 	//$$ {
 		//$$ try (ProblemReporter.ScopedCollector logger = new ProblemReporter.ScopedCollector(player.problemPath(), DUMB_LOGGER))
 		//$$ {
@@ -469,25 +469,25 @@ public class ShadowServerPlayer extends ServerPlayer
 	//#endif
 
 	//#if MC >= 1.20.2
-	//$$ public static ShadowServerPlayer respawnShadow(MinecraftServer server, ServerLevel level, GameProfile profile, ClientInformation ci)
+	//$$ public static UnpluggedServerPlayer respawnShadow(MinecraftServer server, ServerLevel level, GameProfile profile, ClientInformation ci)
 	//$$ {
-		//$$ ShadowServerPlayer shadow = new ShadowServerPlayer(server, level, profile, ci);
+		//$$ UnpluggedServerPlayer shadow = new UnpluggedServerPlayer(server, level, profile, ci);
 		//$$ UnpluggedAfk.debugLog("respawnShadow: player: ['{}'/{}]", ProfileWrap.name(profile), ProfileWrap.id(profile));
 		//$$ shadow.isValid = true;
 		//$$ return shadow;
 	//$$ }
 	//#elseif MC >= 1.19.3
-	//$$ public static ShadowServerPlayer respawnShadow(MinecraftServer server, ServerLevel level, GameProfile profile)
+	//$$ public static UnpluggedServerPlayer respawnShadow(MinecraftServer server, ServerLevel level, GameProfile profile)
 	//$$ {
-		//$$ ShadowServerPlayer shadow = new ShadowServerPlayer(server, level, profile);
+		//$$ UnpluggedServerPlayer shadow = new UnpluggedServerPlayer(server, level, profile);
 		//$$ UnpluggedAfk.debugLog("respawnShadow: player: ['{}'/{}]", ProfileWrap.name(profile), ProfileWrap.id(profile));
 		//$$ shadow.isValid = true;
 		//$$ return shadow;
 	//$$ }
 	//#else
-	public static ShadowServerPlayer respawnShadow(MinecraftServer server, ServerLevel level, GameProfile profile, @Nullable ProfilePublicKey profilePublicKey)
+	public static UnpluggedServerPlayer respawnShadow(MinecraftServer server, ServerLevel level, GameProfile profile, @Nullable ProfilePublicKey profilePublicKey)
 	{
-		ShadowServerPlayer shadow = new ShadowServerPlayer(server, level, profile, profilePublicKey);
+		UnpluggedServerPlayer shadow = new UnpluggedServerPlayer(server, level, profile, profilePublicKey);
 		UnpluggedAfk.debugLog("respawnShadow: player: ['{}'/{}]", ProfileWrap.name(profile), ProfileWrap.id(profile));
 		shadow.isValid = true;
 		return shadow;
@@ -514,7 +514,7 @@ public class ShadowServerPlayer extends ServerPlayer
 		//$$ }
 		//#endif
 
-		ShadowPlayerUtils.sendHidePlayerPacket(server, this);
+		UnpluggedPlayerUtils.sendHidePlayerPacket(server, this);
 	}
 
 	public boolean isValid()
@@ -558,10 +558,10 @@ public class ShadowServerPlayer extends ServerPlayer
 	public boolean hurt(@NonNull DamageSource damageSource, float amount)
 	//#endif
 	{
-		ShadowEntry entry = ShadowEntryList.getInstance().get(this);
+		UnpluggedEntry entry = UnpluggedEntryList.getInstance().get(this);
 
 		if (entry != null && entry.shadowEnabled() &&
-			ConfigWrap.unplugged().unpluggedAfkDisableDamage)
+			ConfigWrap.unplugged().unpluggedDisableDamage)
 		{
 			// If you want to be able to kill shadow bots;
 			// then just disable this config.
@@ -672,13 +672,13 @@ public class ShadowServerPlayer extends ServerPlayer
 
 		final long tickDelta = now - this.lastTick;
 		this.lastTick = now;
-		ShadowEntry entry = ShadowEntryList.getInstance().get(this);
+		UnpluggedEntry entry = UnpluggedEntryList.getInstance().get(this);
 
 		if (entry != null)
 		{
 			if (!entry.shadowEnabled())
 			{
-				ShadowState state = PlayerManager.getInstance().getShadowState(this.getGameProfile());
+				UnpluggedState state = PlayerManager.getInstance().getShadowState(this.getGameProfile());
 				entry.updateShadowState(state);
 				entry.setShadowTimeout(this.timeout);
 			}
@@ -697,14 +697,14 @@ public class ShadowServerPlayer extends ServerPlayer
 
 			if (!entry.tickShadowTimeout(tickDelta))
 			{
-				String mess = ConfigWrap.mess().shadowExpiredReason;
+				String mess = ConfigWrap.mess().unpluggedExpiredReason;
 
 				if (mess == null || mess.isEmpty())
 				{
 					mess = "Shadow Expired";
 				}
 
-				if (ConfigWrap.mess().hideShadowJoin)
+				if (ConfigWrap.mess().hideUnpluggedJoin)
 				{
 					((IPlayerListInvoker) server.getPlayerList()).unplugged$toggleBroadcastSystemMessage(true);
 				}
@@ -739,7 +739,7 @@ public class ShadowServerPlayer extends ServerPlayer
 
 	public void killShadow()
 	{
-		ShadowEntryList.getInstance().remove(this, false);
+		UnpluggedEntryList.getInstance().remove(this, false);
 		PlayerManager.getInstance().updatePlayerData(this);
 		PlayerManager.getInstance().resetShadowState(this);
 		this.isValid = false;

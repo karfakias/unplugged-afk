@@ -36,17 +36,17 @@ import net.minecraft.network.chat.MutableComponent;
 
 import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
 import com.sakuraryoko.unplugged_afk.impl.modinit.InitWrap;
-import com.sakuraryoko.unplugged_afk.impl.player.shadow.ShadowServerPlayer;
+import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedServerPlayer;
 import com.sakuraryoko.unplugged_afk.impl.player.state.ProfileWrap;
-import com.sakuraryoko.unplugged_afk.impl.player.state.ShadowState;
+import com.sakuraryoko.unplugged_afk.impl.player.state.UnpluggedState;
 import com.sakuraryoko.corelib.api.time.DurationFormat;
 import com.sakuraryoko.corelib.api.time.TimeFormat;
 
 @ApiStatus.Internal
-public class ShadowEntry
+public class UnpluggedEntry
 {
-	private @Nullable ShadowServerPlayer shadowPlayer;
-	private final ShadowEntryHandler handler;
+	private @Nullable UnpluggedServerPlayer shadowPlayer;
+	private final UnpluggedEntryHandler handler;
 	private boolean shadowEnabled;
 	private int time;
 	private long shadowStartTimeMs;
@@ -55,7 +55,7 @@ public class ShadowEntry
 	private String reason;
 
 	@ApiStatus.Internal
-	private ShadowEntry()
+	private UnpluggedEntry()
 	{
 		this.shadowPlayer = null;
 		this.shadowEnabled = false;
@@ -64,25 +64,25 @@ public class ShadowEntry
 		this.shadowStartTimeEpoch = -1L;
 		this.shadowTimeout = -1L;
 		this.reason = "";
-		this.handler = new ShadowEntryHandler(this);
+		this.handler = new UnpluggedEntryHandler(this);
 	}
 
 	@ApiStatus.Internal
-	public static ShadowEntry create(@Nonnull ShadowServerPlayer player)
+	public static UnpluggedEntry create(@Nonnull UnpluggedServerPlayer player)
 	{
-		ShadowEntry newEntry = new ShadowEntry();
+		UnpluggedEntry newEntry = new UnpluggedEntry();
 		newEntry.setShadowPlayer(player);
 		return newEntry;
 	}
 
 	@ApiStatus.Internal
-	public ShadowEntryHandler handler()
+	public UnpluggedEntryHandler handler()
 	{
 		return this.handler;
 	}
 
 	@Nullable
-	public ShadowServerPlayer shadowPlayer()
+	public UnpluggedServerPlayer shadowPlayer()
 	{
 		return this.shadowPlayer;
 	}
@@ -216,13 +216,13 @@ public class ShadowEntry
 	}
 
 	@ApiStatus.Internal
-	public void setShadowPlayer(@Nonnull ShadowServerPlayer player)
+	public void setShadowPlayer(@Nonnull UnpluggedServerPlayer player)
 	{
 		this.shadowPlayer = player;
 	}
 
 	@ApiStatus.Internal
-	public void updateShadowState(ShadowState state)
+	public void updateShadowState(UnpluggedState state)
 	{
 		this.shadowEnabled = state.enabled();
 		this.setTimer(state.time());
@@ -282,7 +282,7 @@ public class ShadowEntry
         return this.shadowTimeout > 0L;
     }
 
-	public boolean matches(@Nonnull ShadowServerPlayer player)
+	public boolean matches(@Nonnull UnpluggedServerPlayer player)
 	{
 		if (this.shadowPlayer == null) { return false; }
 		return  this.shadowPlayer.getUUID().equals(player.getUUID()) ||

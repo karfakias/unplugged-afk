@@ -18,7 +18,7 @@
  * along with Unplugged-AFK.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.sakuraryoko.unplugged_afk.impl.player.shadow;
+package com.sakuraryoko.unplugged_afk.impl.player.unplugged;
 
 import java.util.Set;
 import org.jetbrains.annotations.ApiStatus;
@@ -47,15 +47,15 @@ import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
 
 @ApiStatus.Internal
-public class ShadowGamePacketListener extends ServerGamePacketListenerImpl
+public class UnpluggedGamePacketListener extends ServerGamePacketListenerImpl
 {
 	//#if MC >= 1.20.2
-	//$$ public ShadowGamePacketListener(MinecraftServer server, Connection connection, ServerPlayer player, CommonListenerCookie cookie)
+	//$$ public UnpluggedGamePacketListener(MinecraftServer server, Connection connection, ServerPlayer player, CommonListenerCookie cookie)
 	//$$ {
 		//$$ super(server, connection, player, cookie);
 	//$$ }
 	//#else
-	public ShadowGamePacketListener(MinecraftServer server, Connection connection, ServerPlayer player)
+	public UnpluggedGamePacketListener(MinecraftServer server, Connection connection, ServerPlayer player)
 	{
 		super(server, connection, player);
 	}
@@ -72,7 +72,7 @@ public class ShadowGamePacketListener extends ServerGamePacketListenerImpl
 	@Override
 	public void disconnect(@NonNull Component message)
 	{
-		ShadowServerPlayer sp = (ShadowServerPlayer) this.player;
+		UnpluggedServerPlayer sp = (UnpluggedServerPlayer) this.player;
 		if (!sp.isValid()) { return; }
 
 		if (message.getContents() instanceof TranslatableContents text &&

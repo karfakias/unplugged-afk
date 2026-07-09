@@ -27,7 +27,7 @@ import org.jspecify.annotations.Nullable;
 //$$ import org.spongepowered.asm.mixin.injection.At;
 //$$ import org.objectweb.asm.Opcodes;
 //$$ import net.minecraft.world.phys.Vec3;
-//$$ import com.sakuraryoko.unplugged_afk.impl.player.shadow.ShadowServerPlayer;
+//$$ import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedServerPlayer;
 //#endif
 
 import com.mojang.authlib.GameProfile;
@@ -82,7 +82,7 @@ public abstract class MixinServerPlayer_fakeMovement extends Player
 		//$$ require = 2)
 	//$$ private Vec3 unplugged$bypassClientMovementInfo(Vec3 original)
 	//$$ {
-		//$$ return (((Player) this) instanceof ShadowServerPlayer) ? super.getKnownMovement() : original;
+		//$$ return (((Player) this) instanceof UnpluggedServerPlayer) ? super.getKnownMovement() : original;
 	//$$ }
 	//#endif
 }

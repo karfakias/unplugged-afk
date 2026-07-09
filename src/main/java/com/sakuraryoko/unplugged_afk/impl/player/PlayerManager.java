@@ -43,7 +43,7 @@ import com.sakuraryoko.unplugged_afk.impl.UnpluggedAfk;
 import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
 import com.sakuraryoko.unplugged_afk.impl.config.UnpluggedConfigHandler;
 import com.sakuraryoko.unplugged_afk.impl.config.data.options.PlayerOptions;
-import com.sakuraryoko.unplugged_afk.impl.player.shadow.ShadowServerPlayer;
+import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedServerPlayer;
 import com.sakuraryoko.unplugged_afk.impl.player.state.*;
 
 @ApiStatus.Internal
@@ -80,7 +80,7 @@ public class PlayerManager
 
 		// Doesn't exist in config --> Add
 		this.addConfig(profile);
-		this.addOrUpdateProfile(profile, ShadowState.DEFAULT);
+		this.addOrUpdateProfile(profile, UnpluggedState.DEFAULT);
 	}
 
 	@ApiStatus.Internal
@@ -90,13 +90,13 @@ public class PlayerManager
 	}
 
 	@ApiStatus.Internal
-	private void addOrUpdateProfile(@Nonnull GameProfile profile, ShadowState state)
+	private void addOrUpdateProfile(@Nonnull GameProfile profile, UnpluggedState state)
 	{
 		this.addOrUpdateProfile(profile, state, PosWrap.defaultPos(), GameWrap.defMode());
 	}
 
 	@ApiStatus.Internal
-	private void addOrUpdateProfile(@Nonnull GameProfile profile, ShadowState state, PosState pos, GameState game)
+	private void addOrUpdateProfile(@Nonnull GameProfile profile, UnpluggedState state, PosState pos, GameState game)
 	{
 		UUID uuid = ProfileWrap.id(profile);
 		String name = ProfileWrap.name(profile);
@@ -139,7 +139,7 @@ public class PlayerManager
 
 		if (!exists)
 		{
-			PlayerOptions opt = PlayerOptions.fromProfile(profile, ShadowState.DEFAULT);
+			PlayerOptions opt = PlayerOptions.fromProfile(profile, UnpluggedState.DEFAULT);
 
 			if (this.players.containsKey(uuid))
 			{
@@ -159,7 +159,7 @@ public class PlayerManager
 	}
 
 	@ApiStatus.Internal
-	private void setConfig(@Nonnull GameProfile profile, ShadowState state)
+	private void setConfig(@Nonnull GameProfile profile, UnpluggedState state)
 	{
 		List<PlayerOptions> config = new ArrayList<>(ConfigWrap.players());
 		UUID uuid = ProfileWrap.id(profile);
@@ -217,7 +217,7 @@ public class PlayerManager
 		UnpluggedAfk.debugLog("setConfig: player: ['{}'/{}] state: {}", ProfileWrap.name(profile), ProfileWrap.id(profile), state.toString());
 	}
 
-	public ShadowState getShadowState(@Nonnull GameProfile profile)
+	public UnpluggedState getShadowState(@Nonnull GameProfile profile)
 	{
 		UUID uuid = ProfileWrap.id(profile);
 
@@ -232,13 +232,13 @@ public class PlayerManager
 		}
 
 		UnpluggedAfk.debugLog("getShadowState: player: ['{}'/{}] failure; adding new entry", ProfileWrap.name(profile), ProfileWrap.id(profile));
-		this.addOrUpdateProfile(profile, ShadowState.DEFAULT);
+		this.addOrUpdateProfile(profile, UnpluggedState.DEFAULT);
 		this.addConfig(profile);
-		return ShadowState.DEFAULT;
+		return UnpluggedState.DEFAULT;
 	}
 
 	@ApiStatus.Internal
-	public ShadowState getShadowState(@Nonnull UUID uuid)
+	public UnpluggedState getShadowState(@Nonnull UUID uuid)
 	{
 		if (this.players.containsKey(uuid))
 		{
@@ -250,11 +250,11 @@ public class PlayerManager
 			}
 		}
 
-		return ShadowState.DEFAULT;
+		return UnpluggedState.DEFAULT;
 	}
 
 	@ApiStatus.Internal
-	public void setShadowState(@Nonnull GameProfile profile, ShadowState state)
+	public void setShadowState(@Nonnull GameProfile profile, UnpluggedState state)
 	{
 		this.addOrUpdateProfile(profile, state);
 		this.setConfig(profile, state);
@@ -263,12 +263,12 @@ public class PlayerManager
 
 	public void resetShadowState(@Nonnull ServerPlayer player)
 	{
-		this.setShadowState(player.getGameProfile(), ShadowState.DEFAULT);
+		this.setShadowState(player.getGameProfile(), UnpluggedState.DEFAULT);
 	}
 
 	public void remove(@Nonnull UUID uuid, boolean silent)
 	{
-		ShadowEntryList.getInstance().remove(uuid, silent);
+		UnpluggedEntryList.getInstance().remove(uuid, silent);
 		this.players.remove(uuid);
 		ConfigWrap.players().removeIf(opt -> opt.uuid.equals(uuid));
 	}
@@ -402,10 +402,11 @@ public class PlayerManager
 					{
 						for (ServerPlayer player : players)
 						{
-							if (player.getUUID().equals(uuid) && player instanceof ShadowServerPlayer sp)
+							if (player.getUUID().equals(uuid) && player instanceof UnpluggedServerPlayer sp)
 							{
 								// Fix desynced player
-								ShadowState newState = new ShadowState(true, sp.getTimer(), sp.getTimeout(), sp.getReason());
+								UnpluggedState
+										newState = new UnpluggedState(true, sp.getTimer(), sp.getTimeout(), sp.getReason());
 								this.setShadowState(player.getGameProfile(), newState);
 								found = true;
 								break;
@@ -483,7 +484,7 @@ public class PlayerManager
 			if (!found && entry.state.enabled())
 			{
 				UnpluggedAfk.debugLog("syncConfig: Scheduling Shadow player: ['{}'/{}]", entry.name, entry.uuid.toString());
-				PendingShadowSpawns.INSTANCE.scheduleSpawn(entry);
+				PendingUnpluggedSpawns.INSTANCE.scheduleSpawn(entry);
 			}
 		}
 
@@ -499,29 +500,29 @@ public class PlayerManager
 		UUID uuid = player.getUUID();
 		PosState pos = PosWrap.of(player);
 		GameState game = GameWrap.of(player);
-		ShadowState state = this.getShadowState(uuid).ensureValid();
+		UnpluggedState state = this.getShadowState(uuid).ensureValid();
 
-		if (player instanceof ShadowServerPlayer shadow)
+		if (player instanceof UnpluggedServerPlayer shadow)
 		{
-			ShadowEntry entry = ShadowEntryList.getInstance().get(shadow);
+			UnpluggedEntry entry = UnpluggedEntryList.getInstance().get(shadow);
 
 			if (entry == null)
 			{
 				if (state.isEmpty())
 				{
-					state = new ShadowState(shadow.isValid(), shadow.getTimer(), shadow.getTimeout(), shadow.getReason());
+					state = new UnpluggedState(shadow.isValid(), shadow.getTimer(), shadow.getTimeout(), shadow.getReason());
 				}
 
-				entry = ShadowEntryList.getInstance().add(shadow, state);
+				entry = UnpluggedEntryList.getInstance().add(shadow, state);
 			}
 
 			if (entry != null)
 			{
-				state = new ShadowState(entry.shadowEnabled(), entry.shadowTimer(), shadow.getTimeout(), entry.reason());
+				state = new UnpluggedState(entry.shadowEnabled(), entry.shadowTimer(), shadow.getTimeout(), entry.reason());
 			}
 			else
 			{
-				state = new ShadowState(shadow.isValid(), shadow.getTimer(), shadow.getTimeout(), shadow.getReason());
+				state = new UnpluggedState(shadow.isValid(), shadow.getTimer(), shadow.getTimeout(), shadow.getReason());
 			}
 		}
 
@@ -654,7 +655,7 @@ public class PlayerManager
 	}
 
 	@ApiStatus.Internal
-	public void onServerResync(@Nonnull MinecraftServer server, ImmutableMap<UUID, PlayerEntry> playerMap, ImmutableMap<UUID, ShadowEntry> shadowMap)
+	public void onServerResync(@Nonnull MinecraftServer server, ImmutableMap<UUID, PlayerEntry> playerMap, ImmutableMap<UUID, UnpluggedEntry> shadowMap)
 	{
 		boolean dirty = false;
 		// Same as stop, really; just with a different message
@@ -677,7 +678,7 @@ public class PlayerManager
 		}
 	}
 
-	private boolean syncShadowEntries(@Nonnull MinecraftServer server, ImmutableMap<UUID, PlayerEntry> playerMap, ImmutableMap<UUID, ShadowEntry> shadowMap)
+	private boolean syncShadowEntries(@Nonnull MinecraftServer server, ImmutableMap<UUID, PlayerEntry> playerMap, ImmutableMap<UUID, UnpluggedEntry> shadowMap)
 	{
 		PlayerList playerList = server.getPlayerList();
 		List<ServerPlayer> players = playerList.getPlayers();
@@ -689,15 +690,15 @@ public class PlayerManager
 		{
 			UUID uuid = player.getUUID();
 
-			if (player instanceof ShadowServerPlayer sp)
+			if (player instanceof UnpluggedServerPlayer sp)
 			{
 				if (shadowMap.containsKey(uuid))
 				{
-					ShadowEntry entry = shadowMap.get(uuid);
+					UnpluggedEntry entry = shadowMap.get(uuid);
 
 					if (entry != null)
 					{
-						ShadowState newState = null;
+						UnpluggedState newState = null;
 
 						if (playerMap.containsKey(uuid))
 						{
@@ -711,13 +712,13 @@ public class PlayerManager
 
 						if (newState == null)
 						{
-							newState = new ShadowState(sp.isValid(), sp.getTimer(), sp.getTimeout(), sp.getReason());
+							newState = new UnpluggedState(sp.isValid(), sp.getTimer(), sp.getTimeout(), sp.getReason());
 						}
 
 						UnpluggedAfk.debugLog("syncShadowEntries --> sync: ['{}'/{}], state: [{}]", sp.getName().getString(), uuid.toString(), newState.toString());
 						this.setShadowState(sp.getGameProfile(), newState);
 						entry.updateShadowState(newState);
-						ShadowEntryList.getInstance().syncShadowEntry(sp, entry);
+						UnpluggedEntryList.getInstance().syncShadowEntry(sp, entry);
 						dirty = true;
 					}
 				}
@@ -771,7 +772,7 @@ public class PlayerManager
 
 		if (!this.players.containsKey(uuid))
 		{
-			this.addOrUpdateProfile(player.getGameProfile(), ShadowState.DEFAULT, PosWrap.of(player), GameWrap.of(player));
+			this.addOrUpdateProfile(player.getGameProfile(), UnpluggedState.DEFAULT, PosWrap.of(player), GameWrap.of(player));
 //			this.updatePlayerData(player);
 			UnpluggedAfk.debugLog("onTickEach() sync: ['{}'/{}] --> added missing player", player.getName().getString(), uuid.toString());
 			return true;

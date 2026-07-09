@@ -34,7 +34,7 @@ import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
-import com.sakuraryoko.unplugged_afk.impl.player.shadow.ShadowServerPlayer;
+import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedServerPlayer;
 
 @Mixin(PistonMovingBlockEntity.class)
 @ApiStatus.Internal
@@ -46,7 +46,7 @@ public abstract class MixinPistonMovingBlockEntity
 	private static PushReaction unplugged$moveShadowPlayer(Entity instance, Operation<PushReaction> original,
 														   @Local(argsOnly = true) PistonMovingBlockEntity piston)
 	{
-		if (instance instanceof ShadowServerPlayer && piston.getMovedState().is(Blocks.SLIME_BLOCK))
+		if (instance instanceof UnpluggedServerPlayer && piston.getMovedState().is(Blocks.SLIME_BLOCK))
 		{
 			final Vec3 vec3 = instance.getDeltaMovement();
 			double x = vec3.x();

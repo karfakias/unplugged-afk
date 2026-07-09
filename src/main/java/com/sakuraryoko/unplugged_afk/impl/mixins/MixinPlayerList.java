@@ -59,11 +59,11 @@ import net.minecraft.nbt.CompoundTag;
 //#endif
 
 import com.sakuraryoko.unplugged_afk.impl.player.PlayerManager;
-import com.sakuraryoko.unplugged_afk.impl.player.ShadowEntry;
-import com.sakuraryoko.unplugged_afk.impl.player.ShadowEntryList;
-import com.sakuraryoko.unplugged_afk.impl.player.state.ShadowState;
-import com.sakuraryoko.unplugged_afk.impl.player.shadow.ShadowGamePacketListener;
-import com.sakuraryoko.unplugged_afk.impl.player.shadow.ShadowServerPlayer;
+import com.sakuraryoko.unplugged_afk.impl.player.UnpluggedEntry;
+import com.sakuraryoko.unplugged_afk.impl.player.UnpluggedEntryList;
+import com.sakuraryoko.unplugged_afk.impl.player.state.UnpluggedState;
+import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedGamePacketListener;
+import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedServerPlayer;
 
 @Mixin(PlayerList.class)
 @ApiStatus.Internal
@@ -85,7 +85,7 @@ public abstract class MixinPlayerList implements IPlayerListInvoker
 	private void unplugged$onLoad(ServerPlayer player, CallbackInfoReturnable<CompoundTag> cir)
 	//#endif
 	{
-		if (player instanceof ShadowServerPlayer sp)
+		if (player instanceof UnpluggedServerPlayer sp)
 		{
 			sp.startingPosition.run();
 		}
@@ -107,16 +107,16 @@ public abstract class MixinPlayerList implements IPlayerListInvoker
 	//#endif
 	{
 		//#if MC >= 1.20.2
-		//$$ if (player instanceof ShadowServerPlayer shadow)
+		//$$ if (player instanceof UnpluggedServerPlayer shadow)
 		//$$ {
-			//$$ return new ShadowGamePacketListener(this.server, connection, shadow, cookie);
+			//$$ return new UnpluggedGamePacketListener(this.server, connection, shadow, cookie);
 		//$$ }
 
 		//$$ return original.call(server, connection, player, cookie);
 		//#else
-		if (player instanceof ShadowServerPlayer shadow)
+		if (player instanceof UnpluggedServerPlayer shadow)
 		{
-			return new ShadowGamePacketListener(this.server, connection, shadow);
+			return new UnpluggedGamePacketListener(this.server, connection, shadow);
 		}
 //		else
 //		{
@@ -153,16 +153,16 @@ public abstract class MixinPlayerList implements IPlayerListInvoker
 //#endif
 	{
 		//#if MC >= 1.20.2
-		//$$ if (player instanceof ShadowServerPlayer sp && !sp.isValid())
+		//$$ if (player instanceof UnpluggedServerPlayer sp && !sp.isValid())
 		//$$ {
-			//$$ ShadowServerPlayer newSp = ShadowServerPlayer.respawnShadow(server, level, profile, ci);
+			//$$ UnpluggedServerPlayer newSp = UnpluggedServerPlayer.respawnShadow(server, level, profile, ci);
 			//$$ newSp.updateTimeOut(sp.getTimeout());
-			//$$ ShadowEntryList.getInstance().updateShadow(newSp);
-			//$$ ShadowEntry entry = ShadowEntryList.getInstance().get(newSp);
-			//$$ ShadowState state = PlayerManager.getInstance().getShadowState(profile);
+			//$$ UnpluggedEntryList.getInstance().updateShadow(newSp);
+			//$$ UnpluggedEntry entry = UnpluggedEntryList.getInstance().get(newSp);
+			//$$ UnpluggedState state = PlayerManager.getInstance().getShadowState(profile);
 			//$$ if (!state.enabled())
 			//$$ {
-				//$$ state = new ShadowState(true, state.time(), newSp.getTimeout(), state.reason());
+				//$$ state = new UnpluggedState(true, state.time(), newSp.getTimeout(), state.reason());
 				//$$ PlayerManager.getInstance().setShadowState(profile, state);
 				//$$ if (entry != null)
 				//$$ {
@@ -174,16 +174,16 @@ public abstract class MixinPlayerList implements IPlayerListInvoker
 
 		//$$ return original.call(server, level, profile, ci);
 		//#elseif MC >= 1.19.3
-		//$$ if (player instanceof ShadowServerPlayer sp && !sp.isValid())
+		//$$ if (player instanceof UnpluggedServerPlayer sp && !sp.isValid())
 		//$$ {
-			//$$ ShadowServerPlayer newSp = ShadowServerPlayer.respawnShadow(server, level, profile);
+			//$$ UnpluggedServerPlayer newSp = UnpluggedServerPlayer.respawnShadow(server, level, profile);
 			//$$ newSp.updateTimeOut(sp.getTimeout());
-			//$$ ShadowEntryList.getInstance().updateShadow(newSp);
-			//$$ ShadowEntry entry = ShadowEntryList.getInstance().get(newSp);
-			//$$ ShadowState state = PlayerManager.getInstance().getShadowState(profile);
+			//$$ UnpluggedEntryList.getInstance().updateShadow(newSp);
+			//$$ UnpluggedEntry entry = UnpluggedEntryList.getInstance().get(newSp);
+			//$$ UnpluggedState state = PlayerManager.getInstance().getShadowState(profile);
 			//$$ if (!state.enabled())
 			//$$ {
-				//$$ state = new ShadowState(true, state.time(), newSp.getTimeout(), state.reason());
+				//$$ state = new UnpluggedState(true, state.time(), newSp.getTimeout(), state.reason());
 				//$$ PlayerManager.getInstance().setShadowState(profile, state);
 				//$$ if (entry != null)
 				//$$ {
@@ -195,17 +195,17 @@ public abstract class MixinPlayerList implements IPlayerListInvoker
 
 		//$$ return original.call(server, level, profile);
 		//#else
-		if (player instanceof ShadowServerPlayer sp && !sp.isValid())
+		if (player instanceof UnpluggedServerPlayer sp && !sp.isValid())
 		{
-			ShadowServerPlayer newSp = ShadowServerPlayer.respawnShadow(server, level, profile, profilePublicKey);
+			UnpluggedServerPlayer newSp = UnpluggedServerPlayer.respawnShadow(server, level, profile, profilePublicKey);
 			newSp.updateTimeOut(sp.getTimeout());
-			ShadowEntryList.getInstance().updateShadow(newSp);
-			ShadowEntry entry = ShadowEntryList.getInstance().get(newSp);
-			ShadowState state = PlayerManager.getInstance().getShadowState(profile);
+			UnpluggedEntryList.getInstance().updateShadow(newSp);
+			UnpluggedEntry entry = UnpluggedEntryList.getInstance().get(newSp);
+			UnpluggedState state = PlayerManager.getInstance().getShadowState(profile);
 
 			if (!state.enabled())
 			{
-				state = new ShadowState(true, state.time(), newSp.getTimeout(), state.reason());
+				state = new UnpluggedState(true, state.time(), newSp.getTimeout(), state.reason());
 				PlayerManager.getInstance().setShadowState(profile, state);
 
 				if (entry != null)

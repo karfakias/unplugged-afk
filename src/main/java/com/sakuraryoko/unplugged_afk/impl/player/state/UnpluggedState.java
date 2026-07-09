@@ -30,15 +30,15 @@ import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
 import com.sakuraryoko.unplugged_afk.impl.modinit.InitWrap;
 
 @ApiStatus.Internal
-public record ShadowState(boolean enabled, int time, long timeout, String reason)
+public record UnpluggedState(boolean enabled, int time, long timeout, String reason)
 {
-	public static final ShadowState DEFAULT = new ShadowState(false, 129600, -1L, "");
+	public static final UnpluggedState DEFAULT = new UnpluggedState(false, 129600, -1L, "");
 
 	@Override
 	public boolean equals(Object o)
 	{
 		if (o == this) { return true; }
-		if (!(o instanceof ShadowState s)) { return false; }
+		if (!(o instanceof UnpluggedState s)) { return false; }
 
 		return this.enabled == s.enabled && this.time == s.time;
 	}
@@ -98,7 +98,7 @@ public record ShadowState(boolean enabled, int time, long timeout, String reason
 	}
 
 	// Fix stupid crashes from people editing the file
-	public ShadowState ensureValid()
+	public UnpluggedState ensureValid()
 	{
 		if (this.enabled)
 		{
@@ -114,7 +114,7 @@ public record ShadowState(boolean enabled, int time, long timeout, String reason
 				timeout = (time * 60L) * 1000L;
 			}
 
-			return new ShadowState(true, time, timeout, this.reason);
+			return new UnpluggedState(true, time, timeout, this.reason);
 		}
 
 		return this;

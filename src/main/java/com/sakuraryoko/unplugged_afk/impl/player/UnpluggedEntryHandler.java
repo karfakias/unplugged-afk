@@ -29,19 +29,19 @@ import net.minecraft.server.level.ServerPlayer;
 import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
 import com.sakuraryoko.unplugged_afk.impl.modinit.InitWrap;
 import com.sakuraryoko.unplugged_afk.impl.player.interfaces.IPlayerInvoker;
-import com.sakuraryoko.unplugged_afk.impl.player.shadow.ShadowServerPlayer;
-import com.sakuraryoko.unplugged_afk.impl.player.state.ShadowState;
+import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedServerPlayer;
+import com.sakuraryoko.unplugged_afk.impl.player.state.UnpluggedState;
 
 @ApiStatus.Internal
-public record ShadowEntryHandler(ShadowEntry entry)
+public record UnpluggedEntryHandler(UnpluggedEntry entry)
 {
-    public ShadowEntryHandler(@Nonnull ShadowEntry entry)
+    public UnpluggedEntryHandler(@Nonnull UnpluggedEntry entry)
     {
         this.entry = entry;
     }
 
     @ApiStatus.Internal
-    public void registerShadowAfk(@Nonnull ShadowServerPlayer player, ShadowState state)
+    public void registerShadowAfk(@Nonnull UnpluggedServerPlayer player, UnpluggedState state)
     {
         int time = state.time();
         String reason = state.reason();
@@ -53,11 +53,11 @@ public record ShadowEntryHandler(ShadowEntry entry)
             shadowTimeout = (time * 60L) * 1000L;
         }
 
-        if (reason == null && ConfigWrap.mess().defaultShadowReason == null)
+        if (reason == null && ConfigWrap.mess().defaultUnpluggedReason == null)
         {
             this.entry().setReason("§cnone");
             String mess1 = this.entry().name().getString()
-                    + ConfigWrap.mess().shadowStarted;
+                    + ConfigWrap.mess().unpluggedStarted;
             Component mess2 = InitWrap.text().formatTextSafe(mess1);
             this.sendMessage(mess2);
         }
@@ -65,7 +65,7 @@ public record ShadowEntryHandler(ShadowEntry entry)
         {
             this.entry().setReason("§cnone");
             String mess1 = this.entry().name().getString()
-                    + ConfigWrap.mess().shadowStarted;
+                    + ConfigWrap.mess().unpluggedStarted;
             Component mess2 = InitWrap.text().formatTextSafe(mess1);
             this.sendMessage(mess2);
         }
@@ -73,14 +73,14 @@ public record ShadowEntryHandler(ShadowEntry entry)
         {
             this.entry().setReason(reason);
             String mess1 = this.entry().name().getString()
-                    + ConfigWrap.mess().shadowStarted
-                    + ConfigWrap.mess().shadowPunctuation
+                    + ConfigWrap.mess().unpluggedStarted
+                    + ConfigWrap.mess().unpluggedPunctuation
                     + reason;
             Component mess2 = InitWrap.text().formatTextSafe(mess1);
             this.sendMessage(mess2);
         }
 
-        ShadowState newState = new ShadowState(true, time, shadowTimeout, reason);
+        UnpluggedState newState = new UnpluggedState(true, time, shadowTimeout, reason);
 
         if (!newState.equals(state))
         {
@@ -96,7 +96,7 @@ public record ShadowEntryHandler(ShadowEntry entry)
         if (ConfigWrap.mess().displayDuration)
         {
             String ret = this.entry().name().getString()
-                    + ConfigWrap.mess().shadowReturned
+                    + ConfigWrap.mess().unpluggedReturned
                     + ConfigWrap.mess().whenReturnDurationPrefix
                     + this.entry().getShadowDurationString()
                     + ConfigWrap.mess().whenReturnDurationSuffix + "§r";
@@ -106,7 +106,7 @@ public record ShadowEntryHandler(ShadowEntry entry)
         }
         else
         {
-            String ret = this.entry().name().getString() + ConfigWrap.mess().shadowReturned + "§r";
+            String ret = this.entry().name().getString() + ConfigWrap.mess().unpluggedReturned + "§r";
             Component mess = InitWrap.text().formatTextSafe(ret);
             this.sendMessage(mess);
         }

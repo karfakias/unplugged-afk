@@ -31,8 +31,8 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 
 import com.sakuraryoko.unplugged_afk.impl.player.PlayerManager;
-import com.sakuraryoko.unplugged_afk.impl.player.shadow.ShadowPlayerUtils;
-import com.sakuraryoko.unplugged_afk.impl.player.shadow.ShadowServerPlayer;
+import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedPlayerUtils;
+import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedServerPlayer;
 import com.sakuraryoko.unplugged_afk.impl.player.state.PosState;
 import com.sakuraryoko.corelib.api.events.IPlayerEventsDispatch;
 
@@ -51,7 +51,7 @@ public class PlayerEventsHandler implements IPlayerEventsDispatch
 	@Override
 	public void onCreatePlayer(ServerPlayer player, @Nullable GameProfile profile)
 	{
-		if (player instanceof ShadowServerPlayer) { return; }
+		if (player instanceof UnpluggedServerPlayer) { return; }
 		PlayerManager.getInstance().syncProfile(profile);
 	}
 
@@ -77,7 +77,7 @@ public class PlayerEventsHandler implements IPlayerEventsDispatch
 		MinecraftServer server = this.getServerWrap(player);
 		if (server != null)
 		{
-			ShadowPlayerUtils.hideAllShadowsFromPlayer(server, player);
+			UnpluggedPlayerUtils.hideAllShadowsFromPlayer(server, player);
 		}
 	}
 
@@ -85,13 +85,13 @@ public class PlayerEventsHandler implements IPlayerEventsDispatch
 	public void onPlayerRespawn(ServerPlayer newPlayer)
 	{
 		PlayerManager.getInstance().updatePlayerData(newPlayer);
-		if (newPlayer instanceof ShadowServerPlayer) { return; }
+		if (newPlayer instanceof UnpluggedServerPlayer) { return; }
 		PlayerManager.getInstance().syncProfile(newPlayer.getGameProfile());
 		MinecraftServer server = this.getServerWrap(newPlayer);
 
 		if (server != null)
 		{
-			ShadowPlayerUtils.hideAllShadowsFromPlayer(server, newPlayer);
+			UnpluggedPlayerUtils.hideAllShadowsFromPlayer(server, newPlayer);
 		}
 	}
 

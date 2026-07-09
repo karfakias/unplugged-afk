@@ -18,7 +18,7 @@
  * along with Unplugged-AFK.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.sakuraryoko.unplugged_afk.impl.player.shadow;
+package com.sakuraryoko.unplugged_afk.impl.player.unplugged;
 
 import io.netty.channel.embedded.EmbeddedChannel;
 import org.jetbrains.annotations.ApiStatus;
@@ -41,12 +41,12 @@ import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.PacketFlow;
 
 @ApiStatus.Internal
-public class ShadowConnection extends Connection
+public class UnpluggedConnection extends Connection
 {
-	public ShadowConnection(PacketFlow receiving)
+	public UnpluggedConnection(PacketFlow receiving)
 	{
 		super(receiving);
-		((IShadowConnection) this).setChannel(new EmbeddedChannel());
+		((IUnpluggedConnection) this).setChannel(new EmbeddedChannel());
 	}
 
 	//#if MC >= 1.21.8

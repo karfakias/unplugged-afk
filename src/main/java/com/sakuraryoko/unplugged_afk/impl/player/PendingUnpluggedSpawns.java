@@ -28,17 +28,17 @@ import org.jetbrains.annotations.ApiStatus;
 import net.minecraft.server.MinecraftServer;
 
 import com.sakuraryoko.unplugged_afk.impl.config.data.options.PlayerOptions;
-import com.sakuraryoko.unplugged_afk.impl.player.shadow.ShadowServerPlayer;
+import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedServerPlayer;
 
 @ApiStatus.Internal
-public class PendingShadowSpawns
+public class PendingUnpluggedSpawns
 {
-	public static final PendingShadowSpawns INSTANCE = new PendingShadowSpawns();
+	public static final PendingUnpluggedSpawns INSTANCE = new PendingUnpluggedSpawns();
 	private final List<PlayerOptions> pendingSpawnsList;
 	private long lastTick;
 	private boolean locked;
 
-	private PendingShadowSpawns()
+	private PendingUnpluggedSpawns()
 	{
 		this.pendingSpawnsList = new ArrayList<>();
 		this.lastTick = System.currentTimeMillis();
@@ -62,7 +62,7 @@ public class PendingShadowSpawns
 			PlayerOptions opts = this.pendingSpawnsList.removeFirst();
 			opts.state = opts.state.ensureValid();
 
-			ShadowServerPlayer.createShadowFromConfig(server, opts);
+			UnpluggedServerPlayer.createShadowFromConfig(server, opts);
 
 			if (this.pendingSpawnsList.isEmpty())
 			{

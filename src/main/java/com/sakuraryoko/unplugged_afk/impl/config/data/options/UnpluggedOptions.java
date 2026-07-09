@@ -27,9 +27,10 @@ import org.jetbrains.annotations.ApiStatus;
 public class UnpluggedOptions implements IConfigOption
 {
 	public boolean resetHealthUponDeath;
-	public int defaultShadowTimeout;
-	public int unpluggedAfkCommandPermissions;
-	public boolean unpluggedAfkDisableDamage;
+	public int defaultUnpluggedTimeout;
+	public int unpluggedCommandPermissions;
+	public int unpluggedAdminCommandPermissions;
+	public boolean unpluggedDisableDamage;
 	public boolean unpluggedHidePlayer;
 	public boolean unpluggedHideFromOps;
 
@@ -42,9 +43,10 @@ public class UnpluggedOptions implements IConfigOption
 	public void defaults()
 	{
 		this.resetHealthUponDeath = false;
-		this.defaultShadowTimeout = 129600;
-		this.unpluggedAfkCommandPermissions = 0;
-		this.unpluggedAfkDisableDamage = false;
+		this.defaultUnpluggedTimeout = 129600;
+		this.unpluggedCommandPermissions = 0;
+		this.unpluggedAdminCommandPermissions = 3;
+		this.unpluggedDisableDamage = false;
 		this.unpluggedHidePlayer = false;
 		this.unpluggedHideFromOps = false;
 	}
@@ -55,9 +57,10 @@ public class UnpluggedOptions implements IConfigOption
 		UnpluggedOptions opts = (UnpluggedOptions) opt;
 
 		this.resetHealthUponDeath = opts.resetHealthUponDeath;
-		this.defaultShadowTimeout = opts.defaultShadowTimeout;
-		this.unpluggedAfkCommandPermissions = opts.unpluggedAfkCommandPermissions;
-		this.unpluggedAfkDisableDamage = opts.unpluggedAfkDisableDamage;
+		this.defaultUnpluggedTimeout = opts.defaultUnpluggedTimeout;
+		this.unpluggedCommandPermissions = opts.unpluggedCommandPermissions;
+		this.unpluggedAdminCommandPermissions = opts.unpluggedAdminCommandPermissions;
+		this.unpluggedDisableDamage = opts.unpluggedDisableDamage;
 		this.unpluggedHidePlayer = opts.unpluggedHidePlayer;
 		this.unpluggedHideFromOps = opts.unpluggedHideFromOps;
 

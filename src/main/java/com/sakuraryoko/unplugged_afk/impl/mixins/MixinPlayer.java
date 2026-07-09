@@ -30,7 +30,7 @@ import net.minecraft.world.entity.player.Player;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
-import com.sakuraryoko.unplugged_afk.impl.player.shadow.ShadowServerPlayer;
+import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedServerPlayer;
 
 @Mixin(Player.class)
 @ApiStatus.Internal
@@ -51,6 +51,6 @@ public abstract class MixinPlayer
 	private boolean unplugged$onKnockback(Entity instance, Operation<Boolean> original)
 	{
 		//		boolean orig = original.call(instance);
-		return instance.hurtMarked && !(instance instanceof ShadowServerPlayer);
+		return instance.hurtMarked && !(instance instanceof UnpluggedServerPlayer);
 	}
 }

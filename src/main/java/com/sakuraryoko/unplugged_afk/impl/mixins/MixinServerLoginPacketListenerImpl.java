@@ -26,10 +26,10 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 
 import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
 import com.sakuraryoko.unplugged_afk.impl.player.PlayerManager;
-import com.sakuraryoko.unplugged_afk.impl.player.ShadowEntry;
-import com.sakuraryoko.unplugged_afk.impl.player.ShadowEntryList;
+import com.sakuraryoko.unplugged_afk.impl.player.UnpluggedEntry;
+import com.sakuraryoko.unplugged_afk.impl.player.UnpluggedEntryList;
 import com.sakuraryoko.unplugged_afk.impl.player.interfaces.IPlayerListInvoker;
-import com.sakuraryoko.unplugged_afk.impl.player.state.ShadowState;
+import com.sakuraryoko.unplugged_afk.impl.player.state.UnpluggedState;
 import org.jetbrains.annotations.ApiStatus;
 
 import net.minecraft.network.chat.Component;
@@ -40,12 +40,11 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
 import com.sakuraryoko.unplugged_afk.impl.modinit.InitWrap;
-import com.sakuraryoko.unplugged_afk.impl.player.*;
-import com.sakuraryoko.unplugged_afk.impl.player.shadow.ShadowServerPlayer;
-import com.sakuraryoko.unplugged_afk.impl.player.state.*;
+import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedServerPlayer;
 
 //#if MC >= 1.21.10
 //$$ import net.minecraft.server.players.NameAndId;
+//$$ import com.sakuraryoko.unplugged_afk.impl.player.state.ProfileWrap;
 //#else
 import com.mojang.authlib.GameProfile;
 //#endif
@@ -83,21 +82,21 @@ public abstract class MixinServerLoginPacketListenerImpl
 		ServerPlayer player = instance.getPlayer(gameProfile.getId());
 //#endif
 
-		if (player instanceof ShadowServerPlayer sp)
+		if (player instanceof UnpluggedServerPlayer sp)
 		{
 			if (sp.isValid())
 			{
-				ShadowEntry entry = ShadowEntryList.getInstance().get(sp);
+				UnpluggedEntry entry = UnpluggedEntryList.getInstance().get(sp);
 
 				if (entry != null)
 				{
-					ShadowEntryList.getInstance().remove(sp, false);
+					UnpluggedEntryList.getInstance().remove(sp, false);
 				}
 
 				//#if MC >= 1.21.10
-				//$$ PlayerManager.getInstance().setShadowState(ProfileWrap.profile(nameAndId), ShadowState.DEFAULT);
+				//$$ PlayerManager.getInstance().setShadowState(ProfileWrap.profile(nameAndId), UnpluggedState.DEFAULT);
 				//#else
-				PlayerManager.getInstance().setShadowState(gameProfile, ShadowState.DEFAULT);
+				PlayerManager.getInstance().setShadowState(gameProfile, UnpluggedState.DEFAULT);
 				//#endif
 			}
 
@@ -106,7 +105,7 @@ public abstract class MixinServerLoginPacketListenerImpl
 				player.setInvulnerable(false);
 			}
 
-			if (ConfigWrap.mess().hideShadowJoin)
+			if (ConfigWrap.mess().hideUnpluggedJoin)
 			{
 				((IPlayerListInvoker) instance).unplugged$toggleBroadcastSystemMessage(true);
 			}
