@@ -36,7 +36,7 @@ public record PosState(String location, int x, int y, int z, float yaw, float pi
 	@Override
 	public @NonNull String toString()
 	{
-		return "dim="+this.location()+", [x="+this.x()+",y="+this.y()+",z="+this.z()+",yaw="+this.yaw()+",pitch="+this.pitch()+"]";
+		return "PosState{dim="+this.location()+", [x="+this.x()+",y="+this.y()+",z="+this.z()+",yaw="+this.yaw()+",pitch="+this.pitch()+"]}";
 	}
 
 	@Override

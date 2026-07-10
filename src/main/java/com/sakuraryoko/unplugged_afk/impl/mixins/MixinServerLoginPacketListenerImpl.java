@@ -94,9 +94,9 @@ public abstract class MixinServerLoginPacketListenerImpl
 				}
 
 				//#if MC >= 1.21.10
-				//$$ PlayerManager.getInstance().setShadowState(ProfileWrap.profile(nameAndId), UnpluggedState.DEFAULT);
+				//$$ PlayerManager.getInstance().setState(ProfileWrap.profile(nameAndId), UnpluggedState.DEFAULT);
 				//#else
-				PlayerManager.getInstance().setShadowState(gameProfile, UnpluggedState.DEFAULT);
+				PlayerManager.getInstance().setState(gameProfile, UnpluggedState.DEFAULT);
 				//#endif
 			}
 

@@ -84,6 +84,12 @@ public class PlayerManager
 	}
 
 	@ApiStatus.Internal
+	public void resetFromConfig()
+	{
+		this.players.clear();
+	}
+
+	@ApiStatus.Internal
 	public void syncFromConfig(@Nonnull PlayerOptions opt)
 	{
 		this.addOrUpdateProfile(ProfileWrap.profile(opt.uuid, opt.name), opt.state, opt.pos, opt.game);
@@ -217,7 +223,7 @@ public class PlayerManager
 		UnpluggedAfk.debugLog("setConfig: player: ['{}'/{}] state: {}", ProfileWrap.name(profile), ProfileWrap.id(profile), state.toString());
 	}
 
-	public UnpluggedState getShadowState(@Nonnull GameProfile profile)
+	public UnpluggedState getState(@Nonnull GameProfile profile)
 	{
 		UUID uuid = ProfileWrap.id(profile);
 
@@ -231,14 +237,14 @@ public class PlayerManager
 			}
 		}
 
-		UnpluggedAfk.debugLog("getShadowState: player: ['{}'/{}] failure; adding new entry", ProfileWrap.name(profile), ProfileWrap.id(profile));
+		UnpluggedAfk.debugLog("getState: player: ['{}'/{}] failure; adding new entry", ProfileWrap.name(profile), ProfileWrap.id(profile));
 		this.addOrUpdateProfile(profile, UnpluggedState.DEFAULT);
 		this.addConfig(profile);
 		return UnpluggedState.DEFAULT;
 	}
 
 	@ApiStatus.Internal
-	public UnpluggedState getShadowState(@Nonnull UUID uuid)
+	public UnpluggedState getState(@Nonnull UUID uuid)
 	{
 		if (this.players.containsKey(uuid))
 		{
@@ -254,16 +260,16 @@ public class PlayerManager
 	}
 
 	@ApiStatus.Internal
-	public void setShadowState(@Nonnull GameProfile profile, UnpluggedState state)
+	public void setState(@Nonnull GameProfile profile, UnpluggedState state)
 	{
 		this.addOrUpdateProfile(profile, state);
 		this.setConfig(profile, state);
 		UnpluggedAfk.debugLog("setShadowState: player: ['{}'/{}] state: {}", ProfileWrap.name(profile), ProfileWrap.id(profile), state.toString());
 	}
 
-	public void resetShadowState(@Nonnull ServerPlayer player)
+	public void resetState(@Nonnull ServerPlayer player)
 	{
-		this.setShadowState(player.getGameProfile(), UnpluggedState.DEFAULT);
+		this.setState(player.getGameProfile(), UnpluggedState.DEFAULT);
 	}
 
 	public void remove(@Nonnull UUID uuid, boolean silent)
@@ -273,7 +279,7 @@ public class PlayerManager
 		ConfigWrap.players().removeIf(opt -> opt.uuid.equals(uuid));
 	}
 
-	public PosState getPosState(@Nonnull UUID uuid)
+	public PosState getPos(@Nonnull UUID uuid)
 	{
 		if (this.players.containsKey(uuid))
 		{
@@ -407,7 +413,7 @@ public class PlayerManager
 								// Fix desynced player
 								UnpluggedState
 										newState = new UnpluggedState(true, sp.getTimer(), sp.getTimeout(), sp.getReason());
-								this.setShadowState(player.getGameProfile(), newState);
+								this.setState(player.getGameProfile(), newState);
 								found = true;
 								break;
 							}
@@ -484,7 +490,7 @@ public class PlayerManager
 			if (!found && entry.state.enabled())
 			{
 				UnpluggedAfk.debugLog("syncConfig: Scheduling Shadow player: ['{}'/{}]", entry.name, entry.uuid.toString());
-				PendingUnpluggedSpawns.INSTANCE.scheduleSpawn(entry);
+				UnpluggedPendingSpawns.INSTANCE.scheduleSpawn(entry);
 			}
 		}
 
@@ -500,7 +506,7 @@ public class PlayerManager
 		UUID uuid = player.getUUID();
 		PosState pos = PosWrap.of(player);
 		GameState game = GameWrap.of(player);
-		UnpluggedState state = this.getShadowState(uuid).ensureValid();
+		UnpluggedState state = this.getState(uuid).ensureValid();
 
 		if (player instanceof UnpluggedServerPlayer shadow)
 		{
@@ -518,7 +524,7 @@ public class PlayerManager
 
 			if (entry != null)
 			{
-				state = new UnpluggedState(entry.shadowEnabled(), entry.shadowTimer(), shadow.getTimeout(), entry.reason());
+				state = new UnpluggedState(entry.enabled(), entry.timer(), shadow.getTimeout(), entry.reason());
 			}
 			else
 			{
@@ -531,7 +537,6 @@ public class PlayerManager
 
 		UnpluggedAfk.debugLog("syncConfigEach(): Player ['{}'/{}]; state: [{}], pos: [{}], game: [{}]", name, uuid.toString(), state.toString(), pos.toString(), game.toString());
 
-		// FIXME -- Something is still broken here.
 		for (PlayerOptions entry : oldConfig)
 		{
 			PlayerOptions newEntry = new PlayerOptions(entry);
@@ -607,9 +612,11 @@ public class PlayerManager
 	}
 
 	@ApiStatus.Internal
-	public void flushToConfig()
+	public void flushToConfig(@Nonnull MinecraftServer server)
 	{
 		List<PlayerOptions> newConfig = new ArrayList<>();
+		PlayerList playerList = server.getPlayerList();
+		List<ServerPlayer> players = playerList.getPlayers();
 
 		this.players.forEach(
 				(uuid, playerEntry) ->
@@ -620,6 +627,20 @@ public class PlayerManager
 					newEntry.state = playerEntry.state();
 					newEntry.pos = playerEntry.pos();
 					newEntry.game = playerEntry.game();
+
+					// Copy state from an active Unplugged player
+					for (ServerPlayer player : players)
+					{
+						if (player.getUUID().equals(uuid))
+						{
+							if (player instanceof UnpluggedServerPlayer sp)
+							{
+								newEntry.state = new UnpluggedState(sp.isValid(), sp.getTimer(), sp.getTimeout(), sp.getReason());
+							}
+
+							break;
+						}
+					}
 
 					newConfig.add(newEntry);
 				}
@@ -637,7 +658,7 @@ public class PlayerManager
 	{
 		UnpluggedAfk.debugLog("onServerStop --> syncConfig()");
 
-		this.flushToConfig();
+		this.flushToConfig(server);
 		UnpluggedAfk.debugLog("onServerStop(): flushing config ...");
 		ConfigManager.getInstance().saveEach(UnpluggedConfigHandler.getInstance());
 	}
@@ -666,7 +687,7 @@ public class PlayerManager
 			dirty = true;
 		}
 
-		if (this.syncShadowEntries(server, playerMap, shadowMap))
+		if (this.syncEntries(server, playerMap, shadowMap))
 		{
 			dirty = true;
 		}
@@ -678,13 +699,13 @@ public class PlayerManager
 		}
 	}
 
-	private boolean syncShadowEntries(@Nonnull MinecraftServer server, ImmutableMap<UUID, PlayerEntry> playerMap, ImmutableMap<UUID, UnpluggedEntry> shadowMap)
+	private boolean syncEntries(@Nonnull MinecraftServer server, ImmutableMap<UUID, PlayerEntry> playerMap, ImmutableMap<UUID, UnpluggedEntry> shadowMap)
 	{
 		PlayerList playerList = server.getPlayerList();
 		List<ServerPlayer> players = playerList.getPlayers();
 		boolean dirty = false;
 
-		UnpluggedAfk.debugLog("syncShadowEntries --> count: {}", shadowMap.size());
+		UnpluggedAfk.debugLog("syncEntries --> count: {}", shadowMap.size());
 
 		for (ServerPlayer player : players)
 		{
@@ -715,10 +736,10 @@ public class PlayerManager
 							newState = new UnpluggedState(sp.isValid(), sp.getTimer(), sp.getTimeout(), sp.getReason());
 						}
 
-						UnpluggedAfk.debugLog("syncShadowEntries --> sync: ['{}'/{}], state: [{}]", sp.getName().getString(), uuid.toString(), newState.toString());
-						this.setShadowState(sp.getGameProfile(), newState);
-						entry.updateShadowState(newState);
-						UnpluggedEntryList.getInstance().syncShadowEntry(sp, entry);
+						UnpluggedAfk.debugLog("syncEntries --> sync: ['{}'/{}], state: [{}]", sp.getName().getString(), uuid.toString(), newState.toString());
+						this.setState(sp.getGameProfile(), newState);
+						entry.updateState(newState);
+						UnpluggedEntryList.getInstance().syncEntry(sp, entry);
 						dirty = true;
 					}
 				}
@@ -756,6 +777,44 @@ public class PlayerManager
 			if (this.onTickEach(player))
 			{
 				dirty = true;
+			}
+		}
+
+		ImmutableMap<UUID, PlayerEntry> playerMap = this.playerMapCopy();
+
+		for (UUID uuid : playerMap.keySet())
+		{
+			PlayerEntry playerEntry = playerMap.get(uuid);
+
+			if (playerEntry == null) { continue; }
+
+			if (playerEntry.state().enabled())
+			{
+				boolean found = false;
+
+				for (ServerPlayer entry : players)
+				{
+					if (entry.getUUID().equals(uuid))
+					{
+						found = true;
+						break;
+					}
+				}
+
+				if (!found)
+				{
+					ImmutableList<PlayerOptions> config = ImmutableList.copyOf(ConfigWrap.players());
+
+					for (PlayerOptions opt : config)
+					{
+						if (opt.uuid.equals(uuid))
+						{
+							UnpluggedPendingSpawns.INSTANCE.unlock();
+							UnpluggedPendingSpawns.INSTANCE.scheduleSpawn(opt);
+							break;
+						}
+					}
+				}
 			}
 		}
 

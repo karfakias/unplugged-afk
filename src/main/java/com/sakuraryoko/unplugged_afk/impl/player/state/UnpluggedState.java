@@ -57,7 +57,7 @@ public record UnpluggedState(boolean enabled, int time, long timeout, String rea
 	@Override
 	public @NonNull String toString()
 	{
-		return "ShadowState{" + "enabled=" + this.enabled + ", time=" + this.time + ", timeout=" + this.timeout + ", reason=" + this.reason + '}';
+		return "UnpluggedState{" + "enabled=" + this.enabled + ", time=" + this.time + ", timeout=" + this.timeout + ", reason=" + this.reason + '}';
 	}
 
 	public boolean isEmpty()

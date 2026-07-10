@@ -38,15 +38,10 @@ import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
-//#if MC >= 26.2
-//$$ import net.minecraft.world.entity.EntityTypes;
-//#endif
 import net.minecraft.server.players.PlayerList;
-import net.minecraft.world.entity.EntityType;
 
 import com.sakuraryoko.corelib.api.commands.IServerCommand;
 import com.sakuraryoko.corelib.api.modinit.ModInitData;
@@ -71,6 +66,8 @@ import static net.minecraft.commands.Commands.literal;
 @ApiStatus.Internal
 public class UnpluggedAdminCommand implements IServerCommand
 {
+    public static final String COMMAND = "unplugged-admin";
+
     @Override
     public void register(CommandDispatcher<CommandSourceStack> dispatcher, CommandBuildContext registryAccess, Commands.CommandSelection environment)
     {
@@ -94,7 +91,7 @@ public class UnpluggedAdminCommand implements IServerCommand
                                       )
                                       .then(literal("shadows")
                                                     .requires(PermsWrap.check(this.getNode()+".list.shadows", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
-                                                    .executes(this::listShadowMap)
+                                                    .executes(this::listUnpluggedMap)
                                       )
                                       .then(literal("all")
                                                     .requires(PermsWrap.check(this.getNode()+".list.all", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
@@ -116,37 +113,37 @@ public class UnpluggedAdminCommand implements IServerCommand
                         )
                         .then(literal("spawn")
                                       .requires(PermsWrap.check(this.getNode()+".spawn", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
-                                      .then(argument("shadow", StringArgumentType.string())
+                                      .then(argument("player", StringArgumentType.string())
                                                     .suggests(
                                                             (ctx, builder) ->
                                                                     SharedSuggestionProvider.suggest(
                                                                             PlayerManager.getInstance().getSpawnCommandSuggestions(ctx),
                                                                             builder,
                                                                             ProfileWrap::name,
-                                                                            this::formatTooltip
+                                                                            PlayerUtils::formatEntityTooltip
                                                                     )
                                                     )
                                                     .requires(PermsWrap.check(this.getNode()+".spawn", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
                                                     .executes(ctx ->
                                                               {
-                                                                  String result = StringArgumentType.getString(ctx, "shadow");
-                                                                  return this.createShadow(ctx, result, -1, "");
+                                                                  String result = StringArgumentType.getString(ctx, "player");
+                                                                  return this.createUnplugged(ctx, result, -1, "");
                                                               }
                                                     )
-                                                    .then(argument("time", IntegerArgumentType.integer(1))
+                                                    .then(argument("minutes", IntegerArgumentType.integer(1))
                                                                   .requires(PermsWrap.check(this.getNode()+".spawn", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
                                                                   .executes(ctx ->
                                                                             {
-                                                                                String result = StringArgumentType.getString(ctx, "shadow");
-                                                                                return this.createShadow(ctx, result, IntegerArgumentType.getInteger(ctx, "time"), "");
+                                                                                String result = StringArgumentType.getString(ctx, "player");
+                                                                                return this.createUnplugged(ctx, result, IntegerArgumentType.getInteger(ctx, "minutes"), "");
                                                                             }
                                                                   )
                                                                   .then(argument("reason", StringArgumentType.greedyString())
                                                                                 .requires(PermsWrap.check(this.getNode()+".spawn", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
                                                                                 .executes(ctx ->
                                                                                           {
-                                                                                              String result = StringArgumentType.getString(ctx, "shadow");
-                                                                                              return this.createShadow(ctx, result, IntegerArgumentType.getInteger(ctx, "time"), StringArgumentType.getString(ctx, "reason"));
+                                                                                              String result = StringArgumentType.getString(ctx, "player");
+                                                                                              return this.createUnplugged(ctx, result, IntegerArgumentType.getInteger(ctx, "minutes"), StringArgumentType.getString(ctx, "reason"));
                                                                                           }
                                                                                 )
                                                                   )
@@ -162,14 +159,14 @@ public class UnpluggedAdminCommand implements IServerCommand
                                                                             PlayerManager.getInstance().getKillCommandSuggestions(ctx),
                                                                             builder,
                                                                             ProfileWrap::name,
-                                                                            this::formatTooltip
+                                                                            PlayerUtils::formatEntityTooltip
                                                                     )
                                                     )
                                                     .requires(PermsWrap.check(this.getNode()+".kill", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
                                                     .executes(ctx ->
                                                               {
                                                                   String result = StringArgumentType.getString(ctx, "target");
-                                                                  return this.killShadow(ctx, result);
+                                                                  return this.killUnplugged(ctx, result);
                                                               }
                                                     )
                                       )
@@ -180,7 +177,7 @@ public class UnpluggedAdminCommand implements IServerCommand
     @Override
     public String getName()
     {
-        return "unplugged-admin";
+        return COMMAND;
     }
 
     @Override
@@ -210,14 +207,16 @@ public class UnpluggedAdminCommand implements IServerCommand
 
     private int save(CommandContext<CommandSourceStack> ctx)
     {
+        PlayerManager.getInstance().flushToConfig(ctx.getSource().getServer());
+        ConfigManager.getInstance().saveEach(UnpluggedConfigHandler.getInstance());
+        String user = ctx.getSource().getTextName();
+
         //#if MC >= 1.20.1
         //$$ ctx.getSource().sendSuccess(() -> InitWrap.text().formatText("Saving config!"), false);
         //#else
         ctx.getSource().sendSuccess(InitWrap.text().formatText("Saving config!"), false);
         //#endif
 
-        ConfigManager.getInstance().saveEach(UnpluggedConfigHandler.getInstance());
-        String user = ctx.getSource().getTextName();
         UnpluggedAfk.LOGGER.info("{} has saved the configuration.", user);
 
         return 1;
@@ -225,14 +224,15 @@ public class UnpluggedAdminCommand implements IServerCommand
 
     private int reload(CommandContext<CommandSourceStack> ctx)
     {
+        ConfigManager.getInstance().reloadEach(UnpluggedConfigHandler.getInstance());
+        String user = ctx.getSource().getTextName();
+
         //#if MC >= 1.20.1
         //$$ ctx.getSource().sendSuccess(() -> InitWrap.text().formatText("Reloaded config!"), false);
         //#else
         ctx.getSource().sendSuccess(InitWrap.text().formatText("Reloaded config!"), false);
         //#endif
 
-        ConfigManager.getInstance().reloadEach(UnpluggedConfigHandler.getInstance());
-        String user = ctx.getSource().getTextName();
         UnpluggedAfk.LOGGER.info("{} has reloaded the configuration.", user);
 
         return 1;
@@ -241,7 +241,7 @@ public class UnpluggedAdminCommand implements IServerCommand
     private int listAll(CommandContext<CommandSourceStack> ctx)
     {
         this.listPlayerMap(ctx);
-        this.listShadowMap(ctx);
+        this.listUnpluggedMap(ctx);
 
         return 1;
     }
@@ -297,14 +297,14 @@ public class UnpluggedAdminCommand implements IServerCommand
         return 1;
     }
 
-    private int listShadowMap(CommandContext<CommandSourceStack> ctx)
+    private int listUnpluggedMap(CommandContext<CommandSourceStack> ctx)
     {
         ImmutableMap<UUID, UnpluggedEntry> map = UnpluggedEntryList.getInstance().shadowMapCopy();
         MutableComponent text = Component.literal("");
         int count = 0;
 
         text.append(
-                InitWrap.text().formatText("\n§dShadow Map:")
+                InitWrap.text().formatText("\n§dUnplugged Map:")
         );
 
         for (UnpluggedEntry entry : map.values())
@@ -314,7 +314,7 @@ public class UnpluggedAdminCommand implements IServerCommand
                             String.format("\n§9[Entry: %02d]", count)
                     )
             ).append(
-                    entry.getDebugFormatted()
+                    entry.debugFormatted()
             );
 
             count++;
@@ -333,11 +333,11 @@ public class UnpluggedAdminCommand implements IServerCommand
         if (ctx.getSource().isPlayer() && ctx.getSource().getPlayer() instanceof ServerPlayer)
         {
             GameProfile profile = ctx.getSource().getPlayer().getGameProfile();
-            UnpluggedAfk.debugLog("listShadowMap: by: ['{}'/{}]", ProfileWrap.name(profile), ProfileWrap.id(profile));
+            UnpluggedAfk.debugLog("listUnpluggedMap: by: ['{}'/{}]", ProfileWrap.name(profile), ProfileWrap.id(profile));
         }
         else
         {
-            UnpluggedAfk.debugLog("listShadowMap: by: [console/unknown]");
+            UnpluggedAfk.debugLog("listUnpluggedMap: by: [console/unknown]");
         }
 
         return 1;
@@ -364,11 +364,16 @@ public class UnpluggedAdminCommand implements IServerCommand
                 InitWrap.text().formatText("§9Player Info: ")
         ).append(
                 PlayerManager.getInstance().getDebugFormatted(player.getUUID())
-        ).append(
-                InitWrap.text().formatText("\n§9Shadow Info: ")
-        ).append(
-                UnpluggedEntryList.getInstance().getDebugFormatted(player.getUUID())
         );
+
+        if (UnpluggedEntryList.getInstance().contains(player.getUUID()))
+        {
+            text.append(
+                    InitWrap.text().formatText("\n§9Unplugged Info: ")
+            ).append(
+                    UnpluggedEntryList.getInstance().getDebugFormatted(player.getUUID())
+            );
+        }
 
         //#if MC >= 1.20.1
         //$$ ctx.getSource().sendSuccess(() -> text, false);
@@ -401,7 +406,7 @@ public class UnpluggedAdminCommand implements IServerCommand
         ImmutableMap<UUID, UnpluggedEntry> shadowMap = UnpluggedEntryList.getInstance().shadowMapCopy();
         int count = 0;
 
-        PlayerManager.getInstance().flushToConfig();
+        PlayerManager.getInstance().flushToConfig(ctx.getSource().getServer());
 
         for (UUID uuid : playerMap.keySet())
         {
@@ -447,35 +452,7 @@ public class UnpluggedAdminCommand implements IServerCommand
     }
 
     @ApiStatus.Internal
-    private Component formatTooltip(GameProfile profile)
-    {
-        MutableComponent result = Component.literal(ProfileWrap.name(profile));
-        //#if MC >= 1.21.5
-        //$$ HoverEvent hoverEvent = new HoverEvent.ShowEntity(
-        //#else
-        HoverEvent hoverEvent = new HoverEvent(HoverEvent.Action.SHOW_ENTITY,
-        //#endif
-                                               new HoverEvent.EntityTooltipInfo(this.getEntityTypeWrap(),
-                                                                                ProfileWrap.id(profile),
-                                                                                Component.literal(ProfileWrap.name(profile))
-                                               )
-        );
-        result.withStyle(style -> style.withHoverEvent(hoverEvent));
-        return result;
-    }
-
-    @ApiStatus.Internal
-    private EntityType<?> getEntityTypeWrap()
-    {
-        //#if MC >= 26.2
-        //$$ return EntityTypes.PLAYER;
-        //#else
-        return EntityType.PLAYER;
-        //#endif
-    }
-
-    @ApiStatus.Internal
-    private int createShadow(CommandContext<CommandSourceStack> ctx, String result, int time, String reason)
+    private int createUnplugged(CommandContext<CommandSourceStack> ctx, String result, int time, String reason)
     {
         ImmutableList<GameProfile> list = PlayerManager.getInstance().getSpawnCommandSuggestions(ctx);
         boolean found = false;
@@ -511,13 +488,13 @@ public class UnpluggedAdminCommand implements IServerCommand
                                                    .findFirst()
                                                    .orElseThrow();
 
-                    UnpluggedAfk.debugLog("createShadow: Scheduling Shadow player: ['{}'/{}]", opts.name, opts.uuid.toString());
-                    reply = "§eScheduling shadow spawn for: §7"+ result + "§r";
+                    UnpluggedAfk.debugLog("createUnplugged: Scheduling Unplugged player: ['{}'/{}]", opts.name, opts.uuid.toString());
+                    reply = "§eScheduling unplugged spawn for: §7"+ result + "§r";
                     opts.state = new UnpluggedState(true, time, (time * 60L) * 1000L, reason);
-                    PlayerManager.getInstance().setShadowState(entry, opts.state);
-                    PlayerManager.getInstance().flushToConfig();
-                    PendingUnpluggedSpawns.INSTANCE.unlock();
-                    PendingUnpluggedSpawns.INSTANCE.scheduleSpawn(opts);
+                    PlayerManager.getInstance().setState(entry, opts.state);
+                    PlayerManager.getInstance().flushToConfig(ctx.getSource().getServer());
+                    UnpluggedPendingSpawns.INSTANCE.unlock();
+                    UnpluggedPendingSpawns.INSTANCE.scheduleSpawn(opts);
                 }
                 catch (Exception e)
                 {
@@ -545,18 +522,18 @@ public class UnpluggedAdminCommand implements IServerCommand
         if (ctx.getSource().isPlayer() && ctx.getSource().getPlayer() instanceof ServerPlayer)
         {
             GameProfile profile = ctx.getSource().getPlayer().getGameProfile();
-            UnpluggedAfk.debugLog("createShadow: by: ['{}'/{}] // result: {}", ProfileWrap.name(profile), ProfileWrap.id(profile), finalReply);
+            UnpluggedAfk.debugLog("createUnplugged: by: ['{}'/{}] // result: {}", ProfileWrap.name(profile), ProfileWrap.id(profile), finalReply);
         }
         else
         {
-            UnpluggedAfk.debugLog("createShadow: by: [console/unknown] // result: {}", finalReply);
+            UnpluggedAfk.debugLog("createUnplugged: by: [console/unknown] // result: {}", finalReply);
         }
 
         return 1;
     }
 
     @ApiStatus.Internal
-    private int killShadow(CommandContext<CommandSourceStack> ctx, String result)
+    private int killUnplugged(CommandContext<CommandSourceStack> ctx, String result)
     {
         ImmutableList<GameProfile> list = PlayerManager.getInstance().getKillCommandSuggestions(ctx);
         boolean found = false;
@@ -576,8 +553,8 @@ public class UnpluggedAdminCommand implements IServerCommand
                     {
                         if (player.getUUID().equals(ProfileWrap.id(entry)) && player instanceof UnpluggedServerPlayer sp)
                         {
-                            UnpluggedAfk.debugLog("killShadow: Killing Shadow player: ['{}'/{}]", ProfileWrap.name(entry), ProfileWrap.id(entry).toString());
-                            reply = "§eKilling shadow: §7"+ ProfileWrap.name(entry) + "§r";
+                            UnpluggedAfk.debugLog("killUnplugged: Killing Unplugged player: ['{}'/{}]", ProfileWrap.name(entry), ProfileWrap.id(entry).toString());
+                            reply = "§eKilling unplugged player: §7"+ ProfileWrap.name(entry) + "§r";
 
                             if (ConfigWrap.mess().hideUnpluggedJoin)
                             {
@@ -619,11 +596,11 @@ public class UnpluggedAdminCommand implements IServerCommand
         if (ctx.getSource().isPlayer() && ctx.getSource().getPlayer() instanceof ServerPlayer)
         {
             GameProfile profile = ctx.getSource().getPlayer().getGameProfile();
-            UnpluggedAfk.debugLog("killShadow: by: ['{}'/{}] // result: {}", ProfileWrap.name(profile), ProfileWrap.id(profile), finalReply);
+            UnpluggedAfk.debugLog("killUnplugged: by: ['{}'/{}] // result: {}", ProfileWrap.name(profile), ProfileWrap.id(profile), finalReply);
         }
         else
         {
-            UnpluggedAfk.debugLog("killShadow: by: [console/unknown] // result: {}", finalReply);
+            UnpluggedAfk.debugLog("killUnplugged: by: [console/unknown] // result: {}", finalReply);
         }
 
         return 1;

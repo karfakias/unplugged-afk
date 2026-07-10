@@ -107,7 +107,7 @@ public class UnpluggedConfigHandler implements IConfigDispatch
     @Override
     public void initConfig()
     {
-        // NO-OP
+        UnpluggedAfk.debugLog("UnpluggedConfigHandler#initConfig()");
     }
 
     @Override
@@ -195,6 +195,8 @@ public class UnpluggedConfigHandler implements IConfigDispatch
         UnpluggedAfk.debugLog("UnpluggedConfigHandler#execute(): Execute config.");
 
         // Load data into Player Manager.
+        PlayerManager.getInstance().resetFromConfig();
+
         CONFIG.PLAYERS.forEach(
                 player ->
                         PlayerManager.getInstance().syncFromConfig(player)

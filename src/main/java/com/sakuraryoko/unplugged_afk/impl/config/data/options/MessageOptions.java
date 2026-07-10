@@ -61,7 +61,7 @@ public class MessageOptions implements IConfigOption
 		this.unpluggedExpiredReason = "§eTimeout expired§r";
 		this.unpluggedStarted = "§r §eis now unplugged§r";
 		this.unpluggedPunctuation = "§e,§r ";
-		this.unpluggedReturned = "§r §eis no longer unplugged§r";
+		this.unpluggedReturned = "§r §ehas returned§r";
 		this.whenReturnDurationPrefix = " §7(Gone for: §a";
 		this.whenReturnDurationSuffix = "§7)";
 		this.duration = new DurationOption();

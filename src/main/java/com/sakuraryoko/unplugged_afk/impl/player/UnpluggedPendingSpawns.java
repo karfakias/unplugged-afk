@@ -31,14 +31,14 @@ import com.sakuraryoko.unplugged_afk.impl.config.data.options.PlayerOptions;
 import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedServerPlayer;
 
 @ApiStatus.Internal
-public class PendingUnpluggedSpawns
+public class UnpluggedPendingSpawns
 {
-	public static final PendingUnpluggedSpawns INSTANCE = new PendingUnpluggedSpawns();
+	public static final UnpluggedPendingSpawns INSTANCE = new UnpluggedPendingSpawns();
 	private final List<PlayerOptions> pendingSpawnsList;
 	private long lastTick;
 	private boolean locked;
 
-	private PendingUnpluggedSpawns()
+	private UnpluggedPendingSpawns()
 	{
 		this.pendingSpawnsList = new ArrayList<>();
 		this.lastTick = System.currentTimeMillis();
@@ -62,7 +62,7 @@ public class PendingUnpluggedSpawns
 			PlayerOptions opts = this.pendingSpawnsList.removeFirst();
 			opts.state = opts.state.ensureValid();
 
-			UnpluggedServerPlayer.createShadowFromConfig(server, opts);
+			UnpluggedServerPlayer.createFromConfig(server, opts);
 
 			if (this.pendingSpawnsList.isEmpty())
 			{

@@ -29,7 +29,7 @@ import net.minecraft.server.dedicated.DedicatedServer;
 import net.minecraft.world.level.GameType;
 
 import com.sakuraryoko.unplugged_afk.impl.player.PlayerManager;
-import com.sakuraryoko.unplugged_afk.impl.player.PendingUnpluggedSpawns;
+import com.sakuraryoko.unplugged_afk.impl.player.UnpluggedPendingSpawns;
 import com.sakuraryoko.corelib.api.events.IServerEventsDispatch;
 
 @ApiStatus.Internal
@@ -41,7 +41,7 @@ public class ServerEventsHandler implements IServerEventsDispatch
 	@Override
 	public void onStarting(MinecraftServer server)
 	{
-		PendingUnpluggedSpawns.INSTANCE.unlock();
+		UnpluggedPendingSpawns.INSTANCE.unlock();
 	}
 
 	@Override
@@ -76,7 +76,7 @@ public class ServerEventsHandler implements IServerEventsDispatch
 
 	public void onTick(MinecraftServer server)
 	{
-		PendingUnpluggedSpawns.INSTANCE.tick(server);
+		UnpluggedPendingSpawns.INSTANCE.tick(server);
 		PlayerManager.getInstance().onTick(server);
 	}
 

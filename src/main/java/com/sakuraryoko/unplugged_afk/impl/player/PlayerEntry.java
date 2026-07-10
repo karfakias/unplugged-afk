@@ -59,7 +59,7 @@ public record PlayerEntry(UUID uuid, String name, UnpluggedState state, PosState
 	@Override
 	public @NonNull String toString()
 	{
-		return "[name="+this.name()+",uuid="+this.uuid().toString()+"],[state="+this.state().toString()+"],[pos=]"+this.pos().toString()+"[game="+this.game().toString()+"]";
+		return "PlayerEntry{name="+this.name()+",uuid="+this.uuid().toString()+",[state="+this.state().toString()+"],[pos="+this.pos().toString()+"],[game="+this.game().toString()+"]}";
 	}
 
 	@Override
@@ -100,7 +100,7 @@ public record PlayerEntry(UUID uuid, String name, UnpluggedState state, PosState
 		text.append(
 				InitWrap.text().formatText("\n - §7Name: ")
 		).append(
-				InitWrap.text().formatText(this.name())
+				PlayerUtils.formatSuggestSpawnCommand(this.name())
 		);
 		if (!ConfigWrap.mainOpt().reducedListDebugInfo)
 		{
@@ -122,7 +122,7 @@ public record PlayerEntry(UUID uuid, String name, UnpluggedState state, PosState
 		if (!ConfigWrap.mainOpt().reducedListDebugInfo || this.state().enabled())
 		{
 			text.append(
-					InitWrap.text().formatText("\n - §7Shadow: ")
+					InitWrap.text().formatText("\n - §7State: ")
 			).append(
 					this.state().getDebugFormatted()
 			);

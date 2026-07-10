@@ -35,7 +35,7 @@ public record GameState(String gameMode, boolean flying)
 	@Override
 	public @NonNull String toString()
 	{
-		return "gameType="+this.gameMode+",flying="+this.flying;
+		return "GameState{gameType="+this.gameMode+",flying="+this.flying+"}";
 	}
 
 	@Override

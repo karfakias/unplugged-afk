@@ -39,20 +39,20 @@ public class UnpluggedEntryList
 {
 	private static final UnpluggedEntryList INSTANCE = new UnpluggedEntryList();
 	public static UnpluggedEntryList getInstance() { return INSTANCE; }
-	private final HashMap<UUID, UnpluggedEntry> shadowMap;
+	private final HashMap<UUID, UnpluggedEntry> map;
 
 	private UnpluggedEntryList()
 	{
-		this.shadowMap = new HashMap<>();
+		this.map = new HashMap<>();
 	}
 
 	public @Nullable UnpluggedEntry get(@Nonnull UnpluggedServerPlayer player)
 	{
 		UUID uuid = player.getUUID();
 
-		if (this.shadowMap.containsKey(uuid))
+		if (this.map.containsKey(uuid))
 		{
-			return this.shadowMap.get(uuid);
+			return this.map.get(uuid);
 		}
 
 		return null;
@@ -66,53 +66,58 @@ public class UnpluggedEntryList
 
 			if (state.enabled())
 			{
-				entry.updateShadowState(state);
+				entry.updateState(state);
 			}
 
-			this.shadowMap.put(player.getUUID(), entry);
-			UnpluggedAfk.debugLog("ShadowEntryList(): add({}) --> ADD", entry.name().getString());
+			this.map.put(player.getUUID(), entry);
+			UnpluggedAfk.debugLog("UnpluggedEntryList(): add({}) --> ADD", entry.name().getString());
 			return entry;
 		}
 
 		return this.get(player);
 	}
 
-	public void updateShadow(@Nonnull UnpluggedServerPlayer player)
+	public boolean contains(UUID uuid)
+	{
+		return this.map.containsKey(uuid);
+	}
+
+	public void updateFromUnplugged(@Nonnull UnpluggedServerPlayer player)
 	{
 		UUID uuid = player.getUUID();
 
-		if (this.shadowMap.containsKey(uuid))
+		if (this.map.containsKey(uuid))
 		{
-			UnpluggedEntry entry = this.shadowMap.get(uuid);
+			UnpluggedEntry entry = this.map.get(uuid);
 
 			if (entry != null)
 			{
-				entry.setShadowPlayer(player);
+				entry.setPlayer(player);
 			}
 		}
 	}
 
-	protected void syncShadowEntry(@Nonnull UnpluggedServerPlayer player, UnpluggedEntry entry)
+	protected void syncEntry(@Nonnull UnpluggedServerPlayer player, UnpluggedEntry entry)
 	{
 		UUID uuid = player.getUUID();
 
 		if (entry.matches(uuid))
 		{
-			this.shadowMap.remove(uuid);
-			entry.setShadowPlayer(player);
-			this.shadowMap.put(uuid, entry);
+			this.map.remove(uuid);
+			entry.setPlayer(player);
+			this.map.put(uuid, entry);
 		}
 	}
 
 	public void remove(@Nonnull UUID uuid, boolean silent)
 	{
-		UnpluggedEntry entry = this.shadowMap.remove(uuid);
+		UnpluggedEntry entry = this.map.remove(uuid);
 
 		if (entry != null)
 		{
-			this.shadowMap.remove(uuid);
-			UnpluggedAfk.debugLog("ShadowEntryList(): remove({}) --> REMOVE", entry.name().getString());
-			entry.handler().unregisterShadowAfk();
+			this.map.remove(uuid);
+			UnpluggedAfk.debugLog("UnpluggedEntryList(): remove({}) --> REMOVE", entry.name().getString());
+			entry.handler().unregisterUnpluggedAfk();
 		}
 	}
 
@@ -125,23 +130,23 @@ public class UnpluggedEntryList
 	public ImmutableMap<UUID, UnpluggedEntry> shadowMapCopy()
 	{
 		ImmutableMap.Builder<UUID, UnpluggedEntry> builder = ImmutableMap.builder();
-		this.shadowMap.forEach(builder::put);
+		this.map.forEach(builder::put);
 		return builder.build();
 	}
 
 	@VisibleForTesting
 	public Component getDebugFormatted(UUID uuid)
 	{
-		if (this.shadowMap.containsKey(uuid))
+		if (this.map.containsKey(uuid))
 		{
-			UnpluggedEntry entry = this.shadowMap.get(uuid);
+			UnpluggedEntry entry = this.map.get(uuid);
 
 			if (entry != null)
 			{
-				return entry.getDebugFormatted();
+				return entry.debugFormatted();
 			}
 		}
 
-		return Component.literal("§cShadow Player not found§r");
+		return Component.literal("§cUnplugged Player not found§r");
 	}
 }

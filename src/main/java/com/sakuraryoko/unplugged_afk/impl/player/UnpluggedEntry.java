@@ -45,24 +45,24 @@ import com.sakuraryoko.corelib.api.time.TimeFormat;
 @ApiStatus.Internal
 public class UnpluggedEntry
 {
-	private @Nullable UnpluggedServerPlayer shadowPlayer;
+	private @Nullable UnpluggedServerPlayer player;
 	private final UnpluggedEntryHandler handler;
-	private boolean shadowEnabled;
+	private boolean enabled;
 	private int time;
-	private long shadowStartTimeMs;
-	private long shadowStartTimeEpoch;
-	private long shadowTimeout;
+	private long startTimeMs;
+	private long startTimeEpoch;
+	private long timeout;
 	private String reason;
 
 	@ApiStatus.Internal
 	private UnpluggedEntry()
 	{
-		this.shadowPlayer = null;
-		this.shadowEnabled = false;
+		this.player = null;
+		this.enabled = false;
 		this.time = 0;
-		this.shadowStartTimeMs = -1L;
-		this.shadowStartTimeEpoch = -1L;
-		this.shadowTimeout = -1L;
+		this.startTimeMs = -1L;
+		this.startTimeEpoch = -1L;
+		this.timeout = -1L;
 		this.reason = "";
 		this.handler = new UnpluggedEntryHandler(this);
 	}
@@ -71,7 +71,7 @@ public class UnpluggedEntry
 	public static UnpluggedEntry create(@Nonnull UnpluggedServerPlayer player)
 	{
 		UnpluggedEntry newEntry = new UnpluggedEntry();
-		newEntry.setShadowPlayer(player);
+		newEntry.setPlayer(player);
 		return newEntry;
 	}
 
@@ -82,48 +82,48 @@ public class UnpluggedEntry
 	}
 
 	@Nullable
-	public UnpluggedServerPlayer shadowPlayer()
+	public UnpluggedServerPlayer player()
 	{
-		return this.shadowPlayer;
+		return this.player;
 	}
 
 	public Component name()
 	{
-		return this.shadowPlayer != null
-		       ? this.shadowPlayer.getName()
+		return this.player != null
+		       ? this.player.getName()
 		       : Component.empty();
 	}
 
 	public @Nullable GameProfile profile()
 	{
-		return this.shadowPlayer != null
-		       ? this.shadowPlayer.getGameProfile()
+		return this.player != null
+		       ? this.player.getGameProfile()
 		       : null;
 	}
 
-	public boolean shadowEnabled()
+	public boolean enabled()
 	{
-		return this.shadowEnabled;
+		return this.enabled;
 	}
 
-	public int shadowTimer()
+	public int timer()
 	{
 		return this.time;
 	}
 
-	public long shadowStartTimeEpoch()
+	public long startTimeEpoch()
 	{
-		return this.shadowStartTimeEpoch;
+		return this.startTimeEpoch;
 	}
 
-	public long shadowStartTimeMs()
+	public long startTimeMs()
 	{
-		return this.shadowStartTimeMs;
+		return this.startTimeMs;
 	}
 
-	public long shadowTimeout()
+	public long timeout()
 	{
-		return this.shadowTimeout;
+		return this.timeout;
 	}
 
 	public String reason()
@@ -131,7 +131,7 @@ public class UnpluggedEntry
 		return this.reason;
 	}
 
-	public DurationFormat getDurationType()
+	public DurationFormat durationType()
 	{
 		DurationFormat format = DurationFormat.fromStringStatic(ConfigWrap.mess().duration.option.getName());
 
@@ -144,7 +144,7 @@ public class UnpluggedEntry
 		return DurationFormat.REGULAR;
 	}
 
-	public TimeFormat getTimeDateType()
+	public TimeFormat timeDateType()
 	{
 		TimeFormat format = TimeFormat.fromStringStatic(ConfigWrap.mess().timeDate.option.getName());
 
@@ -157,55 +157,55 @@ public class UnpluggedEntry
 		return TimeFormat.REGULAR;
 	}
 
-	public String getShadowStartTimeEpochString()
+	public String startTimeEpochString()
 	{
-		return this.getTimeDateType().formatTo(this.shadowStartTimeEpoch(), ConfigWrap.mess().duration.customFormat);
+		return this.timeDateType().formatTo(this.startTimeEpoch(), ConfigWrap.mess().duration.customFormat);
 	}
 
-	public String getShadowDurationString()
+	public String durationString()
 	{
-		return this.getDurationType().format((Util.getMillis() - this.shadowStartTimeMs()), ConfigWrap.mess().duration.customFormat);
+		return this.durationType().format((Util.getMillis() - this.startTimeMs()), ConfigWrap.mess().duration.customFormat);
 	}
 
-    public String getShadowTimeoutString()
+    public String timeoutString()
     {
-        return this.getDurationType().format((this.shadowTimeout), ConfigWrap.mess().duration.customFormat);
+        return this.durationType().format((this.timeout), ConfigWrap.mess().duration.customFormat);
     }
 
-	public String getShadowStartTimeEpochFormatted()
+	public String startTimeEpochFormatted()
 	{
-		if (this.shadowStartTimeEpoch > 1L)
+		if (this.startTimeEpoch > 1L)
 		{
-			String result = this.getShadowStartTimeEpochString();
+			String result = this.startTimeEpochString();
 			return "§a" + result + "§r";
 		}
 
 		return "§eN/A§r";
 	}
 
-	public String getShadowDurationFormatted()
+	public String durationFormatted()
 	{
-		if (this.shadowStartTimeMs() > 1L)
+		if (this.startTimeMs() > 1L)
 		{
-			String result = this.getShadowDurationString();
+			String result = this.durationString();
 			return "§a" + result + "§r";
 		}
 
 		return "§eN/A§r";
 	}
 
-	public String getShadowTimeoutFormatted()
+	public String timeoutFormatted()
 	{
-		if (this.shadowTimeout > 1L)
+		if (this.timeout > 1L)
 		{
-			String result = this.getShadowTimeoutString();
+			String result = this.timeoutString();
 			return "§6" + result + "§r";
 		}
 
 		return "§eN/A§r";
 	}
 
-	public String getReasonFormatted()
+	public String reasonFormatted()
 	{
 		if (this.reason().isEmpty())
 		{
@@ -216,33 +216,33 @@ public class UnpluggedEntry
 	}
 
 	@ApiStatus.Internal
-	public void setShadowPlayer(@Nonnull UnpluggedServerPlayer player)
+	public void setPlayer(@Nonnull UnpluggedServerPlayer player)
 	{
-		this.shadowPlayer = player;
+		this.player = player;
 	}
 
 	@ApiStatus.Internal
-	public void updateShadowState(UnpluggedState state)
+	public void updateState(UnpluggedState state)
 	{
-		this.shadowEnabled = state.enabled();
+		this.enabled = state.enabled();
 		this.setTimer(state.time());
-		this.setShadowTimeout(state.timeout());
+		this.setTimeout(state.timeout());
 		this.setReason(state.reason());
 
-		if (this.shadowStartTimeMs() <= 1L)
+		if (this.startTimeMs() <= 1L)
 		{
-			this.setShadowStartTimeMs(Util.getMillis());
+			this.setStartTimeMs(Util.getMillis());
 		}
-		if (this.shadowStartTimeEpoch() <= 1L)
+		if (this.startTimeEpoch() <= 1L)
 		{
-			this.setShadowStartTimeEpoch(ZonedDateTime.now().toInstant().toEpochMilli());
+			this.setStartTimeEpoch(ZonedDateTime.now().toInstant().toEpochMilli());
 		}
 	}
 
 	@ApiStatus.Internal
-	public void clearShadow()
+	public void clearPlayer()
 	{
-		this.shadowPlayer = null;
+		this.player = null;
 	}
 
 	@ApiStatus.Internal
@@ -252,21 +252,21 @@ public class UnpluggedEntry
 	}
 
 	@ApiStatus.Internal
-	public void setShadowStartTimeMs(long time)
+	public void setStartTimeMs(long time)
 	{
-		this.shadowStartTimeMs = time;
+		this.startTimeMs = time;
 	}
 
 	@ApiStatus.Internal
-	public void setShadowStartTimeEpoch(long time)
+	public void setStartTimeEpoch(long time)
 	{
-		this.shadowStartTimeEpoch = time;
+		this.startTimeEpoch = time;
 	}
 
 	@ApiStatus.Internal
-	public void setShadowTimeout(long timeout)
+	public void setTimeout(long timeout)
     {
-        this.shadowTimeout = Math.min(Math.max(timeout, 0L), Long.MAX_VALUE);
+        this.timeout = Math.min(Math.max(timeout, 0L), Long.MAX_VALUE);
     }
 
 	@ApiStatus.Internal
@@ -278,33 +278,35 @@ public class UnpluggedEntry
 	@ApiStatus.Internal
     public boolean tickShadowTimeout(final long tickDelta)
     {
-        this.shadowTimeout -= tickDelta;
-        return this.shadowTimeout > 0L;
+        this.timeout -= tickDelta;
+        return this.timeout > 0L;
     }
 
 	public boolean matches(@Nonnull UnpluggedServerPlayer player)
 	{
-		if (this.shadowPlayer == null) { return false; }
-		return  this.shadowPlayer.getUUID().equals(player.getUUID()) ||
-				this.shadowPlayer.equals(player);
+		if (this.player == null) { return false; }
+		return  this.player.getUUID().equals(player.getUUID()) ||
+				this.player.equals(player);
 	}
 
 	public boolean matches(UUID uuid)
 	{
-		if (this.shadowPlayer == null) { return false; }
-		return  this.shadowPlayer.getUUID().equals(uuid);
+		if (this.player == null) { return false; }
+		return  this.player.getUUID().equals(uuid);
 	}
 
 	@VisibleForTesting
-	public Component getDebugFormatted()
+	public Component debugFormatted()
 	{
 		MutableComponent text = Component.literal("");
 
-		if (this.shadowPlayer != null)
+		if (this.player != null)
 		{
 			text.append(
 					InitWrap.text().formatText("§r\n - §7Name: ")
-			).append(this.name());
+			).append(
+					PlayerUtils.formatSuggestKillCommand(this.name())
+			);
 		}
 		else
 		{
@@ -327,17 +329,17 @@ public class UnpluggedEntry
 		}
 
 		text.append(
-				InitWrap.text().formatText("§r\n - §7Shadow: ")
+				InitWrap.text().formatText("§r\n - §7Status: ")
 		).append(
-				InitWrap.text().formatText(this.shadowEnabled() ? "§6Enabled" : "§aDisabled")
+				InitWrap.text().formatText(this.enabled() ? "§6Enabled" : "§aDisabled")
 		);
 
-		if (this.shadowEnabled())
+		if (this.enabled())
 		{
 			text.append(
 					InitWrap.text().formatText("§r\n - §7Timeout: ")
 			).append(
-					InitWrap.text().formatText(this.getShadowTimeoutFormatted())
+					InitWrap.text().formatText(this.timeoutFormatted())
 			);
 
 			if (!ConfigWrap.mainOpt().reducedListDebugInfo)
@@ -345,17 +347,17 @@ public class UnpluggedEntry
 				text.append(
 						InitWrap.text().formatText("§r\n - §7Duration: ")
 				).append(
-						InitWrap.text().formatText(this.getShadowDurationFormatted())
+						InitWrap.text().formatText(this.durationFormatted())
 				).append(
 						InitWrap.text().formatText("§r\n - §7Since: ")
 				).append(
-						InitWrap.text().formatText(this.getShadowStartTimeEpochFormatted())
+						InitWrap.text().formatText(this.startTimeEpochFormatted())
 				);
 			}
 			text.append(
 					InitWrap.text().formatText("§r\n - §7Reason: ")
 			).append(
-					InitWrap.text().formatText(this.getReasonFormatted())
+					InitWrap.text().formatText(this.reasonFormatted())
 			);
 		}
 
@@ -365,11 +367,11 @@ public class UnpluggedEntry
 	@ApiStatus.Internal
 	public void reset()
 	{
-		this.shadowEnabled = false;
+		this.enabled = false;
 		this.time = 0;
-		this.shadowStartTimeMs = -1L;
-		this.shadowStartTimeEpoch = -1L;
-		this.shadowTimeout = -1L;
+		this.startTimeMs = -1L;
+		this.startTimeEpoch = -1L;
+		this.timeout = -1L;
 		this.reason = "";
 	}
 }

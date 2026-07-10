@@ -41,7 +41,7 @@ public record UnpluggedEntryHandler(UnpluggedEntry entry)
     }
 
     @ApiStatus.Internal
-    public void registerShadowAfk(@Nonnull UnpluggedServerPlayer player, UnpluggedState state)
+    public void registerUnpluggedAfk(@Nonnull UnpluggedServerPlayer player, UnpluggedState state)
     {
         int time = state.time();
         String reason = state.reason();
@@ -56,62 +56,77 @@ public record UnpluggedEntryHandler(UnpluggedEntry entry)
         if (reason == null && ConfigWrap.mess().defaultUnpluggedReason == null)
         {
             this.entry().setReason("§cnone");
-            String mess1 = this.entry().name().getString()
-                    + ConfigWrap.mess().unpluggedStarted;
-            Component mess2 = InitWrap.text().formatTextSafe(mess1);
-            this.sendMessage(mess2);
+
+            if (!ConfigWrap.unplugged().unpluggedHidePlayer && !ConfigWrap.mess().hideUnpluggedJoin)
+            {
+                String mess1 = this.entry().name().getString()
+                        + ConfigWrap.mess().unpluggedStarted;
+                Component mess2 = InitWrap.text().formatTextSafe(mess1);
+                this.sendMessage(mess2);
+            }
         }
         else if (reason == null || reason.isEmpty())
         {
             this.entry().setReason("§cnone");
-            String mess1 = this.entry().name().getString()
-                    + ConfigWrap.mess().unpluggedStarted;
-            Component mess2 = InitWrap.text().formatTextSafe(mess1);
-            this.sendMessage(mess2);
+
+            if (!ConfigWrap.unplugged().unpluggedHidePlayer && !ConfigWrap.mess().hideUnpluggedJoin)
+            {
+                String mess1 = this.entry().name().getString()
+                        + ConfigWrap.mess().unpluggedStarted;
+                Component mess2 = InitWrap.text().formatTextSafe(mess1);
+                this.sendMessage(mess2);
+            }
         }
         else
         {
             this.entry().setReason(reason);
-            String mess1 = this.entry().name().getString()
-                    + ConfigWrap.mess().unpluggedStarted
-                    + ConfigWrap.mess().unpluggedPunctuation
-                    + reason;
-            Component mess2 = InitWrap.text().formatTextSafe(mess1);
-            this.sendMessage(mess2);
+
+            if (!ConfigWrap.unplugged().unpluggedHidePlayer && !ConfigWrap.mess().hideUnpluggedJoin)
+            {
+                String mess1 = this.entry().name().getString()
+                        + ConfigWrap.mess().unpluggedStarted
+                        + ConfigWrap.mess().unpluggedPunctuation
+                        + reason;
+                Component mess2 = InitWrap.text().formatTextSafe(mess1);
+                this.sendMessage(mess2);
+            }
         }
 
         UnpluggedState newState = new UnpluggedState(true, time, shadowTimeout, reason);
 
         if (!newState.equals(state))
         {
-            this.entry().updateShadowState(newState);
-            PlayerManager.getInstance().setShadowState(player.getGameProfile(), newState);
+            this.entry().updateState(newState);
+            PlayerManager.getInstance().setState(player.getGameProfile(), newState);
         }
 //        this.updatePlayerList();
     }
 
     @ApiStatus.Internal
-    public void unregisterShadowAfk()
+    public void unregisterUnpluggedAfk()
     {
-        if (ConfigWrap.mess().displayDuration)
+        if (!ConfigWrap.unplugged().unpluggedHidePlayer && !ConfigWrap.mess().hideUnpluggedJoin)
         {
-            String ret = this.entry().name().getString()
-                    + ConfigWrap.mess().unpluggedReturned
-                    + ConfigWrap.mess().whenReturnDurationPrefix
-                    + this.entry().getShadowDurationString()
-                    + ConfigWrap.mess().whenReturnDurationSuffix + "§r";
+            if (ConfigWrap.mess().displayDuration)
+            {
+                String ret = this.entry().name().getString()
+                        + ConfigWrap.mess().unpluggedReturned
+                        + ConfigWrap.mess().whenReturnDurationPrefix
+                        + this.entry().durationString()
+                        + ConfigWrap.mess().whenReturnDurationSuffix + "§r";
 
-            Component mess = InitWrap.text().formatTextSafe(ret);
-            this.sendMessage(mess);
-        }
-        else
-        {
-            String ret = this.entry().name().getString() + ConfigWrap.mess().unpluggedReturned + "§r";
-            Component mess = InitWrap.text().formatTextSafe(ret);
-            this.sendMessage(mess);
+                Component mess = InitWrap.text().formatTextSafe(ret);
+                this.sendMessage(mess);
+            }
+            else
+            {
+                String ret = this.entry().name().getString() + ConfigWrap.mess().unpluggedReturned + "§r";
+                Component mess = InitWrap.text().formatTextSafe(ret);
+                this.sendMessage(mess);
+            }
         }
 
-        this.entry().clearShadow();
+        this.entry().clearPlayer();
         this.entry().reset();
     }
 
@@ -134,6 +149,6 @@ public record UnpluggedEntryHandler(UnpluggedEntry entry)
     @ApiStatus.Internal
     private IPlayerInvoker invoker()
     {
-        return (IPlayerInvoker) this.entry().shadowPlayer();
+        return (IPlayerInvoker) this.entry().player();
     }
 }

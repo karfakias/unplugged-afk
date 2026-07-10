@@ -88,7 +88,7 @@ public class UnpluggedCommand implements IServerCommand
 
         if (!ConfigWrap.mainOpt().unpluggedAfkEnabled)
         {
-            String msg = "§c/unplugged Command is not enabled§r";
+            String msg = "§c/"+this.getName()+" Command is not enabled§r";
             //#if MC >= 1.20.1
             //$$ context.getSource().sendSuccess(() -> InitWrap.text().formatTextSafe(msg), false);
             //#else
@@ -107,7 +107,7 @@ public class UnpluggedCommand implements IServerCommand
         if (server.isSingleplayerOwner(profile))
         //#endif
         {
-            String msg = "§cCan't use shadow as the single player server owner§r";
+            String msg = "§cCan't use unplugged as the single player server owner§r";
             //#if MC >= 1.20.1
             //$$ context.getSource().sendSuccess(() -> InitWrap.text().formatTextSafe(msg), false);
             //#else
@@ -136,7 +136,7 @@ public class UnpluggedCommand implements IServerCommand
         }
 
         UnpluggedAfk.debugLog("setUnpluggedAfk: player: ['{}'/{}] // T: {}m, R: '{}'", ProfileWrap.name(profile), ProfileWrap.id(profile), time, reason);
-        UnpluggedServerPlayer.createShadow(server, player, time, reason);
+        UnpluggedServerPlayer.createFromPlayer(server, player, time, reason);
 
         return 1;
     }

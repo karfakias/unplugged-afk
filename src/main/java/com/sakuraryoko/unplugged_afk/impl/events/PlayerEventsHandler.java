@@ -104,7 +104,7 @@ public class PlayerEventsHandler implements IPlayerEventsDispatch
 
 	public void onTick(ServerPlayer player)
 	{
-		PosState pos = PlayerManager.getInstance().getPosState(player.getUUID());
+		PosState pos = PlayerManager.getInstance().getPos(player.getUUID());
 		if (!pos.isEmpty() && pos.matches(player)) { return; }
 		PlayerManager.getInstance().updatePlayerData(player);
 	}

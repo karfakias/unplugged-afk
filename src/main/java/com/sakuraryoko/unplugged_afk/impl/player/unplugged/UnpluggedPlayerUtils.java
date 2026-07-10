@@ -36,6 +36,10 @@ import net.minecraft.network.protocol.game.ClientboundPlayerInfoPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.players.PlayerList;
+//#if MC >= 1.21.6
+//$$ import net.minecraft.server.waypoints.ServerWaypointManager;
+//$$ import com.sakuraryoko.unplugged_afk.impl.player.interfaces.IWaypointManagerInvoker;
+//#endif
 
 import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
 import com.sakuraryoko.unplugged_afk.impl.player.interfaces.IPlayerListInvoker;
@@ -138,4 +142,17 @@ public class UnpluggedPlayerUtils
 		player.connection.send(new ClientboundPlayerInfoPacket(ClientboundPlayerInfoPacket.Action.REMOVE_PLAYER, List.of(sp)));
 		//#endif
 	}
+
+	//#if MC >= 1.21.6
+	//$$ public static void onAddOrUpdateWaypoint(ServerWaypointManager manager, @Nonnull ServerPlayer player)
+	//$$ {
+		//$$ if (ConfigWrap.unplugged().unpluggedHidePlayer && player instanceof UnpluggedServerPlayer sp)
+		//$$ {
+			//$$ if (sp.isValid())
+			//$$ {
+				//$$ ((IWaypointManagerInvoker) manager).unplugged$removePlayer(player);
+			//$$ }
+		//$$ }
+	//$$ }
+	//#endif
 }
