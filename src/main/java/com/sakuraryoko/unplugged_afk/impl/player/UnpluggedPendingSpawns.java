@@ -22,6 +22,7 @@ package com.sakuraryoko.unplugged_afk.impl.player;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import javax.annotation.Nonnull;
 import org.jetbrains.annotations.ApiStatus;
 
@@ -47,6 +48,17 @@ public class UnpluggedPendingSpawns
 
 	public void scheduleSpawn(PlayerOptions opts)
 	{
+		UUID uuid = opts.uuid;
+
+		// Deduplicate
+		for (PlayerOptions spawn : this.pendingSpawnsList)
+		{
+			if (uuid.equals(spawn.uuid))
+			{
+				return;
+			}
+		}
+
 		this.pendingSpawnsList.add(opts);
 	}
 

@@ -24,5 +24,7 @@ import net.minecraft.server.level.ServerPlayer;
 
 public interface IWaypointManagerInvoker
 {
+	void unplugged$addPlayer(ServerPlayer player);
+
 	void unplugged$removePlayer(ServerPlayer player);
 }

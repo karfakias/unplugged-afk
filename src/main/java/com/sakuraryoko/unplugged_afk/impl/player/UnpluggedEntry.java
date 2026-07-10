@@ -240,6 +240,12 @@ public class UnpluggedEntry
 	}
 
 	@ApiStatus.Internal
+	public UnpluggedState toState()
+	{
+		return new UnpluggedState(this.enabled(), this.timer(), this.timeout(), this.reason());
+	}
+
+	@ApiStatus.Internal
 	public void clearPlayer()
 	{
 		this.player = null;
@@ -276,7 +282,7 @@ public class UnpluggedEntry
 	}
 
 	@ApiStatus.Internal
-    public boolean tickShadowTimeout(final long tickDelta)
+    public boolean tickTimeout(final long tickDelta)
     {
         this.timeout -= tickDelta;
         return this.timeout > 0L;

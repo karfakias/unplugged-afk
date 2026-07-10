@@ -695,7 +695,7 @@ public class UnpluggedServerPlayer extends ServerPlayer
 				PlayerManager.getInstance().updatePlayerData(this);
 			}
 
-			if (!entry.tickShadowTimeout(tickDelta))
+			if (!entry.tickTimeout(tickDelta))
 			{
 				String mess = ConfigWrap.mess().unpluggedExpiredReason;
 

@@ -56,6 +56,11 @@ public record PlayerEntry(UUID uuid, String name, UnpluggedState state, PosState
 		return new PlayerEntry(this.uuid(), this.name(), state, pos, game);
 	}
 
+	public PlayerEntry updateAll(UnpluggedState state, String name, PosState pos, GameState game)
+	{
+		return new PlayerEntry(this.uuid(), name, state, pos, game);
+	}
+
 	@Override
 	public @NonNull String toString()
 	{

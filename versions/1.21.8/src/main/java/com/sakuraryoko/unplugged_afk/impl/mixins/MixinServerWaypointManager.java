@@ -37,6 +37,9 @@ public abstract class MixinServerWaypointManager implements IWaypointManagerInvo
 	@Shadow
 	public abstract void removePlayer(ServerPlayer player);
 
+	@Shadow
+	public abstract void addPlayer(ServerPlayer player);
+
 	@Inject(method = "addPlayer", at = @At("HEAD"))
 	private void unplugged$onAddPlayerWaypoint(ServerPlayer player, CallbackInfo ci)
 	{
@@ -47,6 +50,12 @@ public abstract class MixinServerWaypointManager implements IWaypointManagerInvo
 	private void unplugged$onUpdatePlayerWaypoint(ServerPlayer player, CallbackInfo ci)
 	{
 		UnpluggedPlayerUtils.onAddOrUpdateWaypoint((ServerWaypointManager) (Object) this, player);
+	}
+
+	@Override
+	public void unplugged$addPlayer(ServerPlayer player)
+	{
+		this.addPlayer(player);
 	}
 
 	@Override

@@ -67,7 +67,7 @@ public class UnpluggedPlayerUtils
 	}
 
 	@ApiStatus.Internal
-	public static void hideAllShadowsFromPlayer(@Nonnull MinecraftServer server, @Nonnull ServerPlayer player)
+	public static void hideAllUnpluggedFromPlayer(@Nonnull MinecraftServer server, @Nonnull ServerPlayer player)
 	{
 		if (ConfigWrap.unplugged().unpluggedHidePlayer)
 		{
@@ -89,6 +89,31 @@ public class UnpluggedPlayerUtils
 				{
 					sendRemovePacketToPlayerWrap(shadow, player);
 				}
+			}
+		}
+	}
+
+	@ApiStatus.Internal
+	public static void unhideAllUnpluggedFromPlayer(@Nonnull MinecraftServer server, @Nonnull ServerPlayer player)
+	{
+		if (!ConfigWrap.unplugged().unpluggedHidePlayer ||
+			(!ConfigWrap.unplugged().unpluggedHideFromOps) && isOpWrap(player))
+		{
+			ImmutableList<UnpluggedServerPlayer> shadows = getShadows(server);
+
+			for (UnpluggedServerPlayer shadow : shadows)
+			{
+				sendAddPacketToPlayerWrap(shadow, player);
+
+				// Note, that the difference between hiding from
+				// Ops vs all players; is indistinguishable for Waypoints
+
+				//#if MC >= 1.21.6
+				//$$ if (!ConfigWrap.unplugged().unpluggedHidePlayer)
+				//$$ {
+					//$$ player.level().getWaypointManager().addPlayer(shadow);
+				//$$ }
+				//#endif
 			}
 		}
 	}
@@ -134,6 +159,15 @@ public class UnpluggedPlayerUtils
 	}
 
 	@ApiStatus.Internal
+	protected static void sendAddPacketToPlayerWrap(@Nonnull UnpluggedServerPlayer sp, @Nonnull ServerPlayer player)
+	{
+		player.connection.send(new ClientboundPlayerInfoPacket(ClientboundPlayerInfoPacket.Action.ADD_PLAYER, sp));
+		//#if MC >= 1.19.3
+		//$$ player.connection.send(new ClientboundPlayerInfoUpdatePacket(ClientboundPlayerInfoUpdatePacket.Action.UPDATE_LISTED, sp));
+		//#endif
+	}
+
+	@ApiStatus.Internal
 	protected static void sendRemovePacketToPlayerWrap(@Nonnull UnpluggedServerPlayer sp, @Nonnull ServerPlayer player)
 	{
 		//#if MC >= 1.19.3
@@ -144,13 +178,40 @@ public class UnpluggedPlayerUtils
 	}
 
 	//#if MC >= 1.21.6
+	//$$ @ApiStatus.Internal
 	//$$ public static void onAddOrUpdateWaypoint(ServerWaypointManager manager, @Nonnull ServerPlayer player)
 	//$$ {
 		//$$ if (ConfigWrap.unplugged().unpluggedHidePlayer && player instanceof UnpluggedServerPlayer sp)
 		//$$ {
 			//$$ if (sp.isValid())
 			//$$ {
-				//$$ ((IWaypointManagerInvoker) manager).unplugged$removePlayer(player);
+				//$$ boolean result = false;
+
+				//$$ if (ConfigWrap.unplugged().unpluggedHideFromOps && isOpWrap(player))
+				//$$ {
+					//$$ result = true;
+				//$$ }
+				//$$ else if (!isOpWrap(player))
+				//$$ {
+					//$$ result = true;
+				//$$ }
+
+				//$$ if (result)
+				//$$ {
+					//$$ ((IWaypointManagerInvoker) manager).unplugged$removePlayer(player);
+				//$$ }
+			//$$ }
+		//$$ }
+	//$$ }
+
+	//$$ @ApiStatus.Internal
+	//$$ public static void onUnhideWaypoint(ServerWaypointManager manager, @Nonnull ServerPlayer player)
+	//$$ {
+		//$$ if (!ConfigWrap.unplugged().unpluggedHidePlayer && player instanceof UnpluggedServerPlayer sp)
+		//$$ {
+			//$$ if (sp.isValid())
+			//$$ {
+				//$$ ((IWaypointManagerInvoker) manager).unplugged$addPlayer(player);
 			//$$ }
 		//$$ }
 	//$$ }

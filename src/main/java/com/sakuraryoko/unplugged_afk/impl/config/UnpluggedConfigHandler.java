@@ -22,21 +22,21 @@ package com.sakuraryoko.unplugged_afk.impl.config;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import com.sakuraryoko.unplugged_afk.impl.config.data.options.UnpluggedOptions;
 import org.jetbrains.annotations.ApiStatus;
 
-import com.sakuraryoko.unplugged_afk.impl.UnpluggedAfk;
+import com.sakuraryoko.corelib.api.config.IConfigData;
+import com.sakuraryoko.corelib.api.config.IConfigDispatch;
+import com.sakuraryoko.corelib.api.time.TimeFormat;
 import com.sakuraryoko.unplugged_afk.impl.Reference;
+import com.sakuraryoko.unplugged_afk.impl.UnpluggedAfk;
 import com.sakuraryoko.unplugged_afk.impl.config.data.UnpluggedConfigData;
 import com.sakuraryoko.unplugged_afk.impl.config.data.options.MainOptions;
 import com.sakuraryoko.unplugged_afk.impl.config.data.options.MessageOptions;
 import com.sakuraryoko.unplugged_afk.impl.config.data.options.PlayerOptions;
+import com.sakuraryoko.unplugged_afk.impl.config.data.options.UnpluggedOptions;
+import com.sakuraryoko.unplugged_afk.impl.events.ServerEventsHandler;
 import com.sakuraryoko.unplugged_afk.impl.modinit.UnpluggedInit;
 import com.sakuraryoko.unplugged_afk.impl.player.PlayerManager;
-import com.sakuraryoko.corelib.api.config.IConfigData;
-import com.sakuraryoko.corelib.api.config.IConfigDispatch;
-import com.sakuraryoko.corelib.api.time.TimeFormat;
 
 @ApiStatus.Internal
 public class UnpluggedConfigHandler implements IConfigDispatch
@@ -47,6 +47,9 @@ public class UnpluggedConfigHandler implements IConfigDispatch
     private final String CONFIG_ROOT = ".";
     private final String CONFIG_NAME = Reference.MOD_ID;
     private boolean loaded = false;
+    private boolean hideAllPlayers = false;
+    private boolean unhideAllPlayers = false;
+    private boolean fromReloadCmd = false;
 
     @Override
     public String getConfigRoot()
@@ -161,6 +164,23 @@ public class UnpluggedConfigHandler implements IConfigDispatch
         CONFIG.config_date = TimeFormat.RFC1123.formatNow(null);
         UnpluggedAfk.debugLog("UnpluggedConfigHandler#update(): save_date: {} --> {}", newConf.config_date, CONFIG.config_date);
 
+        if (CONFIG.UNPLUGGED.unpluggedHidePlayer && !newConf.UNPLUGGED.unpluggedHidePlayer)
+        {
+            this.unhideAllPlayers = true;
+        }
+        else if (!CONFIG.UNPLUGGED.unpluggedHidePlayer && newConf.UNPLUGGED.unpluggedHidePlayer)
+        {
+            this.hideAllPlayers = true;
+        }
+        if (CONFIG.UNPLUGGED.unpluggedHideFromOps && !newConf.UNPLUGGED.unpluggedHideFromOps)
+        {
+            this.unhideAllPlayers = true;
+        }
+        else if (!CONFIG.UNPLUGGED.unpluggedHideFromOps && newConf.UNPLUGGED.unpluggedHideFromOps)
+        {
+            this.hideAllPlayers = true;
+        }
+
         // Copy Incoming Config
         CONFIG.MAIN.copy(newConf.MAIN);
         CONFIG.UNPLUGGED.copy(newConf.UNPLUGGED);
@@ -202,7 +222,33 @@ public class UnpluggedConfigHandler implements IConfigDispatch
                         PlayerManager.getInstance().syncFromConfig(player)
         );
 
+        if (this.unhideAllPlayers)
+        {
+            if (!fromInit && this.fromReloadCmd)
+            {
+                ServerEventsHandler.getInstance().toggleUnhideAllPlayers(true);
+            }
+
+            this.unhideAllPlayers = false;
+        }
+        if (this.hideAllPlayers)
+        {
+            if (!fromInit && this.fromReloadCmd)
+            {
+                ServerEventsHandler.getInstance().toggleHideAllPlayers(true);
+            }
+
+            this.hideAllPlayers = false;
+        }
+
+        this.toggleFromReloadCmd(false);
+
         // Do this when the Config gets finalized.
         UnpluggedAfk.debugLog("UnpluggedConfigHandler#execute(): new config_date: {}", CONFIG.config_date);
+    }
+
+    public void toggleFromReloadCmd(boolean toggle)
+    {
+        this.fromReloadCmd = toggle;
     }
 }

@@ -30,6 +30,12 @@ import com.sakuraryoko.unplugged_afk.impl.player.interfaces.IWaypointManagerInvo
 public class MixinServerWaypointManager implements IWaypointManagerInvoker
 {
 	@Override
+	public void unplugged$addPlayer(ServerPlayer player)
+	{
+		// TODO
+	}
+
+	@Override
 	public void unplugged$removePlayer(ServerPlayer player)
 	{
 		// TODO

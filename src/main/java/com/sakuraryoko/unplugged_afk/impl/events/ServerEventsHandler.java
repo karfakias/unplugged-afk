@@ -21,32 +21,44 @@
 package com.sakuraryoko.unplugged_afk.impl.events;
 
 import java.util.Collection;
+import java.util.List;
 import org.jetbrains.annotations.ApiStatus;
 
 import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.dedicated.DedicatedServer;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.players.PlayerList;
 import net.minecraft.world.level.GameType;
 
+import com.sakuraryoko.unplugged_afk.impl.UnpluggedAfk;
 import com.sakuraryoko.unplugged_afk.impl.player.PlayerManager;
 import com.sakuraryoko.unplugged_afk.impl.player.UnpluggedPendingSpawns;
 import com.sakuraryoko.corelib.api.events.IServerEventsDispatch;
+import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedPlayerUtils;
+import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedServerPlayer;
 
 @ApiStatus.Internal
 public class ServerEventsHandler implements IServerEventsDispatch
 {
 	private static final ServerEventsHandler INSTANCE = new ServerEventsHandler();
 	public static ServerEventsHandler getInstance() { return INSTANCE; }
+	private boolean hideAllPlayers = false;
+	private boolean unhideAllPlayers = false;
+	private boolean tickingLock = true;
+	private final long startupTime = System.currentTimeMillis();
 
 	@Override
 	public void onStarting(MinecraftServer server)
 	{
+		this.tickingLock = true;
 		UnpluggedPendingSpawns.INSTANCE.unlock();
 	}
 
 	@Override
 	public void onStarted(MinecraftServer server)
 	{
+		this.tickingLock = true;
 		PlayerManager.getInstance().onServerStarted(server);
 	}
 
@@ -77,7 +89,52 @@ public class ServerEventsHandler implements IServerEventsDispatch
 	public void onTick(MinecraftServer server)
 	{
 		UnpluggedPendingSpawns.INSTANCE.tick(server);
-		PlayerManager.getInstance().onTick(server);
+
+		// Hold additional tick tasks until server has been running for at least 30 seconds.
+		if (this.tickingLock)
+		{
+			final long now = System.currentTimeMillis();
+
+			if ((now - this.startupTime) > 30000L)
+			{
+				this.tickingLock = false;
+			}
+		}
+
+		if (!this.tickingLock)
+		{
+			PlayerManager.getInstance().onTick(server);
+
+			if (this.hideAllPlayers || this.unhideAllPlayers)
+			{
+				this.processAllHideOrUnhide(server);
+			}
+		}
+	}
+
+	@ApiStatus.Internal
+	private void processAllHideOrUnhide(MinecraftServer server)
+	{
+		PlayerList pl = server.getPlayerList();
+		List<ServerPlayer> players = pl.getPlayers();
+
+		UnpluggedAfk.debugLog("processAllHideOrUnhide()");
+
+		// Fom changing the config options
+		for (ServerPlayer player : players)
+		{
+			if (this.hideAllPlayers && !(player instanceof UnpluggedServerPlayer))
+			{
+				UnpluggedPlayerUtils.hideAllUnpluggedFromPlayer(server, player);
+			}
+			else if (this.unhideAllPlayers && !(player instanceof UnpluggedServerPlayer))
+			{
+				UnpluggedPlayerUtils.unhideAllUnpluggedFromPlayer(server, player);
+			}
+		}
+
+		this.hideAllPlayers = false;
+		this.unhideAllPlayers = false;
 	}
 
 	@Override
@@ -96,5 +153,17 @@ public class ServerEventsHandler implements IServerEventsDispatch
 	public void onStopped(MinecraftServer server)
 	{
 		// TODO
+	}
+
+	@ApiStatus.Internal
+	public void toggleHideAllPlayers(boolean toggle)
+	{
+		this.hideAllPlayers = toggle;
+	}
+
+	@ApiStatus.Internal
+	public void toggleUnhideAllPlayers(boolean toggle)
+	{
+		this.unhideAllPlayers = toggle;
 	}
 }

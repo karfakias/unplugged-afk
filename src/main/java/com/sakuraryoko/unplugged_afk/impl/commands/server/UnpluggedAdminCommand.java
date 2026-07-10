@@ -224,6 +224,7 @@ public class UnpluggedAdminCommand implements IServerCommand
 
     private int reload(CommandContext<CommandSourceStack> ctx)
     {
+        UnpluggedConfigHandler.getInstance().toggleFromReloadCmd(true);
         ConfigManager.getInstance().reloadEach(UnpluggedConfigHandler.getInstance());
         String user = ctx.getSource().getTextName();
 

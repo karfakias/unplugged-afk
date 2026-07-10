@@ -48,8 +48,11 @@ public class UnpluggedEntryList
 
 	public @Nullable UnpluggedEntry get(@Nonnull UnpluggedServerPlayer player)
 	{
-		UUID uuid = player.getUUID();
+		return this.get(player.getUUID());
+	}
 
+	public @Nullable UnpluggedEntry get(UUID uuid)
+	{
 		if (this.map.containsKey(uuid))
 		{
 			return this.map.get(uuid);

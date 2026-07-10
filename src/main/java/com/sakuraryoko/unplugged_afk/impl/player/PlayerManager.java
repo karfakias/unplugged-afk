@@ -342,7 +342,24 @@ public class PlayerManager
 
 			if (entry != null)
 			{
-				entry = entry.updatePlayerData(player.getName().getString(), pos, game);
+				if (entry.state().enabled())
+				{
+					UnpluggedEntry unplugged = UnpluggedEntryList.getInstance().get(uuid);
+
+					if (unplugged != null)
+					{
+						entry = entry.updateAll(unplugged.toState(), player.getName().getString(), pos, game);
+					}
+					else
+					{
+						entry = entry.updatePlayerData(player.getName().getString(), pos, game);
+					}
+				}
+				else
+				{
+					entry = entry.updatePlayerData(player.getName().getString(), pos, game);
+				}
+
 				this.players.put(uuid, entry);
 			}
 		}

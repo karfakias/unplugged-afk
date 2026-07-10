@@ -77,7 +77,7 @@ public class PlayerEventsHandler implements IPlayerEventsDispatch
 		MinecraftServer server = this.getServerWrap(player);
 		if (server != null)
 		{
-			UnpluggedPlayerUtils.hideAllShadowsFromPlayer(server, player);
+			UnpluggedPlayerUtils.hideAllUnpluggedFromPlayer(server, player);
 		}
 	}
 
@@ -91,7 +91,7 @@ public class PlayerEventsHandler implements IPlayerEventsDispatch
 
 		if (server != null)
 		{
-			UnpluggedPlayerUtils.hideAllShadowsFromPlayer(server, newPlayer);
+			UnpluggedPlayerUtils.hideAllUnpluggedFromPlayer(server, newPlayer);
 		}
 	}
 
@@ -126,4 +126,5 @@ public class PlayerEventsHandler implements IPlayerEventsDispatch
 	{
 		// TODO
 	}
+
 }
