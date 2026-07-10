@@ -21,9 +21,9 @@
 package com.sakuraryoko.unplugged_afk.impl.player;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import javax.annotation.Nonnull;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -43,8 +43,9 @@ import com.sakuraryoko.unplugged_afk.impl.UnpluggedAfk;
 import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
 import com.sakuraryoko.unplugged_afk.impl.config.UnpluggedConfigHandler;
 import com.sakuraryoko.unplugged_afk.impl.config.data.options.PlayerOptions;
-import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedServerPlayer;
+import com.sakuraryoko.unplugged_afk.impl.events.ServerEventsHandler;
 import com.sakuraryoko.unplugged_afk.impl.player.state.*;
+import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedServerPlayer;
 
 @ApiStatus.Internal
 public class PlayerManager
@@ -53,13 +54,13 @@ public class PlayerManager
 	public static PlayerManager getInstance() { return INSTANCE; }
 
 	private static final float TICK_RATE = 5.0f;
-	private final HashMap<UUID, PlayerEntry> players;
+	private final ConcurrentHashMap<UUID, PlayerEntry> players;
 	private long lastTick;
 
 	@ApiStatus.Internal
 	private PlayerManager()
 	{
-		this.players = new HashMap<>();
+		this.players = new ConcurrentHashMap<>(16, 0.9f, 1);
 		this.lastTick = System.currentTimeMillis();
 	}
 
@@ -512,6 +513,7 @@ public class PlayerManager
 
 			if (!found && entry.state.enabled())
 			{
+				ServerEventsHandler.getInstance().toggleSpawnSafe(false);
 				UnpluggedAfk.debugLog("syncConfig: Scheduling Shadow player: ['{}'/{}]", entry.name, entry.uuid.toString());
 				UnpluggedPendingSpawns.INSTANCE.scheduleSpawn(entry);
 			}
@@ -835,6 +837,7 @@ public class PlayerManager
 					if (!found)
 					{
 						ImmutableList<PlayerOptions> config = ImmutableList.copyOf(ConfigWrap.players());
+						ServerEventsHandler.getInstance().toggleSpawnSafe(false);
 
 						for (PlayerOptions opt : config)
 						{

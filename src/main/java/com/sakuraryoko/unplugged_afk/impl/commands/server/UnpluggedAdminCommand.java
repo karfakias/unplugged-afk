@@ -52,6 +52,7 @@ import com.sakuraryoko.unplugged_afk.impl.commands.PermsWrap;
 import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
 import com.sakuraryoko.unplugged_afk.impl.config.UnpluggedConfigHandler;
 import com.sakuraryoko.unplugged_afk.impl.config.data.options.PlayerOptions;
+import com.sakuraryoko.unplugged_afk.impl.events.ServerEventsHandler;
 import com.sakuraryoko.unplugged_afk.impl.modinit.InitWrap;
 import com.sakuraryoko.unplugged_afk.impl.modinit.UnpluggedInit;
 import com.sakuraryoko.unplugged_afk.impl.player.*;
@@ -494,6 +495,7 @@ public class UnpluggedAdminCommand implements IServerCommand
                     opts.state = new UnpluggedState(true, time, (time * 60L) * 1000L, reason);
                     PlayerManager.getInstance().setState(entry, opts.state);
                     PlayerManager.getInstance().flushToConfig(ctx.getSource().getServer());
+                    ServerEventsHandler.getInstance().toggleSpawnSafe(false);
                     UnpluggedPendingSpawns.INSTANCE.scheduleSpawn(opts);
                 }
                 catch (Exception e)

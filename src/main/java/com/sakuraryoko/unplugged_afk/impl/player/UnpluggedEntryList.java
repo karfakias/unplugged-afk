@@ -20,8 +20,8 @@
 
 package com.sakuraryoko.unplugged_afk.impl.player;
 
-import java.util.HashMap;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import com.google.common.collect.ImmutableMap;
@@ -31,19 +31,19 @@ import org.jetbrains.annotations.VisibleForTesting;
 import net.minecraft.network.chat.Component;
 
 import com.sakuraryoko.unplugged_afk.impl.UnpluggedAfk;
-import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedServerPlayer;
 import com.sakuraryoko.unplugged_afk.impl.player.state.UnpluggedState;
+import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedServerPlayer;
 
 @ApiStatus.Internal
 public class UnpluggedEntryList
 {
 	private static final UnpluggedEntryList INSTANCE = new UnpluggedEntryList();
 	public static UnpluggedEntryList getInstance() { return INSTANCE; }
-	private final HashMap<UUID, UnpluggedEntry> map;
+	private final ConcurrentHashMap<UUID, UnpluggedEntry> map;
 
 	private UnpluggedEntryList()
 	{
-		this.map = new HashMap<>();
+		this.map = new ConcurrentHashMap<>(16, 0.9f, 1);
 	}
 
 	public @Nullable UnpluggedEntry get(@Nonnull UnpluggedServerPlayer player)

@@ -36,7 +36,7 @@ import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedServerPlayer
 public class UnpluggedPendingSpawns
 {
 	public static final UnpluggedPendingSpawns INSTANCE = new UnpluggedPendingSpawns();
-	private static final float TICK_RATE = 0.350f;
+	private static final float TICK_RATE = 3.0f;
 	private final List<PlayerOptions> pendingSpawnsList;
 	private long lastTick;
 
@@ -57,11 +57,6 @@ public class UnpluggedPendingSpawns
 			{
 				return;
 			}
-		}
-
-		if (ServerEventsHandler.getInstance().isSpawnSafe())
-		{
-			ServerEventsHandler.getInstance().toggleSpawnSafe(false);
 		}
 
 		this.pendingSpawnsList.add(opts);
