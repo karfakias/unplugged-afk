@@ -225,6 +225,28 @@ public class UnpluggedServerPlayer extends ServerPlayer
 			return;
 		}
 
+		if (!UnpluggedPlayerUtils.ensureSafeForUUID(server, uuid))
+		{
+			if (ConfigWrap.mainOpt().debugMode)
+			{
+				UnpluggedAfk.LOGGER.error("createFromConfig: Blocking player: ['{}'/{}] -- Perhaps a duplicate UUID?", name, uuid.toString());
+			}
+
+			PlayerManager.getInstance().remove(uuid, true);
+			return;
+		}
+
+		if (pos.x() == 0 && pos.y() == 0 && pos.z() == 0)
+		{
+			if (ConfigWrap.mainOpt().debugMode)
+			{
+				UnpluggedAfk.LOGGER.error("createFromConfig: Blocking player: ['{}'/{}] -- We don't want someone suffocating in a wall", name, uuid.toString());
+			}
+
+			PlayerManager.getInstance().resetState(profile);
+			return;
+		}
+
 		//#if MC >= 1.21.10
 		//$$ server.services().nameToIdCache().resolveOfflineUsers(server.isDedicatedServer() && server.usesAuthentication());
 		//$$ fetchGameProfile(server, profile.id()).whenCompleteAsync((p, throwable) ->
@@ -347,6 +369,7 @@ public class UnpluggedServerPlayer extends ServerPlayer
 		return shadow;
 	}
 
+	@Nullable
 	public static UnpluggedServerPlayer createFromPlayer(MinecraftServer server, ServerPlayer player, int time, String reason)
 	{
 		Component kickMsg = BuiltinTextHandler.getInstance().formatText(ConfigWrap.mess().unpluggedKickMessage);
@@ -378,6 +401,11 @@ public class UnpluggedServerPlayer extends ServerPlayer
 		//#else
 		UnpluggedServerPlayer shadow = new UnpluggedServerPlayer(server, level, profile, player.getProfilePublicKey());
 		//#endif
+
+		if (!UnpluggedPlayerUtils.ensureSafeForUUID(server, player.getUUID()))
+		{
+			return null;
+		}
 
 		//#if MC >= 1.19.3
 		//$$ shadow.setChatSession(player.getChatSession());
@@ -540,6 +568,11 @@ public class UnpluggedServerPlayer extends ServerPlayer
 	public void updateTimeOut(long timeout)
 	{
 		this.timeout = timeout;
+	}
+
+	public UnpluggedState toState()
+	{
+		return new UnpluggedState(this.isValid(), this.getTimer(), this.getTimeout(), this.getReason());
 	}
 
 	@Override

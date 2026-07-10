@@ -52,6 +52,7 @@ public class PlayerManager
 	private static final PlayerManager INSTANCE = new PlayerManager();
 	public static PlayerManager getInstance() { return INSTANCE; }
 
+	private static final float TICK_RATE = 5.0f;
 	private final HashMap<UUID, PlayerEntry> players;
 	private long lastTick;
 
@@ -264,12 +265,17 @@ public class PlayerManager
 	{
 		this.addOrUpdateProfile(profile, state);
 		this.setConfig(profile, state);
-		UnpluggedAfk.debugLog("setShadowState: player: ['{}'/{}] state: {}", ProfileWrap.name(profile), ProfileWrap.id(profile), state.toString());
+		UnpluggedAfk.debugLog("setState: player: ['{}'/{}] state: {}", ProfileWrap.name(profile), ProfileWrap.id(profile), state.toString());
 	}
 
 	public void resetState(@Nonnull ServerPlayer player)
 	{
-		this.setState(player.getGameProfile(), UnpluggedState.DEFAULT);
+		this.resetState(player.getGameProfile());
+	}
+
+	public void resetState(@Nonnull GameProfile profile)
+	{
+		this.setState(profile, UnpluggedState.DEFAULT);
 	}
 
 	public void remove(@Nonnull UUID uuid, boolean silent)
@@ -533,7 +539,7 @@ public class PlayerManager
 			{
 				if (state.isEmpty())
 				{
-					state = new UnpluggedState(shadow.isValid(), shadow.getTimer(), shadow.getTimeout(), shadow.getReason());
+					state = shadow.toState();
 				}
 
 				entry = UnpluggedEntryList.getInstance().add(shadow, state);
@@ -652,7 +658,7 @@ public class PlayerManager
 						{
 							if (player instanceof UnpluggedServerPlayer sp)
 							{
-								newEntry.state = new UnpluggedState(sp.isValid(), sp.getTimer(), sp.getTimeout(), sp.getReason());
+								newEntry.state = sp.toState();
 							}
 
 							break;
@@ -750,7 +756,7 @@ public class PlayerManager
 
 						if (newState == null)
 						{
-							newState = new UnpluggedState(sp.isValid(), sp.getTimer(), sp.getTimeout(), sp.getReason());
+							newState = sp.toState();
 						}
 
 						UnpluggedAfk.debugLog("syncEntries --> sync: ['{}'/{}], state: [{}]", sp.getName().getString(), uuid.toString(), newState.toString());
@@ -767,23 +773,23 @@ public class PlayerManager
 	}
 
 	@ApiStatus.Internal
-	public void onTick(@Nonnull MinecraftServer server)
+	public void onTick(@Nonnull MinecraftServer server, boolean spawnSafe)
 	{
 		final long now = System.currentTimeMillis();
 
 		if ((now - this.lastTick) > this.onTickTimeout())
 		{
-			this.onTickCycle(server);
+			this.onTickCycle(server, spawnSafe);
 			this.lastTick = now;
 		}
 	}
 
 	private long onTickTimeout()
 	{
-		return (long) (3.75f * 1000L);
+		return (long) (TICK_RATE * 1000L);
 	}
 
-	private void onTickCycle(@Nonnull MinecraftServer server)
+	private void onTickCycle(@Nonnull MinecraftServer server, boolean spawnSafe)
 	{
 		PlayerList playerList = server.getPlayerList();
 		List<ServerPlayer> players = playerList.getPlayers();
@@ -797,38 +803,46 @@ public class PlayerManager
 			}
 		}
 
-		ImmutableMap<UUID, PlayerEntry> playerMap = this.playerMapCopy();
-
-		for (UUID uuid : playerMap.keySet())
+		// Only spawn if marked as "safe to spawn";
+		// which means there are pending spawns already scheduled, or
+		// the Server is currently still starting up.
+		if (spawnSafe)
 		{
-			PlayerEntry playerEntry = playerMap.get(uuid);
+			ImmutableMap<UUID, PlayerEntry> playerMap = this.playerMapCopy();
 
-			if (playerEntry == null) { continue; }
-
-			if (playerEntry.state().enabled())
+			for (UUID uuid : playerMap.keySet())
 			{
-				boolean found = false;
+				PlayerEntry playerEntry = playerMap.get(uuid);
 
-				for (ServerPlayer entry : players)
+				if (playerEntry == null)
 				{
-					if (entry.getUUID().equals(uuid))
-					{
-						found = true;
-						break;
-					}
+					continue;
 				}
 
-				if (!found)
+				if (playerEntry.state().enabled())
 				{
-					ImmutableList<PlayerOptions> config = ImmutableList.copyOf(ConfigWrap.players());
+					boolean found = false;
 
-					for (PlayerOptions opt : config)
+					for (ServerPlayer entry : players)
 					{
-						if (opt.uuid.equals(uuid))
+						if (entry.getUUID().equals(uuid))
 						{
-							UnpluggedPendingSpawns.INSTANCE.unlock();
-							UnpluggedPendingSpawns.INSTANCE.scheduleSpawn(opt);
+							found = true;
 							break;
+						}
+					}
+
+					if (!found)
+					{
+						ImmutableList<PlayerOptions> config = ImmutableList.copyOf(ConfigWrap.players());
+
+						for (PlayerOptions opt : config)
+						{
+							if (opt.uuid.equals(uuid))
+							{
+								UnpluggedPendingSpawns.INSTANCE.scheduleSpawn(opt);
+								break;
+							}
 						}
 					}
 				}
@@ -848,8 +862,23 @@ public class PlayerManager
 
 		if (!this.players.containsKey(uuid))
 		{
-			this.addOrUpdateProfile(player.getGameProfile(), UnpluggedState.DEFAULT, PosWrap.of(player), GameWrap.of(player));
-//			this.updatePlayerData(player);
+			UnpluggedState newState = UnpluggedState.DEFAULT;
+
+			if (player instanceof UnpluggedServerPlayer sp)
+			{
+				newState = sp.toState();
+				this.addOrUpdateProfile(player.getGameProfile(), newState, PosWrap.of(player), GameWrap.of(player));
+
+				if (!UnpluggedEntryList.getInstance().contains(uuid))
+				{
+					UnpluggedEntryList.getInstance().add(sp, newState);
+				}
+			}
+			else
+			{
+				this.addOrUpdateProfile(player.getGameProfile(), newState, PosWrap.of(player), GameWrap.of(player));
+			}
+
 			UnpluggedAfk.debugLog("onTickEach() sync: ['{}'/{}] --> added missing player", player.getName().getString(), uuid.toString());
 			return true;
 		}

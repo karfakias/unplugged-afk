@@ -21,6 +21,7 @@
 package com.sakuraryoko.unplugged_afk.impl.player.unplugged;
 
 import java.util.List;
+import java.util.UUID;
 import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableList;
@@ -47,6 +48,25 @@ import com.sakuraryoko.unplugged_afk.impl.player.interfaces.IPlayerListInvoker;
 @ApiStatus.Internal
 public class UnpluggedPlayerUtils
 {
+	@ApiStatus.Internal
+	public static boolean ensureSafeForUUID(@Nonnull MinecraftServer server, @Nonnull UUID uuid)
+	{
+		PlayerList playerList = server.getPlayerList();
+		List<ServerPlayer> players = playerList.getPlayers();
+		boolean isSafe = true;
+
+		for (ServerPlayer player : players)
+		{
+			if (player.getUUID().equals(uuid))
+			{
+				isSafe = false;
+				break;
+			}
+		}
+
+		return isSafe;
+	}
+
 	@ApiStatus.Internal
 	public static ImmutableList<UnpluggedServerPlayer> getShadows(@Nonnull MinecraftServer server)
 	{

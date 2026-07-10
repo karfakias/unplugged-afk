@@ -83,30 +83,6 @@ public class UnpluggedAdminCommand implements IServerCommand
                                       .requires(PermsWrap.check(this.getNode()+".reload", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
                                       .executes(this::reload)
                         )
-                        .then(literal("list")
-                                      .requires(PermsWrap.check(this.getNode()+".list", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
-                                      .then(literal("players")
-                                                    .requires(PermsWrap.check(this.getNode()+".list.players", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
-                                                    .executes(this::listPlayerMap)
-                                      )
-                                      .then(literal("shadows")
-                                                    .requires(PermsWrap.check(this.getNode()+".list.shadows", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
-                                                    .executes(this::listUnpluggedMap)
-                                      )
-                                      .then(literal("all")
-                                                    .requires(PermsWrap.check(this.getNode()+".list.all", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
-                                                    .executes(this::listAll)
-                                      )
-                        )
-                        .then(literal("info")
-                                      .requires(PermsWrap.check(this.getNode()+".info", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
-                                      .executes(this::infoPlayer)
-                                      .then(argument("player", EntityArgument.player())
-                                                    .executes(ctx ->
-                                                                      this.infoPlayer(ctx, EntityArgument.getPlayer(ctx, "player"))
-                                                    )
-                                      )
-                        )
                         .then(literal("purge")
                                       .requires(PermsWrap.check(this.getNode()+".purge", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
                                       .executes(this::purgePlayers)
@@ -168,6 +144,30 @@ public class UnpluggedAdminCommand implements IServerCommand
                                                                   String result = StringArgumentType.getString(ctx, "target");
                                                                   return this.killUnplugged(ctx, result);
                                                               }
+                                                    )
+                                      )
+                        )
+                        .then(literal("list")
+                                      .requires(PermsWrap.check(this.getNode()+".list", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
+                                      .then(literal("players")
+                                                    .requires(PermsWrap.check(this.getNode()+".list.players", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
+                                                    .executes(this::listPlayerMap)
+                                      )
+                                      .then(literal("unplugged")
+                                                    .requires(PermsWrap.check(this.getNode()+".list.unplugged", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
+                                                    .executes(this::listUnpluggedMap)
+                                      )
+                                      .then(literal("all")
+                                                    .requires(PermsWrap.check(this.getNode()+".list.all", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
+                                                    .executes(this::listAll)
+                                      )
+                        )
+                        .then(literal("info")
+                                      .requires(PermsWrap.check(this.getNode()+".info", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
+                                      .executes(this::infoPlayer)
+                                      .then(argument("player", EntityArgument.player())
+                                                    .executes(ctx ->
+                                                                      this.infoPlayer(ctx, EntityArgument.getPlayer(ctx, "player"))
                                                     )
                                       )
                         )
@@ -494,7 +494,6 @@ public class UnpluggedAdminCommand implements IServerCommand
                     opts.state = new UnpluggedState(true, time, (time * 60L) * 1000L, reason);
                     PlayerManager.getInstance().setState(entry, opts.state);
                     PlayerManager.getInstance().flushToConfig(ctx.getSource().getServer());
-                    UnpluggedPendingSpawns.INSTANCE.unlock();
                     UnpluggedPendingSpawns.INSTANCE.scheduleSpawn(opts);
                 }
                 catch (Exception e)

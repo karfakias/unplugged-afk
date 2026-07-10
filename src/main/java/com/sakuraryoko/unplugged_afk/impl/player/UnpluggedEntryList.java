@@ -120,7 +120,7 @@ public class UnpluggedEntryList
 		{
 			this.map.remove(uuid);
 			UnpluggedAfk.debugLog("UnpluggedEntryList(): remove({}) --> REMOVE", entry.name().getString());
-			entry.handler().unregisterUnpluggedAfk();
+			entry.handler().unregisterUnpluggedAfk(silent);
 		}
 	}
 

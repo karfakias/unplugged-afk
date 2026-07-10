@@ -103,9 +103,11 @@ public record UnpluggedEntryHandler(UnpluggedEntry entry)
     }
 
     @ApiStatus.Internal
-    public void unregisterUnpluggedAfk()
+    public void unregisterUnpluggedAfk(boolean silent)
     {
-        if (!ConfigWrap.unplugged().unpluggedHidePlayer && !ConfigWrap.mess().hideUnpluggedJoin)
+        if (!ConfigWrap.unplugged().unpluggedHidePlayer &&
+            !ConfigWrap.mess().hideUnpluggedJoin &&
+            !silent)
         {
             if (ConfigWrap.mess().displayDuration)
             {

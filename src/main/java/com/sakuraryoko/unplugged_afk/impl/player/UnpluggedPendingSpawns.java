@@ -29,21 +29,21 @@ import org.jetbrains.annotations.ApiStatus;
 import net.minecraft.server.MinecraftServer;
 
 import com.sakuraryoko.unplugged_afk.impl.config.data.options.PlayerOptions;
+import com.sakuraryoko.unplugged_afk.impl.events.ServerEventsHandler;
 import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedServerPlayer;
 
 @ApiStatus.Internal
 public class UnpluggedPendingSpawns
 {
 	public static final UnpluggedPendingSpawns INSTANCE = new UnpluggedPendingSpawns();
+	private static final float TICK_RATE = 0.350f;
 	private final List<PlayerOptions> pendingSpawnsList;
 	private long lastTick;
-	private boolean locked;
 
 	private UnpluggedPendingSpawns()
 	{
 		this.pendingSpawnsList = new ArrayList<>();
 		this.lastTick = System.currentTimeMillis();
-		this.locked = false;
 	}
 
 	public void scheduleSpawn(PlayerOptions opts)
@@ -59,12 +59,17 @@ public class UnpluggedPendingSpawns
 			}
 		}
 
+		if (ServerEventsHandler.getInstance().isSpawnSafe())
+		{
+			ServerEventsHandler.getInstance().toggleSpawnSafe(false);
+		}
+
 		this.pendingSpawnsList.add(opts);
 	}
 
 	private boolean shouldTick()
 	{
-		return !this.locked && !this.pendingSpawnsList.isEmpty();
+		return !this.pendingSpawnsList.isEmpty();
 	}
 
 	private void executeOneSpawn(@Nonnull MinecraftServer server)
@@ -78,9 +83,17 @@ public class UnpluggedPendingSpawns
 
 			if (this.pendingSpawnsList.isEmpty())
 			{
-				this.locked = true;
+				if (!ServerEventsHandler.getInstance().isSpawnSafe())
+				{
+					ServerEventsHandler.getInstance().toggleSpawnSafe(true);
+				}
 			}
 		}
+	}
+
+	private long tickRate()
+	{
+		return (long) (TICK_RATE * 1000L);
 	}
 
 	public void tick(@Nonnull MinecraftServer server)
@@ -89,16 +102,11 @@ public class UnpluggedPendingSpawns
 		{
 			final long now = System.currentTimeMillis();
 
-			if ((now - this.lastTick) > 250L)
+			if ((now - this.lastTick) > this.tickRate())
 			{
 				this.executeOneSpawn(server);
 				this.lastTick = now;
 			}
 		}
-	}
-
-	public void unlock()
-	{
-		this.locked = false;
 	}
 }

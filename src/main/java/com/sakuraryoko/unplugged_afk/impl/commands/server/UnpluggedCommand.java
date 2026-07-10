@@ -135,9 +135,13 @@ public class UnpluggedCommand implements IServerCommand
             }
         }
 
-        UnpluggedAfk.debugLog("setUnpluggedAfk: player: ['{}'/{}] // T: {}m, R: '{}'", ProfileWrap.name(profile), ProfileWrap.id(profile), time, reason);
-        UnpluggedServerPlayer.createFromPlayer(server, player, time, reason);
+        if (UnpluggedServerPlayer.createFromPlayer(server, player, time, reason) == null)
+        {
+            UnpluggedAfk.LOGGER.error("Error creating Unplugged Player from: {}", player.getName().getString());
+            return 0;
+        }
 
+        UnpluggedAfk.debugLog("setUnpluggedAfk: player: ['{}'/{}] // T: {}m, R: '{}'", ProfileWrap.name(profile), ProfileWrap.id(profile), time, reason);
         return 1;
     }
 }

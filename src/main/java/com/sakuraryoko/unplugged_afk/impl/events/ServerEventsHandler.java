@@ -43,16 +43,28 @@ public class ServerEventsHandler implements IServerEventsDispatch
 {
 	private static final ServerEventsHandler INSTANCE = new ServerEventsHandler();
 	public static ServerEventsHandler getInstance() { return INSTANCE; }
-	private boolean hideAllPlayers = false;
-	private boolean unhideAllPlayers = false;
-	private boolean tickingLock = true;
-	private final long startupTime = System.currentTimeMillis();
+	private static final float TICK_RATE = 30.0f;
+	private boolean tickingLock;
+	private boolean spawnSafe;
+	private boolean hideAllPlayers;
+	private boolean unhideAllPlayers;
+	private final long startupTime;
+	private long lastTick;
+
+	private ServerEventsHandler()
+	{
+		this.tickingLock = true;
+		this.spawnSafe = false;
+		this.unhideAllPlayers = false;
+		this.hideAllPlayers = false;
+		this.startupTime = System.currentTimeMillis();
+		this.lastTick = System.currentTimeMillis();
+	}
 
 	@Override
 	public void onStarting(MinecraftServer server)
 	{
 		this.tickingLock = true;
-		UnpluggedPendingSpawns.INSTANCE.unlock();
 	}
 
 	@Override
@@ -86,29 +98,39 @@ public class ServerEventsHandler implements IServerEventsDispatch
 		// TODO
 	}
 
+	private long tickRate()
+	{
+		return (long) (TICK_RATE * 1000L);
+	}
+
 	public void onTick(MinecraftServer server)
 	{
+		// Every Tick -->
 		UnpluggedPendingSpawns.INSTANCE.tick(server);
+		final long now = System.currentTimeMillis();
 
-		// Hold additional tick tasks until server has been running for at least 30 seconds.
+		// Hold additional tick tasks until server has been running for at least 1 tick cycle.
 		if (this.tickingLock)
 		{
-			final long now = System.currentTimeMillis();
-
-			if ((now - this.startupTime) > 30000L)
+			if ((now - this.startupTime) > this.tickRate())
 			{
 				this.tickingLock = false;
 			}
+
+			PlayerManager.getInstance().onTick(server, false);
+			return;
 		}
 
-		if (!this.tickingLock)
-		{
-			PlayerManager.getInstance().onTick(server);
+		PlayerManager.getInstance().onTick(server, this.isSpawnSafe());
 
+		if ((now - this.lastTick) > this.tickRate())
+		{
 			if (this.hideAllPlayers || this.unhideAllPlayers)
 			{
 				this.processAllHideOrUnhide(server);
 			}
+
+			this.lastTick = now;
 		}
 	}
 
@@ -146,6 +168,11 @@ public class ServerEventsHandler implements IServerEventsDispatch
 	@Override
 	public void onStopping(MinecraftServer server)
 	{
+		this.tickingLock = true;
+		this.toggleSpawnSafe(false);
+		this.toggleHideAllPlayers(false);
+		this.toggleUnhideAllPlayers(false);
+
 		PlayerManager.getInstance().onServerStop(server);
 	}
 
@@ -153,6 +180,18 @@ public class ServerEventsHandler implements IServerEventsDispatch
 	public void onStopped(MinecraftServer server)
 	{
 		// TODO
+	}
+
+	@ApiStatus.Internal
+	public boolean isSpawnSafe()
+	{
+		return this.spawnSafe;
+	}
+
+	@ApiStatus.Internal
+	public void toggleSpawnSafe(boolean toggle)
+	{
+		this.spawnSafe = toggle;
 	}
 
 	@ApiStatus.Internal
