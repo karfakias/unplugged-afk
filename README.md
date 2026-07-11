@@ -11,7 +11,7 @@
 
 ## Features
 * **Go Green:** Turn off your PC while your player-bot continues to AFK for you.
-* **Customizable Timeouts:** Set specific durations for how long a bot should remain active. The default timeout is 129600.
+* **Customizable Timeouts:** Set specific durations for how long a bot should remain active. The default timeout is 129600 minutes (90 days).
 * **Admin Control:** Server administrators have full command control to spawn, kill, or manage unplugged players.
 * **Safety Options:** Configurations allow you to reset health upon death, disable damage for unplugged players, or even hide them from other players and operators.
 * **Server Restart:** The mod also respawns all AFK bots at server restart with a slight delay.
