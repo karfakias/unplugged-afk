@@ -54,7 +54,7 @@ public class MessageOptions implements IConfigOption
 	public void defaults()
 	{
 		this.broadcastMessages = false;
-		this.hideUnpluggedJoin = false;
+		this.hideUnpluggedJoin = true;
 		this.displayDuration = true;
 		this.defaultUnpluggedReason = "§7unplugged§r";
 		this.unpluggedKickMessage = "§6Congrats, you've been unplugged§r";
