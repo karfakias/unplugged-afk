@@ -57,6 +57,6 @@ Server owners can extensively customize broadcast messages and formatting. For e
 The `duration` and the `timeDate` are CoreLib time formatting options for the broadcast messages while `displayDuration` is enabled.
 
 ### Example Config
-[Click Here to open on GitHub](https://github.com/sakura-ryoko/unplugged-afk/CONFIG.md)
+[Click Here to open on GitHub](https://github.com/sakura-ryoko/unplugged-afk/blob/master/CONFIG.md)
 
 [![Join Sakura's RyokoCraft Discord](https://sakuraryoko.com/files/1398873/discord-300px.png)](https://discord.gg/ryokocraftmc)
