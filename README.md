@@ -34,7 +34,7 @@ Requires permission level 3 by default.
 
 ## Configuration
 
-The mod features a highly customizable `config.json` file. Key options include:
+The mod features a highly customizable `unplugged_afk.json` file. Key options include:
 
 | Category      | Option                             | Description                                                                                               | Default  |
 |:--------------|:-----------------------------------|:----------------------------------------------------------------------------------------------------------|:---------|
@@ -55,5 +55,8 @@ The mod features a highly customizable `config.json` file. Key options include:
 **Messages & Formatting:**
 Server owners can extensively customize broadcast messages and formatting. For example, the default kick message when a player successfully uses the command is `"§6Congrats, you've been unplugged§r"`.
 The `duration` and the `timeDate` are CoreLib time formatting options for the broadcast messages while `displayDuration` is enabled.
+
+### Example Config
+[Click Here to open on GitHub](https://github.com/sakura-ryoko/unplugged-afk/CONFIG.md)
 
 [![Join Sakura's RyokoCraft Discord](https://sakuraryoko.com/files/1398873/discord-300px.png)](https://discord.gg/ryokocraftmc)
