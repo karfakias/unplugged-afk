@@ -27,6 +27,7 @@ import javax.annotation.Nonnull;
 import com.google.common.collect.ImmutableList;
 import org.jetbrains.annotations.ApiStatus;
 
+import com.mojang.authlib.GameProfile;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoPacket;
 //#if MC >= 1.19.3
 //$$ import net.minecraft.network.protocol.game.ClientboundPlayerInfoRemovePacket;
@@ -43,7 +44,11 @@ import net.minecraft.server.players.PlayerList;
 //#endif
 
 import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
+import com.sakuraryoko.unplugged_afk.impl.modinit.InitWrap;
+import com.sakuraryoko.unplugged_afk.impl.player.PlayerManager;
 import com.sakuraryoko.unplugged_afk.impl.player.interfaces.IPlayerListInvoker;
+import com.sakuraryoko.unplugged_afk.impl.player.state.UnpluggedState;
+import com.sakuraryoko.unplugged_afk.impl.player.state.UnpluggedStatus;
 
 @ApiStatus.Internal
 public class UnpluggedPlayerUtils
@@ -73,7 +78,7 @@ public class UnpluggedPlayerUtils
 		ImmutableList.Builder<UnpluggedServerPlayer> builder = ImmutableList.builder();
 		PlayerList pl = server.getPlayerList();
 		List<ServerPlayer> players = pl.getPlayers();
-		((IPlayerListInvoker) pl).unplugged$toggleBroadcastSystemMessage(false);
+		((IPlayerListInvoker) pl).unplugged$toggleHideBroadcastMessage(false);
 
 		for (ServerPlayer player : players)
 		{
@@ -145,7 +150,7 @@ public class UnpluggedPlayerUtils
 		{
 			PlayerList pl = server.getPlayerList();
 			List<ServerPlayer> players = pl.getPlayers();
-			((IPlayerListInvoker) pl).unplugged$toggleBroadcastSystemMessage(false);
+			((IPlayerListInvoker) pl).unplugged$toggleHideBroadcastMessage(false);
 
 			for (ServerPlayer player : players)
 			{
@@ -236,4 +241,98 @@ public class UnpluggedPlayerUtils
 		//$$ }
 	//$$ }
 	//#endif
+
+	@ApiStatus.Internal
+	public static void checkForUnpluggedAtPreLogin(PlayerList playerList, GameProfile profile, ServerPlayer player)
+	{
+		if (player instanceof UnpluggedServerPlayer sp)
+		{
+			if (sp.isValid())
+			{
+				UnpluggedEntry entry = UnpluggedEntryList.getInstance().get(sp);
+
+				if (entry != null)
+				{
+					UnpluggedEntryList.getInstance().remove(sp, false);
+				}
+
+				final long delta = getStartTimeDelta(sp.getStartTime());
+				final String reason = ConfigWrap.mess().unpluggedUnsuccessful
+						+ (ConfigWrap.mess().displayDuration
+						   ? ConfigWrap.mess().unpluggedUnsuccessfulPrefix
+						     + ConfigWrap.mess().duration.option.format(delta)
+						     + ConfigWrap.mess().unpluggedUnsuccessfulPunctuation
+						: "")
+						+ ConfigWrap.mess().unpluggedReplaced;
+
+				UnpluggedState newState = new UnpluggedState(UnpluggedStatus.INTERRUPTED, -1, -1, -1L, reason);
+				PlayerManager.getInstance().setState(profile, newState);
+			}
+
+			if (player.isInvulnerable() && player.gameMode.isSurvival())
+			{
+				player.setInvulnerable(false);
+			}
+
+			if (ConfigWrap.mess().hideUnpluggedJoin)
+			{
+				((IPlayerListInvoker) playerList).unplugged$toggleHideBroadcastMessage(true);
+			}
+
+			String str = ConfigWrap.mess().unpluggedReplaced;
+			sp.kill(InitWrap.text().formatText(str));
+			playerList.remove(player);
+			((IPlayerListInvoker) playerList).unplugged$toggleHideBroadcastMessage(false);
+		}
+	}
+
+	@ApiStatus.Internal
+	public static void respawnUnpluggedAfk(GameProfile profile, UnpluggedServerPlayer oldSp, UnpluggedServerPlayer newSp)
+	{
+		newSp.updateTimeOut(oldSp.getTimeout());
+		UnpluggedEntryList.getInstance().updateFromUnplugged(newSp);
+		UnpluggedEntry entry = UnpluggedEntryList.getInstance().get(newSp);
+		UnpluggedState state = PlayerManager.getInstance().getState(profile);
+		UnpluggedState oldState = oldSp.toState();
+		UnpluggedState newState;
+//		final long now = System.currentTimeMillis();
+		boolean dirty = false;
+
+		if (state.status() == UnpluggedStatus.ACTIVE && oldState.status() != UnpluggedStatus.ACTIVE)
+		{
+			newState = state;
+			dirty = true;
+		}
+		else if (oldState.status() == UnpluggedStatus.ACTIVE && state.status() != UnpluggedStatus.ACTIVE)
+		{
+			newState = oldState;
+			dirty = true;
+		}
+//		else if (state.status() != UnpluggedStatus.ACTIVE)
+//		{
+//			newState = new UnpluggedState(UnpluggedStatus.ACTIVE, state.time(), oldSp.getTimeout(), now, state.reason());
+//			dirty = true;
+//		}
+		else
+		{
+			newState = oldState;
+		}
+
+		if (dirty)
+		{
+			PlayerManager.getInstance().setState(profile, newState);
+
+			if (entry != null)
+			{
+				entry.updateState(newState);
+			}
+		}
+
+		newSp.fromState(newState);
+	}
+
+	public static long getStartTimeDelta(final long startTime)
+	{
+		return (System.currentTimeMillis() - startTime);
+	}
 }

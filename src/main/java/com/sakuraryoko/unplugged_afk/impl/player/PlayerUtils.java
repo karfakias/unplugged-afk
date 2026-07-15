@@ -33,6 +33,7 @@ import net.minecraft.world.entity.EntityType;
 //#endif
 
 import com.sakuraryoko.unplugged_afk.impl.commands.server.UnpluggedAdminCommand;
+import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
 import com.sakuraryoko.unplugged_afk.impl.player.state.ProfileWrap;
 
 @ApiStatus.Internal
@@ -91,7 +92,7 @@ public class PlayerUtils
 		return result;
 	}
 
-	public static Component formatSuggestKillCommand(final Component name)
+	public static Component formatSuggestKickCommand(final Component name)
 	{
 		MutableComponent result = name.copy();
 		ClickEvent clickEvent;
@@ -102,13 +103,13 @@ public class PlayerUtils
 		//#else
 		clickEvent = new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND,
 				//#endif
-				                    "/"+UnpluggedAdminCommand.COMMAND+ " kill " + name.getString());
+				                    "/"+UnpluggedAdminCommand.COMMAND+ " kick " + name.getString());
 		//#if MC >= 1.21.5
 		//$$ hoverEvent = new HoverEvent.ShowText(
 		//#else
 		hoverEvent = new HoverEvent(HoverEvent.Action.SHOW_TEXT,
 				//#endif
-				                    Component.literal("Kill"));
+				                    Component.literal("Kick"));
 
 		result.withStyle(style ->
 				                 style.withClickEvent(clickEvent)
@@ -116,5 +117,16 @@ public class PlayerUtils
 		);
 
 		return result;
+	}
+
+	public static long getServerStartDelta()
+	{
+		if (ConfigWrap.lastStart() > 0L && ConfigWrap.lastStop() > 0L)
+		{
+			return ConfigWrap.lastStart() - ConfigWrap.lastStop();
+		}
+
+		// Indeterminate.
+		return 0L;
 	}
 }

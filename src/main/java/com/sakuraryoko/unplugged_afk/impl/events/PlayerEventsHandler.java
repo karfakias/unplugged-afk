@@ -30,7 +30,11 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 
+import com.sakuraryoko.unplugged_afk.impl.UnpluggedAfk;
+import com.sakuraryoko.unplugged_afk.impl.modinit.InitWrap;
 import com.sakuraryoko.unplugged_afk.impl.player.PlayerManager;
+import com.sakuraryoko.unplugged_afk.impl.player.state.UnpluggedState;
+import com.sakuraryoko.unplugged_afk.impl.player.state.UnpluggedStatus;
 import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedPlayerUtils;
 import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedServerPlayer;
 import com.sakuraryoko.unplugged_afk.impl.player.state.PosState;
@@ -78,6 +82,19 @@ public class PlayerEventsHandler implements IPlayerEventsDispatch
 		if (server != null)
 		{
 			UnpluggedPlayerUtils.hideAllUnpluggedFromPlayer(server, player);
+		}
+
+		// Inform user if they had a pending status update (Such as a failed AFK session)
+		if (!(player instanceof UnpluggedServerPlayer))
+		{
+			UnpluggedState state = PlayerManager.getInstance().getState(player.getUUID());
+
+			if (state.status() != UnpluggedStatus.INACTIVE && !state.reason().isEmpty())
+			{
+				UnpluggedAfk.debugLog("onPlayerJoinPost(): Informing player ['{}'/{}] of [{}] status", player.getName().getString(), player.getUUID().toString(), state.status().name());
+				player.sendSystemMessage(InitWrap.text().formatText(state.reason()));
+				PlayerManager.getInstance().resetState(player);
+			}
 		}
 	}
 

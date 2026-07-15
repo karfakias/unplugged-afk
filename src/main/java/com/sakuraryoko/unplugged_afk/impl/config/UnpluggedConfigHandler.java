@@ -20,8 +20,12 @@
 
 package com.sakuraryoko.unplugged_afk.impl.config;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import com.google.common.collect.ImmutableList;
+import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.ApiStatus;
 
 import com.sakuraryoko.corelib.api.config.IConfigData;
@@ -30,10 +34,7 @@ import com.sakuraryoko.corelib.api.time.TimeFormat;
 import com.sakuraryoko.unplugged_afk.impl.Reference;
 import com.sakuraryoko.unplugged_afk.impl.UnpluggedAfk;
 import com.sakuraryoko.unplugged_afk.impl.config.data.UnpluggedConfigData;
-import com.sakuraryoko.unplugged_afk.impl.config.data.options.MainOptions;
-import com.sakuraryoko.unplugged_afk.impl.config.data.options.MessageOptions;
-import com.sakuraryoko.unplugged_afk.impl.config.data.options.PlayerOptions;
-import com.sakuraryoko.unplugged_afk.impl.config.data.options.UnpluggedOptions;
+import com.sakuraryoko.unplugged_afk.impl.config.data.options.*;
 import com.sakuraryoko.unplugged_afk.impl.events.ServerEventsHandler;
 import com.sakuraryoko.unplugged_afk.impl.modinit.UnpluggedInit;
 import com.sakuraryoko.unplugged_afk.impl.player.PlayerManager;
@@ -50,6 +51,7 @@ public class UnpluggedConfigHandler implements IConfigDispatch
     private boolean hideAllPlayers = false;
     private boolean unhideAllPlayers = false;
     private boolean fromReloadCmd = false;
+    private boolean commandWarn = false;
 
     @Override
     public String getConfigRoot()
@@ -84,6 +86,11 @@ public class UnpluggedConfigHandler implements IConfigDispatch
     public MainOptions getMainOptions()
     {
         return CONFIG.MAIN;
+    }
+
+    public CommandOptions getCommandOptions()
+    {
+        return CONFIG.COMMANDS;
     }
 
     public UnpluggedOptions getUnpluggedOptions()
@@ -146,6 +153,7 @@ public class UnpluggedConfigHandler implements IConfigDispatch
         // Set default values
         config.config_date = TimeFormat.RFC1123.formatNow(null);
         config.MAIN = new MainOptions();
+        config.COMMANDS = new CommandOptions();
         config.UNPLUGGED = new UnpluggedOptions();
         config.MESS = new MessageOptions();
         config.PLAYERS = new ArrayList<>();
@@ -162,6 +170,14 @@ public class UnpluggedConfigHandler implements IConfigDispatch
         // Refresh
         CONFIG.comment = UnpluggedInit.getInstance().getModVersionString() + " Config";
         CONFIG.config_date = TimeFormat.RFC1123.formatNow(null);
+
+        if (CONFIG.last_start == null || CONFIG.last_start < 1)
+        {
+            CONFIG.last_start = System.currentTimeMillis();
+        }
+
+	    CONFIG.last_stop = Objects.requireNonNullElse(newConf.last_stop, -1L);
+
         UnpluggedAfk.debugLog("UnpluggedConfigHandler#update(): save_date: {} --> {}", newConf.config_date, CONFIG.config_date);
 
         if (CONFIG.UNPLUGGED.unpluggedHidePlayer && !newConf.UNPLUGGED.unpluggedHidePlayer)
@@ -181,8 +197,18 @@ public class UnpluggedConfigHandler implements IConfigDispatch
             this.hideAllPlayers = true;
         }
 
+        if (CONFIG.COMMANDS.enableAfkCommand && !newConf.COMMANDS.enableAfkCommand)
+        {
+            this.commandWarn = true;
+        }
+        if (CONFIG.COMMANDS.enableUnpluggedCommand && !newConf.COMMANDS.enableUnpluggedCommand)
+        {
+            this.commandWarn = true;
+        }
+
         // Copy Incoming Config
         CONFIG.MAIN.copy(newConf.MAIN);
+        CONFIG.COMMANDS.copy(newConf.COMMANDS);
         CONFIG.UNPLUGGED.copy(newConf.UNPLUGGED);
         CONFIG.MESS.copy(newConf.MESS);
 
@@ -243,6 +269,12 @@ public class UnpluggedConfigHandler implements IConfigDispatch
 
         this.toggleFromReloadCmd(false);
 
+        if (this.commandWarn)
+        {
+            UnpluggedAfk.LOGGER.warn("UnpluggedConfigHandler#execute(): You need to restart the server to enable or disable commands.");
+            this.commandWarn = false;
+        }
+
         // Do this when the Config gets finalized.
         UnpluggedAfk.debugLog("UnpluggedConfigHandler#execute(): new config_date: {}", CONFIG.config_date);
     }
@@ -250,5 +282,140 @@ public class UnpluggedConfigHandler implements IConfigDispatch
     public void toggleFromReloadCmd(boolean toggle)
     {
         this.fromReloadCmd = toggle;
+    }
+
+    public void setStartTime()
+    {
+        UnpluggedAfk.debugLog("UnpluggedConfigHandler#setStartTime()");
+        this.CONFIG.last_start = System.currentTimeMillis();
+    }
+
+    public void setStopTime()
+    {
+        UnpluggedAfk.debugLog("UnpluggedConfigHandler#setStopTime()");
+        this.CONFIG.last_stop = System.currentTimeMillis();
+    }
+
+    public long getLastStart()
+    {
+        return this.CONFIG.last_start;
+    }
+
+    public long getLastStop()
+    {
+        return this.CONFIG.last_stop;
+    }
+
+    public ImmutableList<String> configSuggestions()
+    {
+        ImmutableList.Builder<String> builder = ImmutableList.builder();
+
+	    Field[] mainFields = MainOptions.class.getDeclaredFields();
+        Field[] cmdFields = CommandOptions.class.getDeclaredFields();
+        Field[] msgFields = MessageOptions.class.getDeclaredFields();
+        Field[] unpluggedFields = UnpluggedOptions.class.getDeclaredFields();
+
+        for (Field field : mainFields)
+        {
+            builder.add(field.getName());
+        }
+
+        for (Field field : cmdFields)
+        {
+            builder.add(field.getName());
+        }
+
+        for (Field field : msgFields)
+        {
+            if (field.getType().getSimpleName().equals("DurationOption"))
+            {
+                builder.add(field.getName() + ".option");
+                builder.add(field.getName() + ".customFormat");
+            }
+            else if (field.getType().getSimpleName().equals("TimeDateOption"))
+            {
+                builder.add(field.getName() + ".option");
+                builder.add(field.getName() + ".customFormat");
+            }
+            else
+            {
+                builder.add(field.getName());
+            }
+        }
+
+        for (Field field : unpluggedFields)
+        {
+            builder.add(field.getName());
+        }
+
+        return builder.build();
+    }
+
+    public Pair<Field, Object> getConfigInstanceByField(String fieldName)
+    {
+        String parentName = fieldName;
+        String childName = null;
+
+        // Check if the user is trying to access a nested field (e.g., duration.customFormat)
+        if (fieldName.contains("."))
+        {
+            String[] parts = fieldName.split("\\.", 2);
+            parentName = parts[0];
+            childName = parts[1];
+        }
+
+        Pair<Field, Object> parentData = null;
+
+        try
+        {
+            parentData = Pair.of(MainOptions.class.getDeclaredField(parentName), this.CONFIG.MAIN);
+        }
+        catch (NoSuchFieldException ignored) {}
+
+        if (parentData == null)
+        {
+            try
+            {
+                parentData = Pair.of(CommandOptions.class.getDeclaredField(parentName), this.CONFIG.COMMANDS);
+            }
+            catch (NoSuchFieldException ignored) {}
+        }
+
+        if (parentData == null)
+        {
+            try
+            {
+                parentData = Pair.of(UnpluggedOptions.class.getDeclaredField(parentName), this.CONFIG.UNPLUGGED);
+            }
+            catch (NoSuchFieldException ignored) {}
+        }
+
+        if (parentData == null)
+        {
+            try
+            {
+                parentData = Pair.of(MessageOptions.class.getDeclaredField(parentName), this.CONFIG.MESS);
+            }
+            catch (NoSuchFieldException ignored) {}
+        }
+
+        if (parentData != null && childName != null)
+        {
+            try
+            {
+                Field parentField = parentData.getLeft();
+                Object parentInstance = parentData.getRight();
+                Object wrapperInstance = parentField.get(parentInstance);
+                Field childField = parentField.getType().getDeclaredField(childName);
+
+                return Pair.of(childField, wrapperInstance);
+            }
+            catch (Exception e)
+            {
+                return null;
+            }
+        }
+
+        return parentData;
     }
 }

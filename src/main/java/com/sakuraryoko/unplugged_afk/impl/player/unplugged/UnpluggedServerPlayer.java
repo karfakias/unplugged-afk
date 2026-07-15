@@ -20,12 +20,13 @@
 
 package com.sakuraryoko.unplugged_afk.impl.player.unplugged;
 
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.sakuraryoko.unplugged_afk.impl.events.ServerEventsHandler;
+import com.sakuraryoko.unplugged_afk.impl.modinit.InitWrap;
 import com.sakuraryoko.unplugged_afk.impl.player.PlayerManager;
-import com.sakuraryoko.unplugged_afk.impl.player.UnpluggedEntry;
-import com.sakuraryoko.unplugged_afk.impl.player.UnpluggedEntryList;
 import com.sakuraryoko.unplugged_afk.impl.player.interfaces.IPlayerListInvoker;
 import org.jetbrains.annotations.ApiStatus;
 import org.jspecify.annotations.NonNull;
@@ -101,10 +102,7 @@ import net.minecraft.world.level.block.entity.SkullBlockEntity;
 import com.sakuraryoko.unplugged_afk.impl.UnpluggedAfk;
 import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
 import com.sakuraryoko.unplugged_afk.impl.config.data.options.PlayerOptions;
-import com.sakuraryoko.unplugged_afk.impl.player.state.GameState;
-import com.sakuraryoko.unplugged_afk.impl.player.state.PosState;
-import com.sakuraryoko.unplugged_afk.impl.player.state.ProfileWrap;
-import com.sakuraryoko.unplugged_afk.impl.player.state.UnpluggedState;
+import com.sakuraryoko.unplugged_afk.impl.player.state.*;
 import com.sakuraryoko.corelib.impl.text.BuiltinTextHandler;
 
 @ApiStatus.Internal
@@ -116,9 +114,11 @@ public class UnpluggedServerPlayer extends ServerPlayer
 	private long freshHoldTime;
 	private int time = 0;
 	private String reason;
+	private long startTime = -1L;
 	private long timeout = -1L;
 	private long lastTick = -1L;
 	private boolean isValid = false;
+	private boolean expired = false;
 
 	//#if MC >= 1.20.2
 	//$$ public UnpluggedServerPlayer(MinecraftServer server, ServerLevel level, GameProfile profile, ClientInformation ci)
@@ -292,11 +292,6 @@ public class UnpluggedServerPlayer extends ServerPlayer
 		GameType gameType = GameType.byName(game.gameMode(), GameType.DEFAULT_MODE);
 		PlayerList pl = server.getPlayerList();
 
-		if (ConfigWrap.mess().hideUnpluggedJoin)
-		{
-			((IPlayerListInvoker) pl).unplugged$toggleBroadcastSystemMessage(true);
-		}
-
 		//#if MC >= 1.20.2
 		//$$ UnpluggedServerPlayer shadow = new UnpluggedServerPlayer(server, level, profile, ClientInformation.createDefault());
 		//#elseif MC >= 1.19.3
@@ -311,6 +306,11 @@ public class UnpluggedServerPlayer extends ServerPlayer
 		shadow.startingPosition = () -> shadow.moveTo(pos.x(), pos.y(), pos.z(), pos.yaw(), pos.pitch());
 		//#endif
 
+		if (ConfigWrap.mess().hideUnpluggedJoin)
+		{
+			((IPlayerListInvoker) pl).unplugged$toggleHideBroadcastMessage(true);
+		}
+
 		//#if MC >= 1.20.6
 		//$$ pl.placeNewPlayer(new UnpluggedConnection(PacketFlow.SERVERBOUND), shadow, new CommonListenerCookie(profile, 0, ClientInformation.createDefault(), true));
 		//#elseif MC >= 1.20.2
@@ -318,6 +318,8 @@ public class UnpluggedServerPlayer extends ServerPlayer
 		//#else
 		pl.placeNewPlayer(new UnpluggedConnection(PacketFlow.SERVERBOUND), shadow);
 		//#endif
+
+		((IPlayerListInvoker) pl).unplugged$toggleHideBroadcastMessage(false);
 
 		//#if MC >= 1.21.10
 		//$$ loadPlayerNbt(shadow);
@@ -346,13 +348,17 @@ public class UnpluggedServerPlayer extends ServerPlayer
 			shadow.getAbilities().flying = game.flying();
 		}
 
-		((IPlayerListInvoker) pl).unplugged$toggleBroadcastSystemMessage(false);
-
 		shadow.time = state.time();
 		shadow.timeout = state.timeout();
 		shadow.reason = state.reason();
 		shadow.freshPlayer = true;
 		shadow.freshHoldTime = System.currentTimeMillis();
+		shadow.startTime = state.startTime() <= 0 ? shadow.freshHoldTime : state.startTime();
+
+		if (shadow.getStartTime() != state.startTime())
+		{
+			state = new UnpluggedState(state.status(), state.time(), state.timeout(), shadow.getStartTime(), state.reason());
+		}
 
 		PlayerManager.getInstance().setState(profile, state);
 		UnpluggedEntry entry = UnpluggedEntryList.getInstance().add(shadow, state);
@@ -363,7 +369,7 @@ public class UnpluggedServerPlayer extends ServerPlayer
 			entry.setPlayer(shadow);
 		}
 
-		UnpluggedAfk.debugLog("createFromConfigPhase2: player: ['{}'/{}]", ProfileWrap.name(profile), ProfileWrap.id(profile));
+		UnpluggedAfk.debugLog("createFromConfigPhase2: player: ['{}'/{}], state: [{}]", ProfileWrap.name(profile), ProfileWrap.id(profile), state.toString());
 		shadow.isValid = true;
 
 		return shadow;
@@ -372,7 +378,18 @@ public class UnpluggedServerPlayer extends ServerPlayer
 	@Nullable
 	public static UnpluggedServerPlayer createFromPlayer(MinecraftServer server, ServerPlayer player, int time, String reason)
 	{
-		Component kickMsg = BuiltinTextHandler.getInstance().formatText(ConfigWrap.mess().unpluggedKickMessage);
+		if (time <= 0)
+		{
+			time = 129600;      // Hard coded in case of stupid
+		}
+
+		final long timeout = (time * 60L) * 1000L;
+		final String duration = ConfigWrap.mess().duration.option.format(timeout);
+		final String kickStr = ConfigWrap.mess().unpluggedKickMessage
+				+ (ConfigWrap.mess().displayDuration
+				   ? ConfigWrap.mess().whenUnpluggedDurationPrefix + duration
+				   : "");
+		Component kickMsg = InitWrap.text().formatText(kickStr);
 		PlayerList pl = server.getPlayerList();
 
 		if (kickMsg == null || kickMsg.toString().isEmpty())
@@ -382,11 +399,13 @@ public class UnpluggedServerPlayer extends ServerPlayer
 
 		if (ConfigWrap.mess().hideUnpluggedJoin)
 		{
-			((IPlayerListInvoker) pl).unplugged$toggleBroadcastSystemMessage(true);
+			((IPlayerListInvoker) pl).unplugged$toggleHideBroadcastMessage(true);
 		}
 
 		pl.remove(player);
 		player.connection.disconnect(kickMsg);
+
+		((IPlayerListInvoker) pl).unplugged$toggleHideBroadcastMessage(false);
 
 		//#if MC >= 1.20.1
 		//$$ ServerLevel level = player.serverLevel();
@@ -411,6 +430,11 @@ public class UnpluggedServerPlayer extends ServerPlayer
 		//$$ shadow.setChatSession(player.getChatSession());
 		//#endif
 
+		if (ConfigWrap.mess().hideUnpluggedJoin)
+		{
+			((IPlayerListInvoker) pl).unplugged$toggleHideBroadcastMessage(true);
+		}
+
 		//#if MC >= 1.20.6
 		//$$ pl.placeNewPlayer(new UnpluggedConnection(PacketFlow.SERVERBOUND), shadow, new CommonListenerCookie(profile, 0, player.clientInformation(), true));
 		//#elseif MC >= 1.20.2
@@ -418,6 +442,8 @@ public class UnpluggedServerPlayer extends ServerPlayer
 		//#else
 		pl.placeNewPlayer(new UnpluggedConnection(PacketFlow.SERVERBOUND), shadow);
 		//#endif
+
+		((IPlayerListInvoker) pl).unplugged$toggleHideBroadcastMessage(false);
 
 		//#if MC >= 1.21.10
 		//$$ loadPlayerNbt(shadow);
@@ -445,20 +471,14 @@ public class UnpluggedServerPlayer extends ServerPlayer
 			shadow.getAbilities().flying = player.getAbilities().flying;
 		}
 
-		((IPlayerListInvoker) pl).unplugged$toggleBroadcastSystemMessage(false);
-
-		if (time <= 0)
-		{
-			time = 129600;      // Hard coded in case of stupid
-		}
-
 		shadow.time = time;
-		shadow.timeout = (time * 60L) * 1000L;
+		shadow.timeout = timeout;
 		shadow.reason = reason;
 		shadow.freshPlayer = true;
 		shadow.freshHoldTime = System.currentTimeMillis();
+		shadow.startTime = shadow.freshHoldTime;
 
-		UnpluggedState state = new UnpluggedState(true, time, shadow.timeout, reason);
+		UnpluggedState state = new UnpluggedState(UnpluggedStatus.ACTIVE, time, shadow.timeout, shadow.startTime, reason);
 		PlayerManager.getInstance().setState(profile, state);
 		UnpluggedEntry entry = UnpluggedEntryList.getInstance().add(shadow, state);
 
@@ -468,7 +488,7 @@ public class UnpluggedServerPlayer extends ServerPlayer
 			entry.setPlayer(shadow);
 		}
 
-		UnpluggedAfk.debugLog("createFromPlayer: player: ['{}'/{}]", ProfileWrap.name(profile), ProfileWrap.id(profile));
+		UnpluggedAfk.debugLog("createFromPlayer: player: ['{}'/{}], state: [{}]", ProfileWrap.name(profile), ProfileWrap.id(profile), state.toString());
 		shadow.isValid = true;
 
 		return shadow;
@@ -524,25 +544,33 @@ public class UnpluggedServerPlayer extends ServerPlayer
 
 	private void createUnpluggedPost(MinecraftServer server)
 	{
+		PlayerList pl = server.getPlayerList();
+
+		if (ConfigWrap.mess().hideUnpluggedJoin)
+		{
+			((IPlayerListInvoker) pl).unplugged$toggleHideBroadcastMessage(true);
+		}
+
 		GameProfile profile = this.getGameProfile();
 		UnpluggedAfk.debugLog("createUnpluggedPost: player: ['{}'/{}]", ProfileWrap.name(profile), ProfileWrap.id(profile));
-		server.getPlayerList().broadcastAll(new ClientboundRotateHeadPacket(this, (byte) (this.yHeadRot * 256 / 360)),
+		pl.broadcastAll(new ClientboundRotateHeadPacket(this, (byte) (this.yHeadRot * 256 / 360)),
 				//#if MC >= 1.20.1
 				//$$ this.serverLevel().dimension());
 				//#else
                 this.level.dimension());
 				//#endif
-		server.getPlayerList().broadcastAll(new ClientboundPlayerInfoPacket(ClientboundPlayerInfoPacket.Action.ADD_PLAYER, this));
-//		server.getPlayerList().broadcastAll(new ClientboundPlayerInfoPacket(ClientboundPlayerInfoPacket.Action.UPDATE_GAME_MODE, this));
-//		server.getPlayerList().broadcastAll(new ClientboundPlayerInfoPacket(ClientboundPlayerInfoPacket.Action.UPDATE_LATENCY, this));
+		pl.broadcastAll(new ClientboundPlayerInfoPacket(ClientboundPlayerInfoPacket.Action.ADD_PLAYER, this));
+//		pl.broadcastAll(new ClientboundPlayerInfoPacket(ClientboundPlayerInfoPacket.Action.UPDATE_GAME_MODE, this));
+//		pl.broadcastAll(new ClientboundPlayerInfoPacket(ClientboundPlayerInfoPacket.Action.UPDATE_LATENCY, this));
 		//#if MC >= 1.19.3
 		//$$ if (!ConfigWrap.unplugged().unpluggedHidePlayer)
 		//$$ {
-			//$$ server.getPlayerList().broadcastAll(new ClientboundPlayerInfoUpdatePacket(ClientboundPlayerInfoUpdatePacket.Action.UPDATE_LISTED, this));
+			//$$ pl.broadcastAll(new ClientboundPlayerInfoUpdatePacket(ClientboundPlayerInfoUpdatePacket.Action.UPDATE_LISTED, this));
 		//$$ }
 		//#endif
 
 		UnpluggedPlayerUtils.sendHidePlayerPacket(server, this);
+		((IPlayerListInvoker) pl).unplugged$toggleHideBroadcastMessage(false);
 	}
 
 	public boolean isValid()
@@ -565,6 +593,11 @@ public class UnpluggedServerPlayer extends ServerPlayer
 		return this.reason;
 	}
 
+	public long getStartTime()
+	{
+		return this.startTime;
+	}
+
 	public void updateTimeOut(long timeout)
 	{
 		this.timeout = timeout;
@@ -572,7 +605,46 @@ public class UnpluggedServerPlayer extends ServerPlayer
 
 	public UnpluggedState toState()
 	{
-		return new UnpluggedState(this.isValid(), this.getTimer(), this.getTimeout(), this.getReason());
+		return new UnpluggedState(this.isValid() ? UnpluggedStatus.ACTIVE : UnpluggedStatus.INTERRUPTED, this.getTimer(), this.getTimeout(), this.getStartTime(), this.getReason());
+	}
+
+	protected boolean fromState(UnpluggedState state)
+	{
+		boolean dirty = false;
+
+		if (this.isValid())
+		{
+			if (this.getTimer() != state.time() &&
+				state.time() > 0)
+			{
+				this.time = state.time();
+				dirty = true;
+			}
+			if (this.getTimeout() != state.timeout() &&
+				state.timeout() > 0 &&
+				state.timeout() < this.getTimeout())
+			{
+				this.timeout = state.timeout();
+				dirty = true;
+			}
+			if (this.getStartTime() != state.startTime() &&
+				state.startTime() > 0 &&
+				state.startTime() < this.getStartTime())
+			{
+				this.startTime = state.startTime();
+				dirty = true;
+			}
+			if (!Objects.equals(this.getReason(), state.reason()) &&
+				!state.reason().isEmpty())
+			{
+				this.reason = state.reason();
+				dirty = true;
+			}
+
+			UnpluggedAfk.debugLog("fromState: dirty: [{}]", dirty);
+		}
+
+		return dirty;
 	}
 
 	@Override
@@ -593,7 +665,8 @@ public class UnpluggedServerPlayer extends ServerPlayer
 	{
 		UnpluggedEntry entry = UnpluggedEntryList.getInstance().get(this);
 
-		if (entry != null && entry.enabled() &&
+		if (entry != null &&
+			entry.status() == UnpluggedStatus.ACTIVE &&
 			ConfigWrap.unplugged().unpluggedDisableDamage)
 		{
 			// If you want to be able to kill shadow bots;
@@ -621,7 +694,7 @@ public class UnpluggedServerPlayer extends ServerPlayer
 	public void kill(Component message)
 	{
 		this.dismount();
-		this.killShadow();
+		this.killShadow(message);
 		//#if MC >= 1.21.2
 		//$$ if (message.getContents() instanceof TranslatableContents text && text.getKey().equals("multiplayer.disconnect.duplicate_login"))
 		//$$ {
@@ -709,7 +782,7 @@ public class UnpluggedServerPlayer extends ServerPlayer
 
 		if (entry != null)
 		{
-			if (!entry.enabled())
+			if (entry.status() != UnpluggedStatus.ACTIVE)
 			{
 				UnpluggedState state = PlayerManager.getInstance().getState(this.getGameProfile());
 				entry.updateState(state);
@@ -730,6 +803,7 @@ public class UnpluggedServerPlayer extends ServerPlayer
 
 			if (!entry.tickTimeout(tickDelta))
 			{
+				PlayerList pl = server.getPlayerList();
 				String mess = ConfigWrap.mess().unpluggedExpiredReason;
 
 				if (mess == null || mess.isEmpty())
@@ -737,16 +811,31 @@ public class UnpluggedServerPlayer extends ServerPlayer
 					mess = "§eTimeout Expired§r";
 				}
 
+				final long delta = UnpluggedPlayerUtils.getStartTimeDelta(this.getStartTime());
+
+				this.reason = (ConfigWrap.mess().displayDuration
+				               ? ConfigWrap.mess().unpluggedSuccessfulPrefix
+				                 + ConfigWrap.mess().duration.option.format(delta)
+				                 + ConfigWrap.mess().unpluggedSuccessfulSuffix
+				               : ConfigWrap.mess().unpluggedSuccessful)
+						+ mess;
+
+				UnpluggedState newState = new UnpluggedState(UnpluggedStatus.EXPIRED, -1, -1L, -1L, this.getReason());
+				entry.updateState(newState);
+				UnpluggedEntryList.getInstance().syncEntry(this, entry);
+				PlayerManager.getInstance().setState(this.getGameProfile(), newState);
+				UnpluggedEntryList.getInstance().remove(this, false);
+				this.expired = true;
+
 				if (ConfigWrap.mess().hideUnpluggedJoin)
 				{
-					((IPlayerListInvoker) server.getPlayerList()).unplugged$toggleBroadcastSystemMessage(true);
+					((IPlayerListInvoker) pl).unplugged$toggleHideBroadcastMessage(true);
 				}
 
-				Component reason = BuiltinTextHandler.getInstance().formatTextSafe(mess);
+				Component reason = InitWrap.text().formatTextSafe(mess);
 				this.kill(reason);
-				server.getPlayerList().remove(this);
-
-				((IPlayerListInvoker) server.getPlayerList()).unplugged$toggleBroadcastSystemMessage(false);
+				pl.remove(this);
+				((IPlayerListInvoker) pl).unplugged$toggleHideBroadcastMessage(false);
 			}
 		}
 	}
@@ -764,17 +853,53 @@ public class UnpluggedServerPlayer extends ServerPlayer
 		}
 		else
 		{
-			this.killShadow();
+			this.killShadow(InitWrap.text().formatTextSafe("Player has Died"));
 		}
 
 		this.kill(this.getCombatTracker().getDeathMessage());
 	}
 
-	public void killShadow()
+	public void killShadow(Component message)
 	{
-		UnpluggedEntryList.getInstance().remove(this, false);
+		UnpluggedEntry entry = UnpluggedEntryList.getInstance().get(this);
 		PlayerManager.getInstance().updatePlayerData(this);
-		PlayerManager.getInstance().resetState(this);
+
+		if (message.getString().equals(ConfigWrap.mess().unpluggedReplaced) || this.expired)
+		{
+			this.isValid = false;
+			return;
+		}
+
+		// Active meaning, they were killed unexpectedly.
+		if (entry == null || entry.status() == UnpluggedStatus.ACTIVE)
+		{
+			if (ServerEventsHandler.getInstance().isServerStopping())
+			{
+				return;
+			}
+
+			String mess = ConfigWrap.mess().unpluggedTerminated;
+
+			if (mess == null || mess.isEmpty())
+			{
+				mess = "§cAFK session terminated§r";
+			}
+
+			final long delta = UnpluggedPlayerUtils.getStartTimeDelta(this.getStartTime());
+
+			this.reason = ConfigWrap.mess().unpluggedUnsuccessful
+					+ (ConfigWrap.mess().displayDuration
+					   ? ConfigWrap.mess().unpluggedUnsuccessfulPrefix
+					     + ConfigWrap.mess().duration.option.format(delta)
+					     + ConfigWrap.mess().unpluggedUnsuccessfulPunctuation
+					   : "")
+					+ mess;
+
+			UnpluggedState newState = new UnpluggedState(UnpluggedStatus.TERMINATED, -1, -1L, -1L, this.getReason());
+			PlayerManager.getInstance().setState(this.getGameProfile(), newState);
+			UnpluggedEntryList.getInstance().remove(this, false);
+		}
+
 		this.isValid = false;
 	}
 

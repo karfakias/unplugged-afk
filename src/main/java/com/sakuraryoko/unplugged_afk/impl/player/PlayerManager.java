@@ -39,13 +39,14 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.players.PlayerList;
 
 import com.sakuraryoko.corelib.impl.config.ConfigManager;
+import com.sakuraryoko.unplugged_afk.impl.Reference;
 import com.sakuraryoko.unplugged_afk.impl.UnpluggedAfk;
 import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
 import com.sakuraryoko.unplugged_afk.impl.config.UnpluggedConfigHandler;
 import com.sakuraryoko.unplugged_afk.impl.config.data.options.PlayerOptions;
 import com.sakuraryoko.unplugged_afk.impl.events.ServerEventsHandler;
 import com.sakuraryoko.unplugged_afk.impl.player.state.*;
-import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedServerPlayer;
+import com.sakuraryoko.unplugged_afk.impl.player.unplugged.*;
 
 @ApiStatus.Internal
 public class PlayerManager
@@ -71,6 +72,8 @@ public class PlayerManager
 		List<PlayerOptions> config = ConfigWrap.players();
 		UUID uuid = ProfileWrap.id(profile);
 
+		UnpluggedAfk.debugLog("syncProfile: ['{}'/{}]", ProfileWrap.name(profile), ProfileWrap.id(profile));
+
 		for (PlayerOptions opt : config)
 		{
 			if (opt.uuid.equals(uuid))
@@ -94,6 +97,7 @@ public class PlayerManager
 	@ApiStatus.Internal
 	public void syncFromConfig(@Nonnull PlayerOptions opt)
 	{
+		UnpluggedAfk.debugLog("syncFromConfig: ['{}'/{}]", opt.name, opt.uuid.toString());
 		this.addOrUpdateProfile(ProfileWrap.profile(opt.uuid, opt.name), opt.state, opt.pos, opt.game);
 	}
 
@@ -258,6 +262,7 @@ public class PlayerManager
 			}
 		}
 
+		UnpluggedAfk.debugLog("getState: UUID: [{}] failure; returning default state", uuid.toString());
 		return UnpluggedState.DEFAULT;
 	}
 
@@ -284,6 +289,7 @@ public class PlayerManager
 		UnpluggedEntryList.getInstance().remove(uuid, silent);
 		this.players.remove(uuid);
 		ConfigWrap.players().removeIf(opt -> opt.uuid.equals(uuid));
+		UnpluggedAfk.debugLog("remove: UUID: [{}], silent: {}", uuid.toString(), silent);
 	}
 
 	public PosState getPos(@Nonnull UUID uuid)
@@ -342,6 +348,7 @@ public class PlayerManager
 		PosState pos = PosWrap.of(player);
 		GameState game = GameWrap.of(player);
 		UUID uuid = player.getUUID();
+		GameProfile profile = player.getGameProfile();
 
 		if (this.players.containsKey(uuid))
 		{
@@ -349,7 +356,7 @@ public class PlayerManager
 
 			if (entry != null)
 			{
-				if (entry.state().enabled())
+				if (entry.state().status() == UnpluggedStatus.ACTIVE)
 				{
 					UnpluggedEntry unplugged = UnpluggedEntryList.getInstance().get(uuid);
 
@@ -367,6 +374,10 @@ public class PlayerManager
 					entry = entry.updatePlayerData(player.getName().getString(), pos, game);
 				}
 
+				if (Reference.DEBUG)
+				{
+					UnpluggedAfk.debugLog("updatePlayerData: player: ['{}'/{}]", ProfileWrap.name(profile), ProfileWrap.id(profile));
+				}
 				this.players.put(uuid, entry);
 			}
 		}
@@ -405,7 +416,7 @@ public class PlayerManager
 	}
 
 	@ApiStatus.Internal
-	public ImmutableList<GameProfile> getKillCommandSuggestions(@Nonnull CommandContext<CommandSourceStack> ctx)
+	public ImmutableList<GameProfile> getKickCommandSuggestions(@Nonnull CommandContext<CommandSourceStack> ctx)
 	{
 		ImmutableList.Builder<GameProfile> builder = ImmutableList.builder();
 		MinecraftServer server = ctx.getSource().getServer();
@@ -417,7 +428,7 @@ public class PlayerManager
 				{
 					boolean found = false;
 
-					if (entry.state().enabled())
+					if (entry.state().status() == UnpluggedStatus.ACTIVE)
 					{
 						for (ServerPlayer player : players)
 						{
@@ -435,8 +446,7 @@ public class PlayerManager
 							if (player.getUUID().equals(uuid) && player instanceof UnpluggedServerPlayer sp)
 							{
 								// Fix desynced player
-								UnpluggedState
-										newState = new UnpluggedState(true, sp.getTimer(), sp.getTimeout(), sp.getReason());
+								UnpluggedState newState = new UnpluggedState(UnpluggedStatus.ACTIVE, sp.getTimer(), sp.getTimeout(), sp.getStartTime(), sp.getReason());
 								this.setState(player.getGameProfile(), newState);
 								found = true;
 								break;
@@ -497,6 +507,7 @@ public class PlayerManager
 
 		// Spawn shadow configured players
 		ImmutableList<PlayerOptions> config = ImmutableList.copyOf(ConfigWrap.players());
+		final long serverDelta = PlayerUtils.getServerStartDelta();
 
 		for (PlayerOptions entry : config)
 		{
@@ -511,11 +522,55 @@ public class PlayerManager
 				}
 			}
 
-			if (!found && entry.state.enabled())
+			if (!found && entry.state.status() == UnpluggedStatus.ACTIVE)
 			{
-				ServerEventsHandler.getInstance().toggleSpawnSafe(false);
-				UnpluggedAfk.debugLog("syncConfig: Scheduling Shadow player: ['{}'/{}]", entry.name, entry.uuid.toString());
-				UnpluggedPendingSpawns.INSTANCE.scheduleSpawn(entry);
+				boolean schedule = true;
+
+				// Calculate Server Start / Stop timeout offset.
+				if (serverDelta > 0L)
+				{
+					UnpluggedState oldState = entry.state;
+					UnpluggedState newState;
+					final long oldTimeout = oldState.timeout();
+					final long newTimeout = oldTimeout - serverDelta;
+
+					if (newTimeout < 1L)
+					{
+						String mess = ConfigWrap.mess().unpluggedExpiredReason;
+
+						if (mess == null || mess.isEmpty())
+						{
+							mess = "§eTimeout Expired§r";
+						}
+
+						final long delta = UnpluggedPlayerUtils.getStartTimeDelta(entry.state.startTime());
+						final String reason = (ConfigWrap.mess().displayDuration
+						                       ? ConfigWrap.mess().unpluggedSuccessfulPrefix
+						                         + ConfigWrap.mess().duration.option.format(delta)
+						                         + ConfigWrap.mess().unpluggedSuccessfulSuffix
+						                       : ConfigWrap.mess().unpluggedSuccessful)
+								+ mess;
+						newState = new UnpluggedState(UnpluggedStatus.EXPIRED, -1, -1L, -1L, reason);
+						UnpluggedAfk.debugLog("syncConfig: player: ['{}'/{}], serverDelta expired session [diff: {}]", entry.name, entry.uuid.toString(), (oldTimeout - newTimeout));
+						schedule = false;
+					}
+					else
+					{
+						newState = new UnpluggedState(oldState.status(), oldState.time(), newTimeout, oldState.startTime(), oldState.reason());
+						UnpluggedAfk.debugLog("syncConfig: player: ['{}'/{}], add serverDelta to timeout [{} -> {}], diff: [{}]", entry.name, entry.uuid.toString(), oldTimeout, newTimeout, (oldTimeout - newTimeout));
+					}
+
+					this.setState(ProfileWrap.profile(entry.uuid, entry.name), newState);
+					UnpluggedEntryList.getInstance().remove(entry.uuid, true);
+					dirty = true;
+				}
+
+				if (schedule)
+				{
+					ServerEventsHandler.getInstance().toggleSpawnSafe(false);
+					UnpluggedAfk.debugLog("syncConfig: Scheduling unplugged player: ['{}'/{}], state: [{}]", entry.name, entry.uuid.toString(), entry.state.toString());
+					UnpluggedPendingSpawns.INSTANCE.scheduleSpawn(entry);
+				}
 			}
 		}
 
@@ -533,27 +588,27 @@ public class PlayerManager
 		GameState game = GameWrap.of(player);
 		UnpluggedState state = this.getState(uuid).ensureValid();
 
-		if (player instanceof UnpluggedServerPlayer shadow)
+		if (player instanceof UnpluggedServerPlayer sp)
 		{
-			UnpluggedEntry entry = UnpluggedEntryList.getInstance().get(shadow);
+			UnpluggedEntry entry = UnpluggedEntryList.getInstance().get(sp);
 
 			if (entry == null)
 			{
 				if (state.isEmpty())
 				{
-					state = shadow.toState();
+					state = sp.toState();
 				}
 
-				entry = UnpluggedEntryList.getInstance().add(shadow, state);
+				entry = UnpluggedEntryList.getInstance().add(sp, state);
 			}
 
 			if (entry != null)
 			{
-				state = new UnpluggedState(entry.enabled(), entry.timer(), shadow.getTimeout(), entry.reason());
+				state = new UnpluggedState(entry.status(), entry.timer(), sp.getTimeout(), sp.getStartTime(), entry.reason());
 			}
 			else
 			{
-				state = new UnpluggedState(shadow.isValid(), shadow.getTimer(), shadow.getTimeout(), shadow.getReason());
+				state = new UnpluggedState(sp.isValid() ? UnpluggedStatus.ACTIVE : UnpluggedStatus.INTERRUPTED, sp.getTimer(), sp.getTimeout(), sp.getStartTime(), sp.getReason());
 			}
 		}
 
@@ -676,12 +731,15 @@ public class PlayerManager
 		{
 			ConfigWrap.players().add(entry);
 		}
+
+		UnpluggedAfk.debugLog("flushToConfig(): Done");
 	}
 
 	@ApiStatus.Internal
 	public void onServerStop(@Nonnull MinecraftServer server)
 	{
 		UnpluggedAfk.debugLog("onServerStop --> syncConfig()");
+		UnpluggedConfigHandler.getInstance().setStopTime();
 
 		this.flushToConfig(server);
 		UnpluggedAfk.debugLog("onServerStop(): flushing config ...");
@@ -692,6 +750,7 @@ public class PlayerManager
 	public void onServerStarted(@Nonnull MinecraftServer server)
 	{
 		UnpluggedAfk.debugLog("onServerStarted --> syncConfig()");
+		UnpluggedConfigHandler.getInstance().setStartTime();
 
 		if (this.syncConfig(server, false))
 		{
@@ -821,7 +880,7 @@ public class PlayerManager
 					continue;
 				}
 
-				if (playerEntry.state().enabled())
+				if (playerEntry.state().status() == UnpluggedStatus.ACTIVE)
 				{
 					boolean found = false;
 
@@ -843,6 +902,7 @@ public class PlayerManager
 						{
 							if (opt.uuid.equals(uuid))
 							{
+								UnpluggedAfk.debugLog("onTickCycle: Scheduling unplugged player: ['{}'/{}], state: [{}]", opt.name, opt.uuid.toString(), opt.state.toString());
 								UnpluggedPendingSpawns.INSTANCE.scheduleSpawn(opt);
 								break;
 							}

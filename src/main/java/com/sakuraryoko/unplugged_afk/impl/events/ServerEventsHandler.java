@@ -33,7 +33,7 @@ import net.minecraft.world.level.GameType;
 
 import com.sakuraryoko.unplugged_afk.impl.UnpluggedAfk;
 import com.sakuraryoko.unplugged_afk.impl.player.PlayerManager;
-import com.sakuraryoko.unplugged_afk.impl.player.UnpluggedPendingSpawns;
+import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedPendingSpawns;
 import com.sakuraryoko.corelib.api.events.IServerEventsDispatch;
 import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedPlayerUtils;
 import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedServerPlayer;
@@ -48,23 +48,30 @@ public class ServerEventsHandler implements IServerEventsDispatch
 	private boolean spawnSafe;
 	private boolean hideAllPlayers;
 	private boolean unhideAllPlayers;
+	private boolean serverStopping;
 	private final long startupTime;
 	private long lastTick;
 
 	private ServerEventsHandler()
 	{
+		this.init();
+		this.startupTime = System.currentTimeMillis();
+		this.lastTick = this.startupTime;
+	}
+
+	private void init()
+	{
 		this.tickingLock = true;
 		this.spawnSafe = false;
 		this.unhideAllPlayers = false;
 		this.hideAllPlayers = false;
-		this.startupTime = System.currentTimeMillis();
-		this.lastTick = System.currentTimeMillis();
+		this.serverStopping = false;
 	}
 
 	@Override
 	public void onStarting(MinecraftServer server)
 	{
-		this.tickingLock = true;
+		this.init();
 	}
 
 	@Override
@@ -169,6 +176,7 @@ public class ServerEventsHandler implements IServerEventsDispatch
 	public void onStopping(MinecraftServer server)
 	{
 		this.tickingLock = true;
+		this.serverStopping = true;
 		this.toggleSpawnSafe(false);
 		this.toggleHideAllPlayers(false);
 		this.toggleUnhideAllPlayers(false);
@@ -204,5 +212,11 @@ public class ServerEventsHandler implements IServerEventsDispatch
 	public void toggleUnhideAllPlayers(boolean toggle)
 	{
 		this.unhideAllPlayers = toggle;
+	}
+
+	@ApiStatus.Internal
+	public boolean isServerStopping()
+	{
+		return this.serverStopping;
 	}
 }

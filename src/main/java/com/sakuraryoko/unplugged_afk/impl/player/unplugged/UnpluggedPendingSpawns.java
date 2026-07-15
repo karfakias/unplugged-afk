@@ -18,7 +18,7 @@
  * along with Unplugged-AFK.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.sakuraryoko.unplugged_afk.impl.player;
+package com.sakuraryoko.unplugged_afk.impl.player.unplugged;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,7 +30,6 @@ import net.minecraft.server.MinecraftServer;
 
 import com.sakuraryoko.unplugged_afk.impl.config.data.options.PlayerOptions;
 import com.sakuraryoko.unplugged_afk.impl.events.ServerEventsHandler;
-import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedServerPlayer;
 
 @ApiStatus.Internal
 public class UnpluggedPendingSpawns

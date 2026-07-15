@@ -76,7 +76,10 @@ public record PlayerEntry(UUID uuid, String name, UnpluggedState state, PosState
 
 		if (this.uuid.equals(playerEntry.uuid))
 		{
-			return this.name().equals(playerEntry.name()) && this.game().equals(playerEntry.game()) && this.state().equals(playerEntry.state()) && this.pos().equals(playerEntry.pos());
+			return  this.name().equals(playerEntry.name()) &&
+					this.game().equals(playerEntry.game()) &&
+					this.state().equals(playerEntry.state()) &&
+					this.pos().equals(playerEntry.pos());
 		}
 
 		return false;
@@ -102,13 +105,13 @@ public record PlayerEntry(UUID uuid, String name, UnpluggedState state, PosState
 	{
 		MutableComponent text = Component.literal("");
 
-		text.append(
-				InitWrap.text().formatText("\n - §7Name: ")
-		).append(
-				PlayerUtils.formatSuggestSpawnCommand(this.name())
-		);
 		if (!ConfigWrap.mainOpt().reducedListDebugInfo)
 		{
+			text.append(
+					InitWrap.text().formatText("\n - §7Name: ")
+			).append(
+					PlayerUtils.formatSuggestSpawnCommand(this.name())
+			);
 			text.append(
 					InitWrap.text().formatText("\n - §7UUID: ")
 			).append(
@@ -118,14 +121,11 @@ public record PlayerEntry(UUID uuid, String name, UnpluggedState state, PosState
 			).append(
 					this.game().getDebugFormatted()
 			);
-		}
-		text.append(
-				InitWrap.text().formatText("\n - §7Position: ")
-		).append(
-				this.pos().getDebugFormatted()
-		);
-		if (!ConfigWrap.mainOpt().reducedListDebugInfo || this.state().enabled())
-		{
+			text.append(
+					InitWrap.text().formatText("\n - §7Position: ")
+			).append(
+					this.pos().getDebugFormatted()
+			);
 			text.append(
 					InitWrap.text().formatText("\n - §7State: ")
 			).append(

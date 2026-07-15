@@ -31,10 +31,13 @@ package com.sakuraryoko.unplugged_afk.impl.commands;
 import java.util.function.Predicate;
 import javax.annotation.Nonnull;
 
+import com.google.common.base.Predicates;
 import org.jetbrains.annotations.ApiStatus;
 
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.world.entity.Entity;
+
+import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
 
 /**
  * (Lucko) Fabric Permissions API support only begins with MC 1.16.4+
@@ -44,6 +47,20 @@ public class PermsWrap
 {
 	public static Predicate<CommandSourceStack> check(@Nonnull String node, int level)
 	{
+//#if MC >= 1.16.5
+//$$		return Permissions.require(node, permissionFromInt(level));
+//#else
+		return (src -> src.hasPermission(permissionFromInt(level)));
+//#endif
+	}
+
+	public static Predicate<CommandSourceStack> checkAdv(@Nonnull String node, int level)
+	{
+		if (!ConfigWrap.mainOpt().advancedAdminOptions)
+		{
+			return Predicates.alwaysFalse();
+		}
+
 //#if MC >= 1.16.5
 //$$		return Permissions.require(node, permissionFromInt(level));
 //#else

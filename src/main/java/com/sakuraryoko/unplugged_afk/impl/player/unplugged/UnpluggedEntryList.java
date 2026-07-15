@@ -18,7 +18,7 @@
  * along with Unplugged-AFK.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.sakuraryoko.unplugged_afk.impl.player;
+package com.sakuraryoko.unplugged_afk.impl.player.unplugged;
 
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -32,7 +32,7 @@ import net.minecraft.network.chat.Component;
 
 import com.sakuraryoko.unplugged_afk.impl.UnpluggedAfk;
 import com.sakuraryoko.unplugged_afk.impl.player.state.UnpluggedState;
-import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedServerPlayer;
+import com.sakuraryoko.unplugged_afk.impl.player.state.UnpluggedStatus;
 
 @ApiStatus.Internal
 public class UnpluggedEntryList
@@ -67,7 +67,7 @@ public class UnpluggedEntryList
 		{
 			UnpluggedEntry entry = UnpluggedEntry.create(player);
 
-			if (state.enabled())
+			if (state.status() == UnpluggedStatus.ACTIVE)
 			{
 				entry.updateState(state);
 			}
@@ -100,7 +100,7 @@ public class UnpluggedEntryList
 		}
 	}
 
-	protected void syncEntry(@Nonnull UnpluggedServerPlayer player, UnpluggedEntry entry)
+	public void syncEntry(@Nonnull UnpluggedServerPlayer player, UnpluggedEntry entry)
 	{
 		UUID uuid = player.getUUID();
 

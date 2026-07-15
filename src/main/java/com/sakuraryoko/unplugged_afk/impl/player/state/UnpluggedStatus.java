@@ -18,9 +18,26 @@
  * along with Unplugged-AFK.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.sakuraryoko.unplugged_afk.impl.player.interfaces;
+package com.sakuraryoko.unplugged_afk.impl.player.state;
 
-public interface IPlayerListInvoker
+public enum UnpluggedStatus
 {
-	void unplugged$toggleHideBroadcastMessage(boolean toggle);
+	ACTIVE,
+	INACTIVE,
+	EXPIRED,
+	INTERRUPTED,
+	TERMINATED,
+	;
+
+	public static String formatStatus(UnpluggedStatus status)
+	{
+		return switch (status)
+		{
+			case ACTIVE -> "§6Active§r";
+			case INACTIVE -> "§aInactive§r";
+			case EXPIRED -> "§bExpired§r";
+			case INTERRUPTED -> "§cInterrupted§r";
+			case TERMINATED -> "§cTerminated§r";
+		};
+	}
 }

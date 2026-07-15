@@ -25,35 +25,38 @@ import org.jetbrains.annotations.ApiStatus;
 import com.sakuraryoko.corelib.api.config.IConfigOption;
 
 @ApiStatus.Internal
-public class MainOptions implements IConfigOption
+public class CommandOptions implements IConfigOption
 {
-    public boolean unpluggedAfkEnabled;
-    public boolean debugMode;
-    public boolean reducedListDebugInfo;
-    public boolean advancedAdminOptions;
+    public int unpluggedCommandPermissions;
+    public int unpluggedAdminCommandPermissions;
+    public int afkCommandPermissions;
+    public boolean enableUnpluggedCommand;
+    public boolean enableAfkCommand;
 
-    public MainOptions()
+    public CommandOptions()
     {
         this.defaults();
     }
 
     public void defaults()
     {
-        this.unpluggedAfkEnabled = true;
-        this.debugMode = false;
-        this.reducedListDebugInfo = true;
-        this.advancedAdminOptions = false;
+        this.unpluggedCommandPermissions = 0;
+        this.unpluggedAdminCommandPermissions = 4;
+        this.afkCommandPermissions = 0;
+        this.enableUnpluggedCommand = true;
+        this.enableAfkCommand = false;
     }
 
     @Override
-    public MainOptions copy(IConfigOption opt)
+    public CommandOptions copy(IConfigOption opt)
     {
-        MainOptions opts = (MainOptions) opt;
+        CommandOptions opts = (CommandOptions) opt;
 
-        this.unpluggedAfkEnabled = opts.unpluggedAfkEnabled;
-        this.debugMode = opts.debugMode;
-        this.reducedListDebugInfo = opts.reducedListDebugInfo;
-        this.advancedAdminOptions = opts.advancedAdminOptions;
+        this.unpluggedCommandPermissions = opts.unpluggedCommandPermissions;
+        this.unpluggedAdminCommandPermissions = opts.unpluggedAdminCommandPermissions;
+        this.afkCommandPermissions = opts.afkCommandPermissions;
+        this.enableUnpluggedCommand = opts.enableUnpluggedCommand;
+        this.enableAfkCommand = opts.enableAfkCommand;
 
         return this;
     }

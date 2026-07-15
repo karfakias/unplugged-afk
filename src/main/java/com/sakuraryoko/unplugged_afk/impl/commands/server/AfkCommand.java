@@ -32,37 +32,38 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
-//#if MC >= 1.21.10
-//$$ import net.minecraft.server.players.NameAndId;
-//#endif
 
+import com.sakuraryoko.corelib.api.commands.IServerCommand;
 import com.sakuraryoko.unplugged_afk.impl.Reference;
 import com.sakuraryoko.unplugged_afk.impl.UnpluggedAfk;
 import com.sakuraryoko.unplugged_afk.impl.commands.PermsWrap;
 import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
 import com.sakuraryoko.unplugged_afk.impl.modinit.InitWrap;
-import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedServerPlayer;
-import com.sakuraryoko.corelib.api.commands.IServerCommand;
 import com.sakuraryoko.unplugged_afk.impl.player.state.ProfileWrap;
+import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedServerPlayer;
 
 import static net.minecraft.commands.Commands.argument;
 import static net.minecraft.commands.Commands.literal;
 
+//#if MC >= 1.21.10
+//$$ import net.minecraft.server.players.NameAndId;
+//#endif
+
 @ApiStatus.Internal
-public class UnpluggedCommand implements IServerCommand
+public class AfkCommand implements IServerCommand
 {
     @Override
     public void register(CommandDispatcher<CommandSourceStack> dispatcher, CommandBuildContext registryAccess, Commands.CommandSelection environment)
     {
         dispatcher.register(
                 literal(this.getName())
-                        .requires(PermsWrap.check(this.getNode(), ConfigWrap.cmdOpt().unpluggedCommandPermissions))
+                        .requires(PermsWrap.check(this.getNode(), ConfigWrap.cmdOpt().afkCommandPermissions))
                         .executes(ctx -> this.setUnpluggedAfk(ctx, -1, ""))
                         .then(argument("minutes", IntegerArgumentType.integer(1))
-                                      .requires(PermsWrap.check(this.getNode(), ConfigWrap.cmdOpt().unpluggedCommandPermissions))
+                                      .requires(PermsWrap.check(this.getNode(), ConfigWrap.cmdOpt().afkCommandPermissions))
                                       .executes(ctx -> this.setUnpluggedAfk(ctx, IntegerArgumentType.getInteger(ctx, "minutes"), ""))
                                       .then(argument("reason", StringArgumentType.greedyString())
-                                                    .requires(PermsWrap.check(this.getNode(), ConfigWrap.cmdOpt().unpluggedCommandPermissions))
+                                                    .requires(PermsWrap.check(this.getNode(), ConfigWrap.cmdOpt().afkCommandPermissions))
                                                     .executes(ctx -> this.setUnpluggedAfk(ctx, IntegerArgumentType.getInteger(ctx, "minutes"), StringArgumentType.getString(ctx, "reason")))
                                       )
                         )
@@ -72,7 +73,7 @@ public class UnpluggedCommand implements IServerCommand
     @Override
     public String getName()
     {
-        return "unplugged";
+        return "afk";
     }
 
     @Override

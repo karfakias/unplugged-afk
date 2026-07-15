@@ -20,10 +20,13 @@
 
 package com.sakuraryoko.unplugged_afk.impl.commands.server;
 
+import java.lang.reflect.Field;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.ApiStatus;
 
 import com.mojang.authlib.GameProfile;
@@ -57,6 +60,10 @@ import com.sakuraryoko.unplugged_afk.impl.modinit.InitWrap;
 import com.sakuraryoko.unplugged_afk.impl.modinit.UnpluggedInit;
 import com.sakuraryoko.unplugged_afk.impl.player.*;
 import com.sakuraryoko.unplugged_afk.impl.player.interfaces.IPlayerListInvoker;
+import com.sakuraryoko.unplugged_afk.impl.player.state.UnpluggedStatus;
+import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedEntry;
+import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedEntryList;
+import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedPendingSpawns;
 import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedServerPlayer;
 import com.sakuraryoko.unplugged_afk.impl.player.state.ProfileWrap;
 import com.sakuraryoko.unplugged_afk.impl.player.state.UnpluggedState;
@@ -74,33 +81,34 @@ public class UnpluggedAdminCommand implements IServerCommand
     {
         dispatcher.register(
                 literal(this.getName())
-                        .requires(PermsWrap.check(this.getNode(), ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
+                        .requires(PermsWrap.check(this.getNode(), ConfigWrap.cmdOpt().unpluggedAdminCommandPermissions))
                         .executes(this::about)
                         .then(literal("save")
-                                      .requires(PermsWrap.check(this.getNode()+".save", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
+                                      .requires(PermsWrap.check(this.getNode()+".save", ConfigWrap.cmdOpt().unpluggedAdminCommandPermissions))
                                       .executes(this::save)
                         )
                         .then(literal("reload")
-                                      .requires(PermsWrap.check(this.getNode()+".reload", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
+                                      .requires(PermsWrap.check(this.getNode()+".reload", ConfigWrap.cmdOpt().unpluggedAdminCommandPermissions))
                                       .executes(this::reload)
                         )
                         .then(literal("list")
-                                      .requires(PermsWrap.check(this.getNode()+".list", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
+                                      .requires(PermsWrap.check(this.getNode()+".list", ConfigWrap.cmdOpt().unpluggedAdminCommandPermissions))
+                                      .executes(this::listUnpluggedMap)
                                       .then(literal("players")
-                                                    .requires(PermsWrap.check(this.getNode()+".list.players", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
+                                                    .requires(PermsWrap.checkAdv(this.getNode()+".list.players", ConfigWrap.cmdOpt().unpluggedAdminCommandPermissions))
                                                     .executes(this::listPlayerMap)
                                       )
                                       .then(literal("unplugged")
-                                                    .requires(PermsWrap.check(this.getNode()+".list.unplugged", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
+                                                    .requires(PermsWrap.checkAdv(this.getNode()+".list.unplugged", ConfigWrap.cmdOpt().unpluggedAdminCommandPermissions))
                                                     .executes(this::listUnpluggedMap)
                                       )
                                       .then(literal("all")
-                                                    .requires(PermsWrap.check(this.getNode()+".list.all", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
+                                                    .requires(PermsWrap.checkAdv(this.getNode()+".list.all", ConfigWrap.cmdOpt().unpluggedAdminCommandPermissions))
                                                     .executes(this::listAll)
                                       )
                         )
                         .then(literal("info")
-                                      .requires(PermsWrap.check(this.getNode()+".info", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
+                                      .requires(PermsWrap.checkAdv(this.getNode()+".info", ConfigWrap.cmdOpt().unpluggedAdminCommandPermissions))
                                       .executes(this::infoPlayer)
                                       .then(argument("player", EntityArgument.player())
                                                     .executes(ctx ->
@@ -109,11 +117,11 @@ public class UnpluggedAdminCommand implements IServerCommand
                                       )
                         )
                         .then(literal("purge")
-                                      .requires(PermsWrap.check(this.getNode()+".purge", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
+                                      .requires(PermsWrap.check(this.getNode()+".purge", ConfigWrap.cmdOpt().unpluggedAdminCommandPermissions))
                                       .executes(this::purgePlayers)
                         )
                         .then(literal("spawn")
-                                      .requires(PermsWrap.check(this.getNode()+".spawn", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
+                                      .requires(PermsWrap.check(this.getNode()+".spawn", ConfigWrap.cmdOpt().unpluggedAdminCommandPermissions))
                                       .then(argument("player", StringArgumentType.string())
                                                     .suggests(
                                                             (ctx, builder) ->
@@ -124,7 +132,7 @@ public class UnpluggedAdminCommand implements IServerCommand
                                                                             PlayerUtils::formatEntityTooltip
                                                                     )
                                                     )
-                                                    .requires(PermsWrap.check(this.getNode()+".spawn", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
+                                                    .requires(PermsWrap.check(this.getNode()+".spawn", ConfigWrap.cmdOpt().unpluggedAdminCommandPermissions))
                                                     .executes(ctx ->
                                                               {
                                                                   String result = StringArgumentType.getString(ctx, "player");
@@ -132,7 +140,7 @@ public class UnpluggedAdminCommand implements IServerCommand
                                                               }
                                                     )
                                                     .then(argument("minutes", IntegerArgumentType.integer(1))
-                                                                  .requires(PermsWrap.check(this.getNode()+".spawn", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
+                                                                  .requires(PermsWrap.check(this.getNode()+".spawn", ConfigWrap.cmdOpt().unpluggedAdminCommandPermissions))
                                                                   .executes(ctx ->
                                                                             {
                                                                                 String result = StringArgumentType.getString(ctx, "player");
@@ -140,7 +148,7 @@ public class UnpluggedAdminCommand implements IServerCommand
                                                                             }
                                                                   )
                                                                   .then(argument("reason", StringArgumentType.greedyString())
-                                                                                .requires(PermsWrap.check(this.getNode()+".spawn", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
+                                                                                .requires(PermsWrap.check(this.getNode()+".spawn", ConfigWrap.cmdOpt().unpluggedAdminCommandPermissions))
                                                                                 .executes(ctx ->
                                                                                           {
                                                                                               String result = StringArgumentType.getString(ctx, "player");
@@ -151,24 +159,93 @@ public class UnpluggedAdminCommand implements IServerCommand
                                                     )
                                       )
                         )
-                        .then(literal("kill")
-                                      .requires(PermsWrap.check(this.getNode()+".kill", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
+                        .then(literal("kick")
+                                      .requires(PermsWrap.check(this.getNode()+".kick", ConfigWrap.cmdOpt().unpluggedAdminCommandPermissions))
                                       .then(argument("target", StringArgumentType.string())
                                                     .suggests(
                                                             (ctx, builder) ->
                                                                     SharedSuggestionProvider.suggest(
-                                                                            PlayerManager.getInstance().getKillCommandSuggestions(ctx),
+                                                                            PlayerManager.getInstance().getKickCommandSuggestions(ctx),
                                                                             builder,
                                                                             ProfileWrap::name,
                                                                             PlayerUtils::formatEntityTooltip
                                                                     )
                                                     )
-                                                    .requires(PermsWrap.check(this.getNode()+".kill", ConfigWrap.unplugged().unpluggedAdminCommandPermissions))
+                                                    .requires(PermsWrap.check(this.getNode()+".kick", ConfigWrap.cmdOpt().unpluggedAdminCommandPermissions))
                                                     .executes(ctx ->
                                                               {
                                                                   String result = StringArgumentType.getString(ctx, "target");
-                                                                  return this.killUnplugged(ctx, result);
+                                                                  return this.kickUnplugged(ctx, result);
                                                               }
+                                                    )
+                                      )
+                        )
+                        .then(literal("set")
+                                      .requires(PermsWrap.checkAdv(this.getNode()+".set", ConfigWrap.cmdOpt().unpluggedAdminCommandPermissions))
+                                      .then(argument("config", StringArgumentType.string())
+                                                    .suggests(
+                                                            (ctx, builder) ->
+                                                                    SharedSuggestionProvider.suggest(
+                                                                            UnpluggedConfigHandler.getInstance().configSuggestions(),
+                                                                            builder,
+                                                                            k -> k,
+                                                                            Component::literal
+                                                                    )
+                                                    )
+                                                    .requires(PermsWrap.checkAdv(this.getNode()+".set", ConfigWrap.cmdOpt().unpluggedAdminCommandPermissions))
+                                                    .then(argument("value", StringArgumentType.greedyString())
+                                                                  .suggests((ctx, builder) ->
+                                                                            {
+                                                                                String configName = StringArgumentType.getString(ctx, "config");
+                                                                                Pair<Field, Object> targetData = UnpluggedConfigHandler.getInstance().getConfigInstanceByField(configName);
+
+                                                                                if (targetData != null)
+                                                                                {
+                                                                                    Field targetField = targetData.getLeft();
+                                                                                    Object targetInstance = targetData.getRight();
+
+                                                                                    try
+                                                                                    {
+                                                                                        Class<?> type = targetField.getType();
+                                                                                        Object currentValue = targetField.get(targetInstance);
+
+                                                                                        if (currentValue != null)
+                                                                                        {
+                                                                                            // Illegal Character prevention.
+                                                                                            if (type == String.class)
+                                                                                            {
+                                                                                                builder.suggest(currentValue.toString().replace('§', '&'));
+                                                                                            }
+                                                                                            else
+                                                                                            {
+                                                                                                builder.suggest(currentValue.toString());
+                                                                                            }
+                                                                                        }
+
+                                                                                        if (type == boolean.class || type == Boolean.class)
+                                                                                        {
+                                                                                            builder.suggest("true");
+                                                                                            builder.suggest("false");
+                                                                                        }
+                                                                                        else if (type.isEnum())
+                                                                                        {
+                                                                                            for (Object enumConstant : type.getEnumConstants())
+                                                                                            {
+                                                                                                builder.suggest(((Enum<?>) enumConstant).name());
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                    catch (Exception ignored) {}
+                                                                                }
+
+                                                                                return builder.buildFuture();
+                                                                            })
+                                                                  .executes(ctx ->
+                                                                              {
+                                                                                  String result = StringArgumentType.getString(ctx, "config");
+                                                                                  return this.setConfig(ctx, result, StringArgumentType.getString(ctx, "value"));
+                                                                              }
+                                                                  )
                                                     )
                                       )
                         )
@@ -242,7 +319,11 @@ public class UnpluggedAdminCommand implements IServerCommand
 
     private int listAll(CommandContext<CommandSourceStack> ctx)
     {
-        this.listPlayerMap(ctx);
+        if (!ConfigWrap.mainOpt().reducedListDebugInfo)
+        {
+            this.listPlayerMap(ctx);
+        }
+
         this.listUnpluggedMap(ctx);
 
         return 1;
@@ -250,6 +331,19 @@ public class UnpluggedAdminCommand implements IServerCommand
 
     private int listPlayerMap(CommandContext<CommandSourceStack> ctx)
     {
+        if (ConfigWrap.mainOpt().reducedListDebugInfo)
+        {
+            final Component result = InitWrap.text().formatText("§dReduced debug info enabled; player listing disabled§r");
+
+            //#if MC >= 1.20.1
+            //$$ ctx.getSource().sendSuccess(() -> result, false);
+            //#else
+            ctx.getSource().sendSuccess(result, false);
+            //#endif
+
+            return 0;
+        }
+
         ImmutableMap<UUID, PlayerEntry> playerMap = PlayerManager.getInstance().playerMapCopy();
         MutableComponent text = Component.literal("");
         int count = 0;
@@ -278,7 +372,7 @@ public class UnpluggedAdminCommand implements IServerCommand
 
         text.append(
                 String.format("\n§6(%d total)§r", count)
-        );
+        ).append("\n");     // prefix for unplugged list
 
         //#if MC >= 1.20.1
         //$$ ctx.getSource().sendSuccess(() -> text, false);
@@ -306,7 +400,7 @@ public class UnpluggedAdminCommand implements IServerCommand
         int count = 0;
 
         text.append(
-                InitWrap.text().formatText("\n§dUnplugged Map:")
+                InitWrap.text().formatText("§dUnplugged Map:")
         );
 
         for (UnpluggedEntry entry : map.values())
@@ -362,16 +456,19 @@ public class UnpluggedAdminCommand implements IServerCommand
     {
         MutableComponent text = Component.literal("");
 
-        text.append(
-                InitWrap.text().formatText("§9Player Info: ")
-        ).append(
-                PlayerManager.getInstance().getDebugFormatted(player.getUUID())
-        );
+        if (!ConfigWrap.mainOpt().reducedListDebugInfo)
+        {
+            text.append(
+                    InitWrap.text().formatText("§9Player Info: ")
+            ).append(
+                    PlayerManager.getInstance().getDebugFormatted(player.getUUID())
+            ).append("\n");
+        }
 
         if (UnpluggedEntryList.getInstance().contains(player.getUUID()))
         {
             text.append(
-                    InitWrap.text().formatText("\n§9Unplugged Info: ")
+                    InitWrap.text().formatText("§9Unplugged Info: ")
             ).append(
                     UnpluggedEntryList.getInstance().getDebugFormatted(player.getUUID())
             );
@@ -492,7 +589,7 @@ public class UnpluggedAdminCommand implements IServerCommand
 
                     UnpluggedAfk.debugLog("createUnplugged: Scheduling Unplugged player: ['{}'/{}]", opts.name, opts.uuid.toString());
                     reply = "§eScheduling unplugged spawn for: §7"+ result + "§r";
-                    opts.state = new UnpluggedState(true, time, (time * 60L) * 1000L, reason);
+                    opts.state = new UnpluggedState(UnpluggedStatus.ACTIVE, time, (time * 60L) * 1000L, System.currentTimeMillis(), reason);
                     PlayerManager.getInstance().setState(entry, opts.state);
                     PlayerManager.getInstance().flushToConfig(ctx.getSource().getServer());
                     ServerEventsHandler.getInstance().toggleSpawnSafe(false);
@@ -535,9 +632,9 @@ public class UnpluggedAdminCommand implements IServerCommand
     }
 
     @ApiStatus.Internal
-    private int killUnplugged(CommandContext<CommandSourceStack> ctx, String result)
+    private int kickUnplugged(CommandContext<CommandSourceStack> ctx, String result)
     {
-        ImmutableList<GameProfile> list = PlayerManager.getInstance().getKillCommandSuggestions(ctx);
+        ImmutableList<GameProfile> list = PlayerManager.getInstance().getKickCommandSuggestions(ctx);
         boolean found = false;
         String reply = "";
 
@@ -555,18 +652,18 @@ public class UnpluggedAdminCommand implements IServerCommand
                     {
                         if (player.getUUID().equals(ProfileWrap.id(entry)) && player instanceof UnpluggedServerPlayer sp)
                         {
-                            UnpluggedAfk.debugLog("killUnplugged: Killing Unplugged player: ['{}'/{}]", ProfileWrap.name(entry), ProfileWrap.id(entry).toString());
-                            reply = "§eKilling unplugged player: §7"+ ProfileWrap.name(entry) + "§r";
+                            UnpluggedAfk.debugLog("kickUnplugged: Kicking unplugged player: ['{}'/{}]", ProfileWrap.name(entry), ProfileWrap.id(entry).toString());
+                            reply = "§eKicking unplugged player: §7"+ ProfileWrap.name(entry) + "§r";
 
                             if (ConfigWrap.mess().hideUnpluggedJoin)
                             {
-                                ((IPlayerListInvoker) playerList).unplugged$toggleBroadcastSystemMessage(true);
+                                ((IPlayerListInvoker) playerList).unplugged$toggleHideBroadcastMessage(true);
                             }
 
                             Component message = Component.literal("Killed");
                             sp.kill(message);
                             playerList.remove(player);
-                            ((IPlayerListInvoker) playerList).unplugged$toggleBroadcastSystemMessage(false);
+                            ((IPlayerListInvoker) playerList).unplugged$toggleHideBroadcastMessage(false);
 
                             break;
                         }
@@ -584,7 +681,7 @@ public class UnpluggedAdminCommand implements IServerCommand
 
         if (!found)
         {
-            reply = "§cNo matching shadow player found§r";
+            reply = "§cNo matching unplugged player found§r";
         }
 
         final String finalReply = reply;
@@ -598,13 +695,169 @@ public class UnpluggedAdminCommand implements IServerCommand
         if (ctx.getSource().isPlayer() && ctx.getSource().getPlayer() instanceof ServerPlayer)
         {
             GameProfile profile = ctx.getSource().getPlayer().getGameProfile();
-            UnpluggedAfk.debugLog("killUnplugged: by: ['{}'/{}] // result: {}", ProfileWrap.name(profile), ProfileWrap.id(profile), finalReply);
+            UnpluggedAfk.debugLog("kickUnplugged: by: ['{}'/{}] // result: {}", ProfileWrap.name(profile), ProfileWrap.id(profile), finalReply);
         }
         else
         {
-            UnpluggedAfk.debugLog("killUnplugged: by: [console/unknown] // result: {}", finalReply);
+            UnpluggedAfk.debugLog("kickUnplugged: by: [console/unknown] // result: {}", finalReply);
         }
 
         return 1;
+    }
+
+    @ApiStatus.Internal
+    private int setConfig(CommandContext<CommandSourceStack> ctx, String config, String value)
+    {
+        Pair<Field, Object> target = UnpluggedConfigHandler.getInstance().getConfigInstanceByField(config);
+        String reply;
+
+        if (target == null)
+        {
+            reply = "§cUnknown config: "+config+"§r";
+            String finalReply = reply;
+
+            //#if MC >= 1.20.1
+            //$$ ctx.getSource().sendSuccess(() -> InitWrap.text().formatText(finalReply), false);
+            //#else
+            ctx.getSource().sendSuccess(InitWrap.text().formatText(finalReply), false);
+            //#endif
+
+            return 0;
+        }
+
+        Field targetField = target.getLeft();
+        Object targetInstance = target.getRight();
+
+        try
+        {
+            Class<?> fieldType = targetField.getType();
+            Object parsedValue = null;
+
+            if (fieldType == int.class || fieldType == Integer.class)
+            {
+                parsedValue = Integer.parseInt(value);
+            }
+            else if (fieldType == boolean.class || fieldType == Boolean.class)
+            {
+                if (value.equalsIgnoreCase("true"))
+                {
+                    parsedValue = true;
+                }
+                else if (value.equalsIgnoreCase("false"))
+                {
+                    parsedValue = false;
+                }
+                else
+                {
+                    reply = "§cInvalid boolean! Value must be 'true' or 'false'.§r";
+                    String finalReply = reply;
+
+                    //#if MC >= 1.20.1
+                    //$$ ctx.getSource().sendSuccess(() -> InitWrap.text().formatText(finalReply), false);
+                    //#else
+                    ctx.getSource().sendSuccess(InitWrap.text().formatText(finalReply), false);
+                    //#endif
+
+                    return 0;
+                }
+            }
+            else if (fieldType == long.class || fieldType == Long.class)
+            {
+                parsedValue = Long.parseLong(value);
+            }
+            else if (fieldType == float.class || fieldType == Float.class)
+            {
+                parsedValue = Float.parseFloat(value);
+            }
+            else if (fieldType == double.class || fieldType == Double.class)
+            {
+                parsedValue = Double.parseDouble(value);
+            }
+            else if (fieldType == String.class)
+            {
+                parsedValue = value.replace('&', '§');
+            }
+            else if (fieldType.isEnum())
+            {
+                boolean found = false;
+
+                for (Object enumConst : fieldType.getEnumConstants())
+                {
+                    if (((Enum<?>) enumConst).name().equalsIgnoreCase(value))
+                    {
+                        parsedValue = enumConst;
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found)
+                {
+                    reply = "§cInvalid option! Valid options are: " + Arrays.toString(fieldType.getEnumConstants()) + "§r";
+                    String finalReply = reply;
+
+                    ctx.getSource().sendFailure(InitWrap.text().formatText(finalReply));
+                    return 0;
+                }
+            }
+
+            if (parsedValue != null)
+            {
+                targetField.set(targetInstance, parsedValue);
+                reply = "§aConfig: '"+config+"' updated to "+value+".§r";
+                String finalReply = reply;
+
+                //#if MC >= 1.20.1
+                //$$ ctx.getSource().sendSuccess(() -> InitWrap.text().formatText(finalReply), false);
+                //#else
+                ctx.getSource().sendSuccess(InitWrap.text().formatText(finalReply), false);
+                //#endif
+
+                this.save(ctx);
+                this.reload(ctx);
+
+                return 1;
+            }
+            else
+            {
+                reply = "§cUnsupported type for config: "+config+"§r";
+                String finalReply = reply;
+
+                //#if MC >= 1.20.1
+                //$$ ctx.getSource().sendSuccess(() -> InitWrap.text().formatText(finalReply), false);
+                //#else
+                ctx.getSource().sendSuccess(InitWrap.text().formatText(finalReply), false);
+                //#endif
+
+                return 0;
+            }
+        }
+        catch (NumberFormatException e)
+        {
+            reply = "§cInvalid number format for config: "+config+"§r";
+            String finalReply = reply;
+
+            //#if MC >= 1.20.1
+            //$$ ctx.getSource().sendSuccess(() -> InitWrap.text().formatText(finalReply), false);
+            //#else
+            ctx.getSource().sendSuccess(InitWrap.text().formatText(finalReply), false);
+            //#endif
+
+            return 0;
+        }
+        catch (Exception e)
+        {
+            reply = "§cAn error occurred setting the config. Check logs.§r";
+            UnpluggedAfk.LOGGER.error("setConfig: Exception setting config '{}' to '{}'; {}", config, value, e.getLocalizedMessage());
+            String finalReply = reply;
+
+            //#if MC >= 1.20.1
+            //$$ ctx.getSource().sendSuccess(() -> InitWrap.text().formatText(finalReply), false);
+            //#else
+            ctx.getSource().sendSuccess(InitWrap.text().formatText(finalReply), false);
+            //#endif
+
+            return 0;
+        }
     }
 }

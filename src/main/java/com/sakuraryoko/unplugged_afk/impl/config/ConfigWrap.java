@@ -22,19 +22,31 @@ package com.sakuraryoko.unplugged_afk.impl.config;
 
 import java.util.List;
 
-import com.sakuraryoko.unplugged_afk.impl.config.data.options.UnpluggedOptions;
-import org.jetbrains.annotations.ApiStatus;
+import com.sakuraryoko.unplugged_afk.impl.config.data.options.*;
 
-import com.sakuraryoko.unplugged_afk.impl.config.data.options.MainOptions;
-import com.sakuraryoko.unplugged_afk.impl.config.data.options.MessageOptions;
-import com.sakuraryoko.unplugged_afk.impl.config.data.options.PlayerOptions;
+import org.jetbrains.annotations.ApiStatus;
 
 @ApiStatus.Internal
 public class ConfigWrap
 {
+    public static Long lastStart()
+    {
+        return UnpluggedConfigHandler.getInstance().getLastStart();
+    }
+
+    public static Long lastStop()
+    {
+        return UnpluggedConfigHandler.getInstance().getLastStop();
+    }
+
     public static MainOptions mainOpt()
     {
         return UnpluggedConfigHandler.getInstance().getMainOptions();
+    }
+
+    public static CommandOptions cmdOpt()
+    {
+        return UnpluggedConfigHandler.getInstance().getCommandOptions();
     }
 
     public static UnpluggedOptions unplugged()

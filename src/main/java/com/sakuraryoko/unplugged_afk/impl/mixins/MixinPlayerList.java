@@ -58,11 +58,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import net.minecraft.nbt.CompoundTag;
 //#endif
 
-import com.sakuraryoko.unplugged_afk.impl.player.PlayerManager;
-import com.sakuraryoko.unplugged_afk.impl.player.UnpluggedEntry;
-import com.sakuraryoko.unplugged_afk.impl.player.UnpluggedEntryList;
-import com.sakuraryoko.unplugged_afk.impl.player.state.UnpluggedState;
 import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedGamePacketListener;
+import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedPlayerUtils;
 import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedServerPlayer;
 
 @Mixin(PlayerList.class)
@@ -156,19 +153,7 @@ public abstract class MixinPlayerList implements IPlayerListInvoker
 		//$$ if (player instanceof UnpluggedServerPlayer sp && !sp.isValid())
 		//$$ {
 			//$$ UnpluggedServerPlayer newSp = UnpluggedServerPlayer.respawnUnplugged(server, level, profile, ci);
-			//$$ newSp.updateTimeOut(sp.getTimeout());
-			//$$ UnpluggedEntryList.getInstance().updateFromUnplugged(newSp);
-			//$$ UnpluggedEntry entry = UnpluggedEntryList.getInstance().get(newSp);
-			//$$ UnpluggedState state = PlayerManager.getInstance().getState(profile);
-			//$$ if (!state.enabled())
-			//$$ {
-				//$$ state = new UnpluggedState(true, state.time(), newSp.getTimeout(), state.reason());
-				//$$ PlayerManager.getInstance().setState(profile, state);
-				//$$ if (entry != null)
-				//$$ {
-					//$$ entry.updateState(state);
-				//$$ }
-			//$$ }
+			//$$ UnpluggedPlayerUtils.respawnUnpluggedAfk(profile, sp, newSp);
 			//$$ return newSp;
 		//$$ }
 
@@ -177,19 +162,7 @@ public abstract class MixinPlayerList implements IPlayerListInvoker
 		//$$ if (player instanceof UnpluggedServerPlayer sp && !sp.isValid())
 		//$$ {
 			//$$ UnpluggedServerPlayer newSp = UnpluggedServerPlayer.respawnUnplugged(server, level, profile);
-			//$$ newSp.updateTimeOut(sp.getTimeout());
-			//$$ UnpluggedEntryList.getInstance().updateFromUnplugged(newSp);
-			//$$ UnpluggedEntry entry = UnpluggedEntryList.getInstance().get(newSp);
-			//$$ UnpluggedState state = PlayerManager.getInstance().getState(profile);
-			//$$ if (!state.enabled())
-			//$$ {
-				//$$ state = new UnpluggedState(true, state.time(), newSp.getTimeout(), state.reason());
-				//$$ PlayerManager.getInstance().setState(profile, state);
-				//$$ if (entry != null)
-				//$$ {
-					//$$ entry.updateState(state);
-				//$$ }
-			//$$ }
+			//$$ UnpluggedPlayerUtils.respawnUnpluggedAfk(profile, sp, newSp);
 			//$$ return newSp;
 		//$$ }
 
@@ -198,22 +171,7 @@ public abstract class MixinPlayerList implements IPlayerListInvoker
 		if (player instanceof UnpluggedServerPlayer sp && !sp.isValid())
 		{
 			UnpluggedServerPlayer newSp = UnpluggedServerPlayer.respawnUnplugged(server, level, profile, profilePublicKey);
-			newSp.updateTimeOut(sp.getTimeout());
-			UnpluggedEntryList.getInstance().updateFromUnplugged(newSp);
-			UnpluggedEntry entry = UnpluggedEntryList.getInstance().get(newSp);
-			UnpluggedState state = PlayerManager.getInstance().getState(profile);
-
-			if (!state.enabled())
-			{
-				state = new UnpluggedState(true, state.time(), newSp.getTimeout(), state.reason());
-				PlayerManager.getInstance().setState(profile, state);
-
-				if (entry != null)
-				{
-					entry.updateState(state);
-				}
-			}
-
+			UnpluggedPlayerUtils.respawnUnpluggedAfk(profile, sp, newSp);
 			return newSp;
 		}
 
@@ -232,7 +190,7 @@ public abstract class MixinPlayerList implements IPlayerListInvoker
 	}
 
 	@Override
-	public void unplugged$toggleBroadcastSystemMessage(boolean toggle)
+	public void unplugged$toggleHideBroadcastMessage(boolean toggle)
 	{
 		this.hideSystemMessages = toggle;
 	}

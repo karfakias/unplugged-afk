@@ -28,8 +28,6 @@ public class UnpluggedOptions implements IConfigOption
 {
 	public boolean resetHealthUponDeath;
 	public int defaultUnpluggedTimeout;
-	public int unpluggedCommandPermissions;
-	public int unpluggedAdminCommandPermissions;
 	public boolean unpluggedDisableDamage;
 	public boolean unpluggedHidePlayer;
 	public boolean unpluggedHideFromOps;
@@ -44,8 +42,6 @@ public class UnpluggedOptions implements IConfigOption
 	{
 		this.resetHealthUponDeath = false;
 		this.defaultUnpluggedTimeout = 129600;
-		this.unpluggedCommandPermissions = 0;
-		this.unpluggedAdminCommandPermissions = 3;
 		this.unpluggedDisableDamage = false;
 		this.unpluggedHidePlayer = false;
 		this.unpluggedHideFromOps = false;
@@ -58,8 +54,6 @@ public class UnpluggedOptions implements IConfigOption
 
 		this.resetHealthUponDeath = opts.resetHealthUponDeath;
 		this.defaultUnpluggedTimeout = opts.defaultUnpluggedTimeout;
-		this.unpluggedCommandPermissions = opts.unpluggedCommandPermissions;
-		this.unpluggedAdminCommandPermissions = opts.unpluggedAdminCommandPermissions;
 		this.unpluggedDisableDamage = opts.unpluggedDisableDamage;
 		this.unpluggedHidePlayer = opts.unpluggedHidePlayer;
 		this.unpluggedHideFromOps = opts.unpluggedHideFromOps;

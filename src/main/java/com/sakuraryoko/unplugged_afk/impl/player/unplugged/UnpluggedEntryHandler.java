@@ -18,7 +18,7 @@
  * along with Unplugged-AFK.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.sakuraryoko.unplugged_afk.impl.player;
+package com.sakuraryoko.unplugged_afk.impl.player.unplugged;
 
 import javax.annotation.Nonnull;
 import org.jetbrains.annotations.ApiStatus;
@@ -28,8 +28,9 @@ import net.minecraft.server.level.ServerPlayer;
 
 import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
 import com.sakuraryoko.unplugged_afk.impl.modinit.InitWrap;
+import com.sakuraryoko.unplugged_afk.impl.player.PlayerManager;
 import com.sakuraryoko.unplugged_afk.impl.player.interfaces.IPlayerInvoker;
-import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedServerPlayer;
+import com.sakuraryoko.unplugged_afk.impl.player.state.UnpluggedStatus;
 import com.sakuraryoko.unplugged_afk.impl.player.state.UnpluggedState;
 
 @ApiStatus.Internal
@@ -57,7 +58,7 @@ public record UnpluggedEntryHandler(UnpluggedEntry entry)
         {
             this.entry().setReason("§cnone");
 
-            if (!ConfigWrap.unplugged().unpluggedHidePlayer && !ConfigWrap.mess().hideUnpluggedJoin)
+            if (!ConfigWrap.unplugged().unpluggedHidePlayer)
             {
                 String mess1 = this.entry().name().getString()
                         + ConfigWrap.mess().unpluggedStarted;
@@ -69,7 +70,7 @@ public record UnpluggedEntryHandler(UnpluggedEntry entry)
         {
             this.entry().setReason("§cnone");
 
-            if (!ConfigWrap.unplugged().unpluggedHidePlayer && !ConfigWrap.mess().hideUnpluggedJoin)
+            if (!ConfigWrap.unplugged().unpluggedHidePlayer)
             {
                 String mess1 = this.entry().name().getString()
                         + ConfigWrap.mess().unpluggedStarted;
@@ -81,7 +82,7 @@ public record UnpluggedEntryHandler(UnpluggedEntry entry)
         {
             this.entry().setReason(reason);
 
-            if (!ConfigWrap.unplugged().unpluggedHidePlayer && !ConfigWrap.mess().hideUnpluggedJoin)
+            if (!ConfigWrap.unplugged().unpluggedHidePlayer)
             {
                 String mess1 = this.entry().name().getString()
                         + ConfigWrap.mess().unpluggedStarted
@@ -92,12 +93,15 @@ public record UnpluggedEntryHandler(UnpluggedEntry entry)
             }
         }
 
-        UnpluggedState newState = new UnpluggedState(true, time, shadowTimeout, reason);
-
-        if (!newState.equals(state))
+        if (state.status() != UnpluggedStatus.ACTIVE || shadowTimeout != state.timeout())
         {
-            this.entry().updateState(newState);
-            PlayerManager.getInstance().setState(player.getGameProfile(), newState);
+            UnpluggedState newState = new UnpluggedState(UnpluggedStatus.ACTIVE, time, shadowTimeout, state.startTime(), reason);
+
+            if (!newState.equals(state))
+            {
+                this.entry().updateState(newState);
+                PlayerManager.getInstance().setState(player.getGameProfile(), newState);
+            }
         }
 //        this.updatePlayerList();
     }
@@ -106,7 +110,7 @@ public record UnpluggedEntryHandler(UnpluggedEntry entry)
     public void unregisterUnpluggedAfk(boolean silent)
     {
         if (!ConfigWrap.unplugged().unpluggedHidePlayer &&
-            !ConfigWrap.mess().hideUnpluggedJoin &&
+//            !ConfigWrap.mess().hideUnpluggedJoin &&
             !silent)
         {
             if (ConfigWrap.mess().displayDuration)

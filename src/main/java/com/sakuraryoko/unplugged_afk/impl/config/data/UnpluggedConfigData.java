@@ -23,12 +23,11 @@ package com.sakuraryoko.unplugged_afk.impl.config.data;
 import java.util.ArrayList;
 import java.util.List;
 import com.google.gson.annotations.SerializedName;
-import com.sakuraryoko.unplugged_afk.impl.config.data.options.UnpluggedOptions;
+
+import com.sakuraryoko.unplugged_afk.impl.config.data.options.*;
+
 import org.jetbrains.annotations.ApiStatus;
 
-import com.sakuraryoko.unplugged_afk.impl.config.data.options.MainOptions;
-import com.sakuraryoko.unplugged_afk.impl.config.data.options.MessageOptions;
-import com.sakuraryoko.unplugged_afk.impl.config.data.options.PlayerOptions;
 import com.sakuraryoko.corelib.api.config.IConfigData;
 
 @ApiStatus.Internal
@@ -40,8 +39,17 @@ public class UnpluggedConfigData implements IConfigData
     @SerializedName("config_date")
     public String config_date;
 
+    @SerializedName("last_start")
+    public Long last_start;
+
+    @SerializedName("last_stop")
+    public Long last_stop;
+
     @SerializedName("main")
     public MainOptions MAIN = new MainOptions();
+
+    @SerializedName("commands")
+    public CommandOptions COMMANDS = new CommandOptions();
 
     @SerializedName("unplugged")
     public UnpluggedOptions UNPLUGGED = new UnpluggedOptions();

@@ -18,9 +18,8 @@
  * along with Unplugged-AFK.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.sakuraryoko.unplugged_afk.impl.player;
+package com.sakuraryoko.unplugged_afk.impl.player.unplugged;
 
-import java.time.ZonedDateTime;
 import java.util.Objects;
 import java.util.UUID;
 import javax.annotation.Nonnull;
@@ -30,13 +29,13 @@ import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.VisibleForTesting;
 
 import com.mojang.authlib.GameProfile;
-import net.minecraft.Util;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 
 import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
 import com.sakuraryoko.unplugged_afk.impl.modinit.InitWrap;
-import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedServerPlayer;
+import com.sakuraryoko.unplugged_afk.impl.player.PlayerUtils;
+import com.sakuraryoko.unplugged_afk.impl.player.state.UnpluggedStatus;
 import com.sakuraryoko.unplugged_afk.impl.player.state.ProfileWrap;
 import com.sakuraryoko.unplugged_afk.impl.player.state.UnpluggedState;
 import com.sakuraryoko.corelib.api.time.DurationFormat;
@@ -47,10 +46,9 @@ public class UnpluggedEntry
 {
 	private @Nullable UnpluggedServerPlayer player;
 	private final UnpluggedEntryHandler handler;
-	private boolean enabled;
+	private UnpluggedStatus status;
 	private int time;
 	private long startTimeMs;
-	private long startTimeEpoch;
 	private long timeout;
 	private String reason;
 
@@ -58,10 +56,9 @@ public class UnpluggedEntry
 	private UnpluggedEntry()
 	{
 		this.player = null;
-		this.enabled = false;
+		this.status = UnpluggedStatus.INACTIVE;
 		this.time = 0;
 		this.startTimeMs = -1L;
-		this.startTimeEpoch = -1L;
 		this.timeout = -1L;
 		this.reason = "";
 		this.handler = new UnpluggedEntryHandler(this);
@@ -101,19 +98,14 @@ public class UnpluggedEntry
 		       : null;
 	}
 
-	public boolean enabled()
+	public UnpluggedStatus status()
 	{
-		return this.enabled;
+		return this.status;
 	}
 
 	public int timer()
 	{
 		return this.time;
-	}
-
-	public long startTimeEpoch()
-	{
-		return this.startTimeEpoch;
 	}
 
 	public long startTimeMs()
@@ -157,14 +149,14 @@ public class UnpluggedEntry
 		return TimeFormat.REGULAR;
 	}
 
-	public String startTimeEpochString()
+	public String startTimeString()
 	{
-		return this.timeDateType().formatTo(this.startTimeEpoch(), ConfigWrap.mess().duration.customFormat);
+		return this.timeDateType().formatTo(this.startTimeMs(), ConfigWrap.mess().duration.customFormat);
 	}
 
 	public String durationString()
 	{
-		return this.durationType().format((Util.getMillis() - this.startTimeMs()), ConfigWrap.mess().duration.customFormat);
+		return this.durationType().format((System.currentTimeMillis() - this.startTimeMs()), ConfigWrap.mess().duration.customFormat);
 	}
 
     public String timeoutString()
@@ -172,11 +164,11 @@ public class UnpluggedEntry
         return this.durationType().format((this.timeout), ConfigWrap.mess().duration.customFormat);
     }
 
-	public String startTimeEpochFormatted()
+	public String startTimeFormatted()
 	{
-		if (this.startTimeEpoch > 1L)
+		if (this.startTimeMs > 1L)
 		{
-			String result = this.startTimeEpochString();
+			String result = this.startTimeString();
 			return "§a" + result + "§r";
 		}
 
@@ -224,25 +216,23 @@ public class UnpluggedEntry
 	@ApiStatus.Internal
 	public void updateState(UnpluggedState state)
 	{
-		this.enabled = state.enabled();
+		this.status = state.status();
 		this.setTimer(state.time());
 		this.setTimeout(state.timeout());
 		this.setReason(state.reason());
 
+		final long startTime = state.startTime() > 0L ? state.startTime() : System.currentTimeMillis();
+
 		if (this.startTimeMs() <= 1L)
 		{
-			this.setStartTimeMs(Util.getMillis());
-		}
-		if (this.startTimeEpoch() <= 1L)
-		{
-			this.setStartTimeEpoch(ZonedDateTime.now().toInstant().toEpochMilli());
+			this.setStartTimeMs(startTime);
 		}
 	}
 
 	@ApiStatus.Internal
 	public UnpluggedState toState()
 	{
-		return new UnpluggedState(this.enabled(), this.timer(), this.timeout(), this.reason());
+		return new UnpluggedState(this.status(), this.timer(), this.timeout(), this.startTimeMs(), this.reason());
 	}
 
 	@ApiStatus.Internal
@@ -261,12 +251,6 @@ public class UnpluggedEntry
 	public void setStartTimeMs(long time)
 	{
 		this.startTimeMs = time;
-	}
-
-	@ApiStatus.Internal
-	public void setStartTimeEpoch(long time)
-	{
-		this.startTimeEpoch = time;
 	}
 
 	@ApiStatus.Internal
@@ -311,7 +295,7 @@ public class UnpluggedEntry
 			text.append(
 					InitWrap.text().formatText("§r\n - §7Name: ")
 			).append(
-					PlayerUtils.formatSuggestKillCommand(this.name())
+					PlayerUtils.formatSuggestKickCommand(this.name())
 			);
 		}
 		else
@@ -337,10 +321,10 @@ public class UnpluggedEntry
 		text.append(
 				InitWrap.text().formatText("§r\n - §7Status: ")
 		).append(
-				InitWrap.text().formatText(this.enabled() ? "§6Enabled" : "§aDisabled")
+				InitWrap.text().formatText(UnpluggedStatus.formatStatus(this.status()))
 		);
 
-		if (this.enabled())
+		if (this.status() == UnpluggedStatus.ACTIVE)
 		{
 			text.append(
 					InitWrap.text().formatText("§r\n - §7Timeout: ")
@@ -357,7 +341,7 @@ public class UnpluggedEntry
 				).append(
 						InitWrap.text().formatText("§r\n - §7Since: ")
 				).append(
-						InitWrap.text().formatText(this.startTimeEpochFormatted())
+						InitWrap.text().formatText(this.startTimeFormatted())
 				);
 			}
 			text.append(
@@ -373,10 +357,9 @@ public class UnpluggedEntry
 	@ApiStatus.Internal
 	public void reset()
 	{
-		this.enabled = false;
+		this.status = UnpluggedStatus.INACTIVE;
 		this.time = 0;
 		this.startTimeMs = -1L;
-		this.startTimeEpoch = -1L;
 		this.timeout = -1L;
 		this.reason = "";
 	}
