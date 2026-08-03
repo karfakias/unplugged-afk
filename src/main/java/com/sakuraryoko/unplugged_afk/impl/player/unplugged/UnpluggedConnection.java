@@ -39,10 +39,16 @@ import net.minecraft.network.Connection;
 //$$ import net.minecraft.network.protocol.Packet;
 //#endif
 import net.minecraft.network.protocol.PacketFlow;
+import org.jspecify.annotations.NonNull;
+
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 
 @ApiStatus.Internal
 public class UnpluggedConnection extends Connection
 {
+	protected static final SocketAddress address = new InetSocketAddress("127.0.0.1", 65535);
+
 	public UnpluggedConnection(PacketFlow receiving)
 	{
 		super(receiving);
@@ -89,4 +95,16 @@ public class UnpluggedConnection extends Connection
 	//$$ }
 	//#else
 	//#endif
+
+	@Override
+	public void tick()
+	{
+		// NO-OP
+	}
+
+	@Override
+	public @NonNull SocketAddress getRemoteAddress()
+	{
+		return address;
+	}
 }

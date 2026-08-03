@@ -936,11 +936,11 @@ public class UnpluggedServerPlayer extends ServerPlayer
 		}
 	}
 
-	@Override
-	public @NonNull String getIpAddress()
-	{
-		return "127.0.0.1";
-	}
+//	@Override
+//	public @NonNull String getIpAddress()
+//	{
+//		return "127.0.0.1";
+//	}
 
 //	//#if MC >= 1.20.1
 //	//$$ @Override
