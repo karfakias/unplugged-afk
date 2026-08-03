@@ -55,16 +55,13 @@ import com.sakuraryoko.unplugged_afk.impl.commands.PermsWrap;
 import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
 import com.sakuraryoko.unplugged_afk.impl.config.UnpluggedConfigHandler;
 import com.sakuraryoko.unplugged_afk.impl.config.data.options.PlayerOptions;
+import com.sakuraryoko.unplugged_afk.impl.events.PlayerEventsHandler;
 import com.sakuraryoko.unplugged_afk.impl.events.ServerEventsHandler;
 import com.sakuraryoko.unplugged_afk.impl.modinit.InitWrap;
 import com.sakuraryoko.unplugged_afk.impl.modinit.UnpluggedInit;
 import com.sakuraryoko.unplugged_afk.impl.player.*;
-import com.sakuraryoko.unplugged_afk.impl.player.interfaces.IPlayerListInvoker;
 import com.sakuraryoko.unplugged_afk.impl.player.state.UnpluggedStatus;
-import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedEntry;
-import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedEntryList;
-import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedPendingSpawns;
-import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedServerPlayer;
+import com.sakuraryoko.unplugged_afk.impl.player.unplugged.*;
 import com.sakuraryoko.unplugged_afk.impl.player.state.ProfileWrap;
 import com.sakuraryoko.unplugged_afk.impl.player.state.UnpluggedState;
 
@@ -455,6 +452,7 @@ public class UnpluggedAdminCommand implements IServerCommand
     private int infoPlayer(CommandContext<CommandSourceStack> ctx, ServerPlayer player)
     {
         MutableComponent text = Component.literal("");
+        boolean sent = false;
 
         if (!ConfigWrap.mainOpt().reducedListDebugInfo)
         {
@@ -463,6 +461,8 @@ public class UnpluggedAdminCommand implements IServerCommand
             ).append(
                     PlayerManager.getInstance().getDebugFormatted(player.getUUID())
             ).append("\n");
+
+            sent = true;
         }
 
         if (UnpluggedEntryList.getInstance().contains(player.getUUID()))
@@ -471,6 +471,15 @@ public class UnpluggedAdminCommand implements IServerCommand
                     InitWrap.text().formatText("§9Unplugged Info: ")
             ).append(
                     UnpluggedEntryList.getInstance().getDebugFormatted(player.getUUID())
+            );
+
+            sent = true;
+        }
+
+        if (!sent)
+        {
+            text.append(
+                    InitWrap.text().formatText("§6Player: '§r"+player.getName().getString()+"§6' is not unplugged")
             );
         }
 
@@ -505,7 +514,7 @@ public class UnpluggedAdminCommand implements IServerCommand
         ImmutableMap<UUID, UnpluggedEntry> shadowMap = UnpluggedEntryList.getInstance().shadowMapCopy();
         int count = 0;
 
-        PlayerManager.getInstance().flushToConfig(ctx.getSource().getServer());
+//        PlayerManager.getInstance().flushToConfig(ctx.getSource().getServer());
 
         for (UUID uuid : playerMap.keySet())
         {
@@ -513,14 +522,14 @@ public class UnpluggedAdminCommand implements IServerCommand
             {
                 if (!uuid.equals(player.getUUID()))
                 {
-                    PlayerManager.getInstance().remove(uuid, true);
+                    PlayerManager.getInstance().remove(uuid, true, UnpluggedStatus.INTERRUPTED);
                     count++;
                 }
             }
             else
             {
                 // Via console command, probably.
-                PlayerManager.getInstance().remove(uuid, true);
+                PlayerManager.getInstance().remove(uuid, true, UnpluggedStatus.INTERRUPTED);
                 count++;
             }
         }
@@ -653,17 +662,28 @@ public class UnpluggedAdminCommand implements IServerCommand
                         if (player.getUUID().equals(ProfileWrap.id(entry)) && player instanceof UnpluggedServerPlayer sp)
                         {
                             UnpluggedAfk.debugLog("kickUnplugged: Kicking unplugged player: ['{}'/{}]", ProfileWrap.name(entry), ProfileWrap.id(entry).toString());
-                            reply = "§eKicking unplugged player: §7"+ ProfileWrap.name(entry) + "§r";
+                            reply = " §7- Kicking unplugged player: §e"+ ProfileWrap.name(entry) + "§r";
 
                             if (ConfigWrap.mess().hideUnpluggedJoin)
                             {
-                                ((IPlayerListInvoker) playerList).unplugged$toggleHideBroadcastMessage(true);
+                                PlayerEventsHandler.getInstance().addShouldHideJoin(result);
                             }
 
+                            Component name = sp.getName();
                             Component message = Component.literal("Killed");
                             sp.kill(message);
                             playerList.remove(player);
-                            ((IPlayerListInvoker) playerList).unplugged$toggleHideBroadcastMessage(false);
+
+                            if (ConfigWrap.mess().hideUnpluggedJoin)
+                            {
+                                PlayerEventsHandler.getInstance().removeShouldHideJoin(name.getString());
+                            }
+                            //#if MC < 1.21.2
+                            //$$ else
+                            //$$ {
+                                //$$ UnpluggedPlayerUtils.sendLeaveMessage(server, name);
+                            //$$ }
+                            //#endif
 
                             break;
                         }
@@ -804,7 +824,7 @@ public class UnpluggedAdminCommand implements IServerCommand
             if (parsedValue != null)
             {
                 targetField.set(targetInstance, parsedValue);
-                reply = "§aConfig: '"+config+"' updated to "+value+".§r";
+                reply = "§aConfig: '"+config+"' updated to "+value+".§r\n§cNOTE: Some settings may require a server restart.";
                 String finalReply = reply;
 
                 //#if MC >= 1.20.1

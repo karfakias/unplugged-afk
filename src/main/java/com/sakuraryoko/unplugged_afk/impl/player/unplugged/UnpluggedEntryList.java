@@ -112,7 +112,7 @@ public class UnpluggedEntryList
 		}
 	}
 
-	public void remove(@Nonnull UUID uuid, boolean silent)
+	public void remove(@Nonnull UUID uuid, boolean silent, UnpluggedStatus reason)
 	{
 		UnpluggedEntry entry = this.map.remove(uuid);
 
@@ -120,13 +120,13 @@ public class UnpluggedEntryList
 		{
 			this.map.remove(uuid);
 			UnpluggedAfk.debugLog("UnpluggedEntryList(): remove({}) --> REMOVE", entry.name().getString());
-			entry.handler().unregisterUnpluggedAfk(silent);
+			entry.handler().unregisterUnpluggedAfk(silent, reason);
 		}
 	}
 
-	public void remove(@Nonnull UnpluggedServerPlayer player, boolean silent)
+	public void remove(@Nonnull UnpluggedServerPlayer player, boolean silent, UnpluggedStatus reason)
 	{
-		this.remove(player.getUUID(), silent);
+		this.remove(player.getUUID(), silent, reason);
 	}
 
 	@VisibleForTesting

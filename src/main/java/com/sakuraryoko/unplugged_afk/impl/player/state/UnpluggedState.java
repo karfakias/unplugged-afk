@@ -64,7 +64,7 @@ public record UnpluggedState(UnpluggedStatus status, int time, long timeout, lon
 
 	public boolean isEmpty()
 	{
-		return this.equals(DEFAULT.ensureValid());
+		return this.equals(DEFAULT);
 	}
 
 	public Component getDebugFormatted()

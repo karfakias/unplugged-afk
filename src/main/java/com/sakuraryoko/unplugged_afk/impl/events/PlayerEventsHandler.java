@@ -21,6 +21,9 @@
 package com.sakuraryoko.unplugged_afk.impl.events;
 
 import java.net.SocketAddress;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.jetbrains.annotations.ApiStatus;
 import org.jspecify.annotations.Nullable;
 
@@ -31,8 +34,10 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 
 import com.sakuraryoko.unplugged_afk.impl.UnpluggedAfk;
+import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
 import com.sakuraryoko.unplugged_afk.impl.modinit.InitWrap;
 import com.sakuraryoko.unplugged_afk.impl.player.PlayerManager;
+import com.sakuraryoko.unplugged_afk.impl.player.state.ProfileWrap;
 import com.sakuraryoko.unplugged_afk.impl.player.state.UnpluggedState;
 import com.sakuraryoko.unplugged_afk.impl.player.state.UnpluggedStatus;
 import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedPlayerUtils;
@@ -45,16 +50,21 @@ public class PlayerEventsHandler implements IPlayerEventsDispatch
 {
 	private static final PlayerEventsHandler INSTANCE = new PlayerEventsHandler();
 	public static PlayerEventsHandler getInstance() { return INSTANCE; }
+	private List<String> shouldHideJoin = new ArrayList<>();
 
 	@Override
 	public void onConnection(SocketAddress addr, GameProfile profile, @Nullable Component result)
 	{
-		// TODO
+		UnpluggedAfk.debugLog("onConnection(): ['{}'/{}] from addr: [{}] // result: {}", ProfileWrap.name(profile), ProfileWrap.id(profile), addr.toString(),
+		                      result == null
+		                      ? "<NULL>"
+		                      : result.getString());
 	}
 
 	@Override
 	public void onCreatePlayer(ServerPlayer player, @Nullable GameProfile profile)
 	{
+		UnpluggedAfk.debugLog("onCreatePlayer(): ['{}'/{}]", player.getName().getString(), player.getUUID().toString());
 		if (player instanceof UnpluggedServerPlayer) { return; }
 		PlayerManager.getInstance().syncProfile(profile);
 	}
@@ -62,6 +72,7 @@ public class PlayerEventsHandler implements IPlayerEventsDispatch
 	@Override
 	public void onPlayerJoinPre(ServerPlayer player, Connection connection)
 	{
+		UnpluggedAfk.debugLog("onPlayerJoinPre(): ['{}'/{}]", player.getName().getString(), player.getUUID().toString());
 		PlayerManager.getInstance().updatePlayerData(player);
 	}
 
@@ -77,8 +88,11 @@ public class PlayerEventsHandler implements IPlayerEventsDispatch
 	@Override
 	public void onPlayerJoinPost(ServerPlayer player, Connection connection)
 	{
-		PlayerManager.getInstance().updatePlayerData(player);
+		UnpluggedAfk.debugLog("onPlayerJoinPost(): ['{}'/{}]", player.getName().getString(), player.getUUID().toString());
 		MinecraftServer server = this.getServerWrap(player);
+
+		PlayerManager.getInstance().updatePlayerData(player);
+
 		if (server != null)
 		{
 			UnpluggedPlayerUtils.hideAllUnpluggedFromPlayer(server, player);
@@ -88,11 +102,16 @@ public class PlayerEventsHandler implements IPlayerEventsDispatch
 		if (!(player instanceof UnpluggedServerPlayer))
 		{
 			UnpluggedState state = PlayerManager.getInstance().getState(player.getUUID());
+			this.removeShouldHideJoin(player.getName().getString());
 
 			if (state.status() != UnpluggedStatus.INACTIVE && !state.reason().isEmpty())
 			{
-				UnpluggedAfk.debugLog("onPlayerJoinPost(): Informing player ['{}'/{}] of [{}] status", player.getName().getString(), player.getUUID().toString(), state.status().name());
-				player.sendSystemMessage(InitWrap.text().formatText(state.reason()));
+				if (ConfigWrap.mess().displayReturnFeedback)
+				{
+					UnpluggedAfk.debugLog("onPlayerJoinPost(): Informing player ['{}'/{}] of [{}] status", player.getName().getString(), player.getUUID().toString(), state.status().name());
+					player.sendSystemMessage(InitWrap.text().formatText(state.reason()));
+				}
+
 				PlayerManager.getInstance().resetState(player);
 			}
 		}
@@ -101,10 +120,12 @@ public class PlayerEventsHandler implements IPlayerEventsDispatch
 	@Override
 	public void onPlayerRespawn(ServerPlayer newPlayer)
 	{
+		UnpluggedAfk.debugLog("onPlayerRespawn(): ['{}'/{}]", newPlayer.getName().getString(), newPlayer.getUUID().toString());
+		MinecraftServer server = this.getServerWrap(newPlayer);
+
 		PlayerManager.getInstance().updatePlayerData(newPlayer);
 		if (newPlayer instanceof UnpluggedServerPlayer) { return; }
 		PlayerManager.getInstance().syncProfile(newPlayer.getGameProfile());
-		MinecraftServer server = this.getServerWrap(newPlayer);
 
 		if (server != null)
 		{
@@ -115,6 +136,7 @@ public class PlayerEventsHandler implements IPlayerEventsDispatch
 	@Override
 	public void onPlayerLeave(ServerPlayer player)
 	{
+		UnpluggedAfk.debugLog("onPlayerLeave(): ['{}'/{}]", player.getName().getString(), player.getUUID().toString());
 		PlayerManager.getInstance().updatePlayerData(player);
 		PlayerManager.getInstance().syncProfile(player.getGameProfile());
 	}
@@ -144,4 +166,49 @@ public class PlayerEventsHandler implements IPlayerEventsDispatch
 		// TODO
 	}
 
+	public boolean shouldHideJoin(String message)
+	{
+		if (!ConfigWrap.mess().hideUnpluggedJoin)
+		{
+			this.shouldHideJoin.clear();
+			return false;
+		}
+
+		AtomicBoolean result = new AtomicBoolean(false);
+
+		this.shouldHideJoin.forEach(
+				s ->
+				{
+					if (message.toLowerCase().contains(s.toLowerCase()))
+					{
+						result.set(true);
+					}
+				});
+
+		return result.get();
+	}
+
+	public void addShouldHideJoin(String name)
+	{
+		if (!ConfigWrap.mess().hideUnpluggedJoin)
+		{
+			this.shouldHideJoin.clear();
+			return;
+		}
+
+		UnpluggedAfk.debugLog("addShouldHideJoin(): name: [{}]", name);
+		this.shouldHideJoin.add(name);
+	}
+
+	public void removeShouldHideJoin(String name)
+	{
+		if (!ConfigWrap.mess().hideUnpluggedJoin)
+		{
+			this.shouldHideJoin.clear();
+			return;
+		}
+
+		UnpluggedAfk.debugLog("removeShouldHideJoin(): name: [{}]", name);
+		this.shouldHideJoin.remove(name);
+	}
 }

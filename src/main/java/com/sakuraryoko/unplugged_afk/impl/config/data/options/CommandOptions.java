@@ -27,10 +27,10 @@ import com.sakuraryoko.corelib.api.config.IConfigOption;
 @ApiStatus.Internal
 public class CommandOptions implements IConfigOption
 {
-    public int unpluggedCommandPermissions;
+    public int unplugCommandPermissions;
     public int unpluggedAdminCommandPermissions;
     public int afkCommandPermissions;
-    public boolean enableUnpluggedCommand;
+    public boolean enableUnplugCommand;
     public boolean enableAfkCommand;
 
     public CommandOptions()
@@ -40,10 +40,10 @@ public class CommandOptions implements IConfigOption
 
     public void defaults()
     {
-        this.unpluggedCommandPermissions = 0;
+        this.unplugCommandPermissions = 0;
         this.unpluggedAdminCommandPermissions = 4;
         this.afkCommandPermissions = 0;
-        this.enableUnpluggedCommand = true;
+        this.enableUnplugCommand = true;
         this.enableAfkCommand = false;
     }
 
@@ -52,10 +52,10 @@ public class CommandOptions implements IConfigOption
     {
         CommandOptions opts = (CommandOptions) opt;
 
-        this.unpluggedCommandPermissions = opts.unpluggedCommandPermissions;
+        this.unplugCommandPermissions = opts.unplugCommandPermissions;
         this.unpluggedAdminCommandPermissions = opts.unpluggedAdminCommandPermissions;
         this.afkCommandPermissions = opts.afkCommandPermissions;
-        this.enableUnpluggedCommand = opts.enableUnpluggedCommand;
+        this.enableUnplugCommand = opts.enableUnplugCommand;
         this.enableAfkCommand = opts.enableAfkCommand;
 
         return this;

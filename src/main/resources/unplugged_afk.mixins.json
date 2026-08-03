@@ -10,10 +10,12 @@
         "MixinMinecraftServer",
         "MixinPistonMovingBlockEntity",
         "MixinPlayer",
-        "MixinPlayerList",
+        "MixinPlayerList_core",
+        "MixinPlayerList_messageSuppress",
         "MixinServerLoginPacketListenerImpl",
         "MixinServerPlayer_core",
         "MixinServerPlayer_fakeMovement",
+        "MixinServerPlayer_messageSuppress",
         "MixinServerWaypointManager",
         "MixinTickRateManager"
     ],

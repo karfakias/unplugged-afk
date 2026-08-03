@@ -28,6 +28,9 @@ import com.google.common.collect.ImmutableList;
 import org.jetbrains.annotations.ApiStatus;
 
 import com.mojang.authlib.GameProfile;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoPacket;
 //#if MC >= 1.19.3
 //$$ import net.minecraft.network.protocol.game.ClientboundPlayerInfoRemovePacket;
@@ -43,10 +46,12 @@ import net.minecraft.server.players.PlayerList;
 //$$ import com.sakuraryoko.unplugged_afk.impl.player.interfaces.IWaypointManagerInvoker;
 //#endif
 
+import com.sakuraryoko.unplugged_afk.impl.UnpluggedAfk;
 import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
+import com.sakuraryoko.unplugged_afk.impl.events.PlayerEventsHandler;
 import com.sakuraryoko.unplugged_afk.impl.modinit.InitWrap;
 import com.sakuraryoko.unplugged_afk.impl.player.PlayerManager;
-import com.sakuraryoko.unplugged_afk.impl.player.interfaces.IPlayerListInvoker;
+import com.sakuraryoko.unplugged_afk.impl.player.state.ProfileWrap;
 import com.sakuraryoko.unplugged_afk.impl.player.state.UnpluggedState;
 import com.sakuraryoko.unplugged_afk.impl.player.state.UnpluggedStatus;
 
@@ -78,7 +83,6 @@ public class UnpluggedPlayerUtils
 		ImmutableList.Builder<UnpluggedServerPlayer> builder = ImmutableList.builder();
 		PlayerList pl = server.getPlayerList();
 		List<ServerPlayer> players = pl.getPlayers();
-		((IPlayerListInvoker) pl).unplugged$toggleHideBroadcastMessage(false);
 
 		for (ServerPlayer player : players)
 		{
@@ -150,7 +154,6 @@ public class UnpluggedPlayerUtils
 		{
 			PlayerList pl = server.getPlayerList();
 			List<ServerPlayer> players = pl.getPlayers();
-			((IPlayerListInvoker) pl).unplugged$toggleHideBroadcastMessage(false);
 
 			for (ServerPlayer player : players)
 			{
@@ -253,7 +256,7 @@ public class UnpluggedPlayerUtils
 
 				if (entry != null)
 				{
-					UnpluggedEntryList.getInstance().remove(sp, false);
+					UnpluggedEntryList.getInstance().remove(sp, false, UnpluggedStatus.INTERRUPTED);
 				}
 
 				final long delta = getStartTimeDelta(sp.getStartTime());
@@ -261,8 +264,8 @@ public class UnpluggedPlayerUtils
 						+ (ConfigWrap.mess().displayDuration
 						   ? ConfigWrap.mess().unpluggedUnsuccessfulPrefix
 						     + ConfigWrap.mess().duration.option.format(delta)
-						     + ConfigWrap.mess().unpluggedUnsuccessfulPunctuation
 						: "")
+						+ ConfigWrap.mess().unpluggedUnsuccessfulPunctuation
 						+ ConfigWrap.mess().unpluggedReplaced;
 
 				UnpluggedState newState = new UnpluggedState(UnpluggedStatus.INTERRUPTED, -1, -1, -1L, reason);
@@ -274,15 +277,16 @@ public class UnpluggedPlayerUtils
 				player.setInvulnerable(false);
 			}
 
+			final String name = ProfileWrap.name(profile);
+
 			if (ConfigWrap.mess().hideUnpluggedJoin)
 			{
-				((IPlayerListInvoker) playerList).unplugged$toggleHideBroadcastMessage(true);
+				PlayerEventsHandler.getInstance().addShouldHideJoin(name);
 			}
 
 			String str = ConfigWrap.mess().unpluggedReplaced;
 			sp.kill(InitWrap.text().formatText(str));
 			playerList.remove(player);
-			((IPlayerListInvoker) playerList).unplugged$toggleHideBroadcastMessage(false);
 		}
 	}
 
@@ -331,8 +335,41 @@ public class UnpluggedPlayerUtils
 		newSp.fromState(newState);
 	}
 
+	@ApiStatus.Internal
 	public static long getStartTimeDelta(final long startTime)
 	{
 		return (System.currentTimeMillis() - startTime);
+	}
+
+	@ApiStatus.Internal
+	public static boolean matchesJoinPattern(Component message)
+	{
+		UnpluggedAfk.debugLog("matchesJoinPattern(): {}", message.getString());
+
+		if (message.getContents() instanceof TranslatableContents text)
+		{
+			String key = text.getKey();
+			return (key.equals("multiplayer.player.joined") || key.equals("multiplayer.player.joined.renamed") || key.equals("multiplayer.player.left"));
+		}
+
+		return false;
+	}
+
+	@ApiStatus.Internal
+	public static void sendJoinMessage(MinecraftServer server, Component name)
+	{
+		if (!ConfigWrap.mess().hideUnpluggedJoin)
+		{
+			server.getPlayerList().broadcastSystemMessage(Component.translatable("multiplayer.player.joined", name).withStyle(ChatFormatting.YELLOW), false);
+		}
+	}
+
+	@ApiStatus.Internal
+	public static void sendLeaveMessage(MinecraftServer server, Component name)
+	{
+		if (!ConfigWrap.mess().hideUnpluggedJoin)
+		{
+			server.getPlayerList().broadcastSystemMessage(Component.translatable("multiplayer.player.left", name).withStyle(ChatFormatting.YELLOW), false);
+		}
 	}
 }

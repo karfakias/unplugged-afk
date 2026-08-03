@@ -284,16 +284,18 @@ public class PlayerManager
 		this.setState(profile, UnpluggedState.DEFAULT);
 	}
 
-	public void remove(@Nonnull UUID uuid, boolean silent)
+	public void remove(@Nonnull UUID uuid, boolean silent, UnpluggedStatus reason)
 	{
-		UnpluggedEntryList.getInstance().remove(uuid, silent);
+		UnpluggedEntryList.getInstance().remove(uuid, silent, reason);
 		this.players.remove(uuid);
 		ConfigWrap.players().removeIf(opt -> opt.uuid.equals(uuid));
-		UnpluggedAfk.debugLog("remove: UUID: [{}], silent: {}", uuid.toString(), silent);
+		UnpluggedAfk.debugLog("remove: UUID: [{}], silent: {}, reason: {}", uuid.toString(), silent, reason.toString());
 	}
 
 	public PosState getPos(@Nonnull UUID uuid)
 	{
+		List<PlayerOptions> config = new ArrayList<>(ConfigWrap.players());
+
 		if (this.players.containsKey(uuid))
 		{
 			PlayerEntry entry = this.players.get(uuid);
@@ -304,7 +306,7 @@ public class PlayerManager
 			}
 		}
 
-		List<PlayerOptions> config = new ArrayList<>(ConfigWrap.players());
+//		List<PlayerOptions> config = new ArrayList<>(ConfigWrap.players());
 
 		for (PlayerOptions entry : config)
 		{
@@ -378,6 +380,7 @@ public class PlayerManager
 				{
 					UnpluggedAfk.debugLog("updatePlayerData: player: ['{}'/{}]", ProfileWrap.name(profile), ProfileWrap.id(profile));
 				}
+
 				this.players.put(uuid, entry);
 			}
 		}
@@ -561,7 +564,7 @@ public class PlayerManager
 					}
 
 					this.setState(ProfileWrap.profile(entry.uuid, entry.name), newState);
-					UnpluggedEntryList.getInstance().remove(entry.uuid, true);
+					UnpluggedEntryList.getInstance().remove(entry.uuid, true, UnpluggedStatus.EXPIRED);
 					dirty = true;
 				}
 
@@ -615,7 +618,7 @@ public class PlayerManager
 		boolean found = false;
 		boolean dirty = false;
 
-		UnpluggedAfk.debugLog("syncConfigEach(): Player ['{}'/{}]; state: [{}], pos: [{}], game: [{}]", name, uuid.toString(), state.toString(), pos.toString(), game.toString());
+		UnpluggedAfk.debugLog("syncConfigEach(): Player ['{}'/{}]; [CALULATED] state: [{}], pos: [{}], game: [{}]", name, uuid.toString(), state.toString(), pos.toString(), game.toString());
 
 		for (PlayerOptions entry : oldConfig)
 		{
@@ -647,6 +650,7 @@ public class PlayerManager
 				found = true;
 			}
 
+			UnpluggedAfk.debugLog("syncConfigEach(): Player ['{}'/{}]; [NEW-ENTRY] newEntry // state: [{}], pos: [{}], game: [{}]", newEntry.name, newEntry.uuid.toString(), newEntry.state.toString(), newEntry.pos.toString(), newEntry.game.toString());
 			newConfig.add(newEntry);
 		}
 
@@ -657,6 +661,7 @@ public class PlayerManager
 			newEntry.pos = pos;
 			newEntry.game = game;
 			newConfig.add(newEntry);
+			UnpluggedAfk.debugLog("syncConfigEach(): Player ['{}'/{}]; [NOT-FOUND] newEntry // state: [{}], pos: [{}], game: [{}]", newEntry.name, newEntry.uuid.toString(), newEntry.state.toString(), newEntry.pos.toString(), newEntry.game.toString());
 			dirty = true;
 		}
 
@@ -669,19 +674,23 @@ public class PlayerManager
 				PlayerOptions newEntry = new PlayerOptions(entry);
 
 				// Double Verify
-				if (!newEntry.state.equals(state))
+				if (newEntry.uuid.equals(uuid))
 				{
-					newEntry.state = state;
-				}
-				if (!newEntry.pos.equals(pos))
-				{
-					newEntry.pos = pos;
-				}
-				if (!newEntry.game.equals(game))
-				{
-					newEntry.game = game;
+					if (!newEntry.state.equals(state))
+					{
+						newEntry.state = state;
+					}
+					if (!newEntry.pos.equals(pos))
+					{
+						newEntry.pos = pos;
+					}
+					if (!newEntry.game.equals(game))
+					{
+						newEntry.game = game;
+					}
 				}
 
+				UnpluggedAfk.debugLog("syncConfigEach(): Player ['{}'/{}]; [DIRTY] newEntry // state: [{}], pos: [{}], game: [{}]", newEntry.name, newEntry.uuid.toString(), newEntry.state.toString(), newEntry.pos.toString(), newEntry.game.toString());
 				ConfigWrap.players().add(newEntry);
 			}
 
@@ -788,6 +797,7 @@ public class PlayerManager
 		PlayerList playerList = server.getPlayerList();
 		List<ServerPlayer> players = playerList.getPlayers();
 		boolean dirty = false;
+		boolean updated = false;
 
 		UnpluggedAfk.debugLog("syncEntries --> count: {}", shadowMap.size());
 
@@ -828,6 +838,19 @@ public class PlayerManager
 					}
 				}
 			}
+
+			PosState pos = PlayerManager.getInstance().getPos(uuid);
+
+			if (!pos.matches(player))
+			{
+				this.updatePlayerData(player);
+				updated = true;
+			}
+		}
+
+		if (updated)
+		{
+			this.flushToConfig(server);
 		}
 
 		return dirty;

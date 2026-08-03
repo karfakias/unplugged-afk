@@ -49,20 +49,20 @@ import static net.minecraft.commands.Commands.argument;
 import static net.minecraft.commands.Commands.literal;
 
 @ApiStatus.Internal
-public class UnpluggedCommand implements IServerCommand
+public class UnplugCommand implements IServerCommand
 {
     @Override
     public void register(CommandDispatcher<CommandSourceStack> dispatcher, CommandBuildContext registryAccess, Commands.CommandSelection environment)
     {
         dispatcher.register(
                 literal(this.getName())
-                        .requires(PermsWrap.check(this.getNode(), ConfigWrap.cmdOpt().unpluggedCommandPermissions))
+                        .requires(PermsWrap.check(this.getNode(), ConfigWrap.cmdOpt().unplugCommandPermissions))
                         .executes(ctx -> this.setUnpluggedAfk(ctx, -1, ""))
                         .then(argument("minutes", IntegerArgumentType.integer(1))
-                                      .requires(PermsWrap.check(this.getNode(), ConfigWrap.cmdOpt().unpluggedCommandPermissions))
+                                      .requires(PermsWrap.check(this.getNode(), ConfigWrap.cmdOpt().unplugCommandPermissions))
                                       .executes(ctx -> this.setUnpluggedAfk(ctx, IntegerArgumentType.getInteger(ctx, "minutes"), ""))
                                       .then(argument("reason", StringArgumentType.greedyString())
-                                                    .requires(PermsWrap.check(this.getNode(), ConfigWrap.cmdOpt().unpluggedCommandPermissions))
+                                                    .requires(PermsWrap.check(this.getNode(), ConfigWrap.cmdOpt().unplugCommandPermissions))
                                                     .executes(ctx -> this.setUnpluggedAfk(ctx, IntegerArgumentType.getInteger(ctx, "minutes"), StringArgumentType.getString(ctx, "reason")))
                                       )
                         )
@@ -72,7 +72,7 @@ public class UnpluggedCommand implements IServerCommand
     @Override
     public String getName()
     {
-        return "unplugged";
+        return "unplug";
     }
 
     @Override
@@ -131,7 +131,7 @@ public class UnpluggedCommand implements IServerCommand
 
             if (reason == null || reason.isEmpty())
             {
-                reason = "§rnone";
+                reason = "";
             }
         }
 

@@ -54,26 +54,13 @@ public record UnpluggedEntryHandler(UnpluggedEntry entry)
             shadowTimeout = (time * 60L) * 1000L;
         }
 
-        if (reason == null && ConfigWrap.mess().defaultUnpluggedReason == null)
+        if ((reason == null && ConfigWrap.mess().defaultUnpluggedReason == null) || (reason == null || reason.isEmpty()))
         {
-            this.entry().setReason("§cnone");
+            this.entry().setReason("");
 
             if (!ConfigWrap.unplugged().unpluggedHidePlayer)
             {
-                String mess1 = this.entry().name().getString()
-                        + ConfigWrap.mess().unpluggedStarted;
-                Component mess2 = InitWrap.text().formatTextSafe(mess1);
-                this.sendMessage(mess2);
-            }
-        }
-        else if (reason == null || reason.isEmpty())
-        {
-            this.entry().setReason("§cnone");
-
-            if (!ConfigWrap.unplugged().unpluggedHidePlayer)
-            {
-                String mess1 = this.entry().name().getString()
-                        + ConfigWrap.mess().unpluggedStarted;
+                String mess1 = this.player() + ConfigWrap.mess().unpluggedStarted;
                 Component mess2 = InitWrap.text().formatTextSafe(mess1);
                 this.sendMessage(mess2);
             }
@@ -84,8 +71,7 @@ public record UnpluggedEntryHandler(UnpluggedEntry entry)
 
             if (!ConfigWrap.unplugged().unpluggedHidePlayer)
             {
-                String mess1 = this.entry().name().getString()
-                        + ConfigWrap.mess().unpluggedStarted
+                String mess1 = this.player() + ConfigWrap.mess().unpluggedStarted
                         + ConfigWrap.mess().unpluggedPunctuation
                         + reason;
                 Component mess2 = InitWrap.text().formatTextSafe(mess1);
@@ -103,20 +89,37 @@ public record UnpluggedEntryHandler(UnpluggedEntry entry)
                 PlayerManager.getInstance().setState(player.getGameProfile(), newState);
             }
         }
-//        this.updatePlayerList();
     }
 
     @ApiStatus.Internal
-    public void unregisterUnpluggedAfk(boolean silent)
+    public void unregisterUnpluggedAfk(boolean silent, UnpluggedStatus reason)
     {
         if (!ConfigWrap.unplugged().unpluggedHidePlayer &&
 //            !ConfigWrap.mess().hideUnpluggedJoin &&
             !silent)
         {
+            String retPrefix;
+
+            if (reason == UnpluggedStatus.EXPIRED)
+            {
+                retPrefix = this.player() + ConfigWrap.mess().whenUnpluggedExpired;
+            }
+            else if (reason == UnpluggedStatus.INTERRUPTED)
+            {
+                retPrefix = this.player() + ConfigWrap.mess().whenUnpluggedInterrupted;
+            }
+            else if (reason == UnpluggedStatus.TERMINATED)
+            {
+                retPrefix = this.player() + ConfigWrap.mess().whenUnpluggedTerminated;
+            }
+            else
+            {
+                retPrefix = this.player() + ConfigWrap.mess().whenUnpluggedReturned;
+            }
+
             if (ConfigWrap.mess().displayDuration)
             {
-                String ret = this.entry().name().getString()
-                        + ConfigWrap.mess().unpluggedReturned
+                String ret = retPrefix
                         + ConfigWrap.mess().whenReturnDurationPrefix
                         + this.entry().durationString()
                         + ConfigWrap.mess().whenReturnDurationSuffix + "§r";
@@ -126,14 +129,19 @@ public record UnpluggedEntryHandler(UnpluggedEntry entry)
             }
             else
             {
-                String ret = this.entry().name().getString() + ConfigWrap.mess().unpluggedReturned + "§r";
-                Component mess = InitWrap.text().formatTextSafe(ret);
+                Component mess = InitWrap.text().formatTextSafe(retPrefix);
                 this.sendMessage(mess);
             }
         }
 
         this.entry().clearPlayer();
         this.entry().reset();
+    }
+
+    @ApiStatus.Internal
+    private String player()
+    {
+        return ConfigWrap.mess().unpluggedPlayerPrefix + this.entry().name().getString() + ConfigWrap.mess().unpluggedPlayerSuffix;
     }
 
     @ApiStatus.Internal

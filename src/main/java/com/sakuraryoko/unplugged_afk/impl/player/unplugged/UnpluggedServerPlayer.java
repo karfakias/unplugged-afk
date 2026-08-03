@@ -24,10 +24,10 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.sakuraryoko.unplugged_afk.impl.events.PlayerEventsHandler;
 import com.sakuraryoko.unplugged_afk.impl.events.ServerEventsHandler;
 import com.sakuraryoko.unplugged_afk.impl.modinit.InitWrap;
 import com.sakuraryoko.unplugged_afk.impl.player.PlayerManager;
-import com.sakuraryoko.unplugged_afk.impl.player.interfaces.IPlayerListInvoker;
 import org.jetbrains.annotations.ApiStatus;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -221,7 +221,7 @@ public class UnpluggedServerPlayer extends ServerPlayer
 				UnpluggedAfk.LOGGER.warn("createFromConfig: Blocking banned player: ['{}'/{}]", name, uuid.toString());
 			}
 
-			PlayerManager.getInstance().remove(uuid, true);
+			PlayerManager.getInstance().remove(uuid, true, UnpluggedStatus.TERMINATED);
 			return;
 		}
 
@@ -232,7 +232,7 @@ public class UnpluggedServerPlayer extends ServerPlayer
 				UnpluggedAfk.LOGGER.error("createFromConfig: Blocking player: ['{}'/{}] -- Perhaps a duplicate UUID?", name, uuid.toString());
 			}
 
-			PlayerManager.getInstance().remove(uuid, true);
+			PlayerManager.getInstance().remove(uuid, true, UnpluggedStatus.TERMINATED);
 			return;
 		}
 
@@ -291,6 +291,7 @@ public class UnpluggedServerPlayer extends ServerPlayer
 	{
 		GameType gameType = GameType.byName(game.gameMode(), GameType.DEFAULT_MODE);
 		PlayerList pl = server.getPlayerList();
+		final String name = ProfileWrap.name(profile);
 
 		//#if MC >= 1.20.2
 		//$$ UnpluggedServerPlayer shadow = new UnpluggedServerPlayer(server, level, profile, ClientInformation.createDefault());
@@ -308,7 +309,7 @@ public class UnpluggedServerPlayer extends ServerPlayer
 
 		if (ConfigWrap.mess().hideUnpluggedJoin)
 		{
-			((IPlayerListInvoker) pl).unplugged$toggleHideBroadcastMessage(true);
+			PlayerEventsHandler.getInstance().addShouldHideJoin(name);
 		}
 
 		//#if MC >= 1.20.6
@@ -318,8 +319,6 @@ public class UnpluggedServerPlayer extends ServerPlayer
 		//#else
 		pl.placeNewPlayer(new UnpluggedConnection(PacketFlow.SERVERBOUND), shadow);
 		//#endif
-
-		((IPlayerListInvoker) pl).unplugged$toggleHideBroadcastMessage(false);
 
 		//#if MC >= 1.21.10
 		//$$ loadPlayerNbt(shadow);
@@ -384,6 +383,7 @@ public class UnpluggedServerPlayer extends ServerPlayer
 		}
 
 		final long timeout = (time * 60L) * 1000L;
+		final String name = player.getName().getString();
 		final String duration = ConfigWrap.mess().duration.option.format(timeout);
 		final String kickStr = ConfigWrap.mess().unpluggedKickMessage
 				+ (ConfigWrap.mess().displayDuration
@@ -399,13 +399,11 @@ public class UnpluggedServerPlayer extends ServerPlayer
 
 		if (ConfigWrap.mess().hideUnpluggedJoin)
 		{
-			((IPlayerListInvoker) pl).unplugged$toggleHideBroadcastMessage(true);
+			PlayerEventsHandler.getInstance().addShouldHideJoin(name);
 		}
 
 		pl.remove(player);
 		player.connection.disconnect(kickMsg);
-
-		((IPlayerListInvoker) pl).unplugged$toggleHideBroadcastMessage(false);
 
 		//#if MC >= 1.20.1
 		//$$ ServerLevel level = player.serverLevel();
@@ -430,11 +428,6 @@ public class UnpluggedServerPlayer extends ServerPlayer
 		//$$ shadow.setChatSession(player.getChatSession());
 		//#endif
 
-		if (ConfigWrap.mess().hideUnpluggedJoin)
-		{
-			((IPlayerListInvoker) pl).unplugged$toggleHideBroadcastMessage(true);
-		}
-
 		//#if MC >= 1.20.6
 		//$$ pl.placeNewPlayer(new UnpluggedConnection(PacketFlow.SERVERBOUND), shadow, new CommonListenerCookie(profile, 0, player.clientInformation(), true));
 		//#elseif MC >= 1.20.2
@@ -442,8 +435,6 @@ public class UnpluggedServerPlayer extends ServerPlayer
 		//#else
 		pl.placeNewPlayer(new UnpluggedConnection(PacketFlow.SERVERBOUND), shadow);
 		//#endif
-
-		((IPlayerListInvoker) pl).unplugged$toggleHideBroadcastMessage(false);
 
 		//#if MC >= 1.21.10
 		//$$ loadPlayerNbt(shadow);
@@ -545,13 +536,8 @@ public class UnpluggedServerPlayer extends ServerPlayer
 	private void createUnpluggedPost(MinecraftServer server)
 	{
 		PlayerList pl = server.getPlayerList();
-
-		if (ConfigWrap.mess().hideUnpluggedJoin)
-		{
-			((IPlayerListInvoker) pl).unplugged$toggleHideBroadcastMessage(true);
-		}
-
 		GameProfile profile = this.getGameProfile();
+
 		UnpluggedAfk.debugLog("createUnpluggedPost: player: ['{}'/{}]", ProfileWrap.name(profile), ProfileWrap.id(profile));
 		pl.broadcastAll(new ClientboundRotateHeadPacket(this, (byte) (this.yHeadRot * 256 / 360)),
 				//#if MC >= 1.20.1
@@ -569,8 +555,8 @@ public class UnpluggedServerPlayer extends ServerPlayer
 		//$$ }
 		//#endif
 
+		PlayerEventsHandler.getInstance().removeShouldHideJoin(this.getName().getString());
 		UnpluggedPlayerUtils.sendHidePlayerPacket(server, this);
-		((IPlayerListInvoker) pl).unplugged$toggleHideBroadcastMessage(false);
 	}
 
 	public boolean isValid()
@@ -747,6 +733,21 @@ public class UnpluggedServerPlayer extends ServerPlayer
 				}
 			}
 
+			// Remove invalid Shadows that are still ticking (Why?)
+			if (!this.freshPlayer && !this.isValid())
+			{
+				final Component name = this.getName();
+				final Component reason = InitWrap.text().formatTextSafe("Invalid");
+
+				this.kill(reason);
+				server.getPlayerList().remove(this);
+
+				if (!ConfigWrap.mess().hideUnpluggedJoin)
+				{
+					UnpluggedPlayerUtils.sendLeaveMessage(server, name);
+				}
+			}
+
 			this.tickUnplugged(server);
 			this.connection.resetPosition();
 			//#if MC >= 1.21.8
@@ -778,6 +779,7 @@ public class UnpluggedServerPlayer extends ServerPlayer
 
 		final long tickDelta = now - this.lastTick;
 		this.lastTick = now;
+
 		UnpluggedEntry entry = UnpluggedEntryList.getInstance().get(this);
 
 		if (entry != null)
@@ -812,30 +814,42 @@ public class UnpluggedServerPlayer extends ServerPlayer
 				}
 
 				final long delta = UnpluggedPlayerUtils.getStartTimeDelta(this.getStartTime());
+				final String name = this.getName().getString();
 
 				this.reason = (ConfigWrap.mess().displayDuration
 				               ? ConfigWrap.mess().unpluggedSuccessfulPrefix
 				                 + ConfigWrap.mess().duration.option.format(delta)
 				                 + ConfigWrap.mess().unpluggedSuccessfulSuffix
 				               : ConfigWrap.mess().unpluggedSuccessful)
+						+ ConfigWrap.mess().unpluggedSuccessfulPunctuation
 						+ mess;
 
 				UnpluggedState newState = new UnpluggedState(UnpluggedStatus.EXPIRED, -1, -1L, -1L, this.getReason());
 				entry.updateState(newState);
 				UnpluggedEntryList.getInstance().syncEntry(this, entry);
 				PlayerManager.getInstance().setState(this.getGameProfile(), newState);
-				UnpluggedEntryList.getInstance().remove(this, false);
+				UnpluggedEntryList.getInstance().remove(this, false, UnpluggedStatus.EXPIRED);
 				this.expired = true;
 
 				if (ConfigWrap.mess().hideUnpluggedJoin)
 				{
-					((IPlayerListInvoker) pl).unplugged$toggleHideBroadcastMessage(true);
+					PlayerEventsHandler.getInstance().addShouldHideJoin(name);
 				}
 
 				Component reason = InitWrap.text().formatTextSafe(mess);
 				this.kill(reason);
 				pl.remove(this);
-				((IPlayerListInvoker) pl).unplugged$toggleHideBroadcastMessage(false);
+
+				if (ConfigWrap.mess().hideUnpluggedJoin)
+				{
+					PlayerEventsHandler.getInstance().removeShouldHideJoin(name);
+				}
+				//#if MC < 1.21.2
+				//$$ else
+				//$$ {
+					//$$ UnpluggedPlayerUtils.sendLeaveMessage(server, this.getName());
+				//$$ }
+				//#endif
 			}
 		}
 	}
@@ -891,13 +905,13 @@ public class UnpluggedServerPlayer extends ServerPlayer
 					+ (ConfigWrap.mess().displayDuration
 					   ? ConfigWrap.mess().unpluggedUnsuccessfulPrefix
 					     + ConfigWrap.mess().duration.option.format(delta)
-					     + ConfigWrap.mess().unpluggedUnsuccessfulPunctuation
 					   : "")
+					+ ConfigWrap.mess().unpluggedUnsuccessfulPunctuation
 					+ mess;
 
 			UnpluggedState newState = new UnpluggedState(UnpluggedStatus.TERMINATED, -1, -1L, -1L, this.getReason());
 			PlayerManager.getInstance().setState(this.getGameProfile(), newState);
-			UnpluggedEntryList.getInstance().remove(this, false);
+			UnpluggedEntryList.getInstance().remove(this, false, UnpluggedStatus.TERMINATED);
 		}
 
 		this.isValid = false;

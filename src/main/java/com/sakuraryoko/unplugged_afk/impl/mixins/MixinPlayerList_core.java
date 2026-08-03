@@ -23,8 +23,7 @@ package com.sakuraryoko.unplugged_afk.impl.mixins;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
-import com.sakuraryoko.unplugged_afk.impl.player.interfaces.IPlayerListInvoker;
-import net.minecraft.network.chat.Component;
+
 import org.jetbrains.annotations.ApiStatus;
 
 import com.mojang.authlib.GameProfile;
@@ -47,13 +46,11 @@ import net.minecraft.server.players.PlayerList;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 //#if MC >= 1.21.10
 //$$ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 //#else
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import net.minecraft.nbt.CompoundTag;
 //#endif
@@ -64,10 +61,9 @@ import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedServerPlayer
 
 @Mixin(PlayerList.class)
 @ApiStatus.Internal
-public abstract class MixinPlayerList implements IPlayerListInvoker
+public abstract class MixinPlayerList_core
 {
 	@Shadow @Final private MinecraftServer server;
-	@Unique private boolean hideSystemMessages = false;
 
 	//#if MC >= 1.21.10
 	//$$ @Inject(method = "placeNewPlayer",
@@ -177,21 +173,5 @@ public abstract class MixinPlayerList implements IPlayerListInvoker
 
 		return original.call(server, level, profile, profilePublicKey);
 		//#endif
-	}
-
-	@Inject(method = "broadcastSystemMessage(Lnet/minecraft/network/chat/Component;Z)V", at = @At("HEAD"),
-	        cancellable = true)
-	private void unplugged$hideSystemBroadcasts(Component message, boolean bypassHiddenChat, CallbackInfo ci)
-	{
-		if (this.hideSystemMessages && !bypassHiddenChat)
-		{
-			ci.cancel();
-		}
-	}
-
-	@Override
-	public void unplugged$toggleHideBroadcastMessage(boolean toggle)
-	{
-		this.hideSystemMessages = toggle;
 	}
 }

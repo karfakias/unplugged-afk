@@ -201,7 +201,7 @@ public class UnpluggedConfigHandler implements IConfigDispatch
         {
             this.commandWarn = true;
         }
-        if (CONFIG.COMMANDS.enableUnpluggedCommand && !newConf.COMMANDS.enableUnpluggedCommand)
+        if (CONFIG.COMMANDS.enableUnplugCommand && !newConf.COMMANDS.enableUnplugCommand)
         {
             this.commandWarn = true;
         }

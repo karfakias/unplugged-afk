@@ -44,6 +44,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
 
+import com.sakuraryoko.unplugged_afk.impl.UnpluggedAfk;
 import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
 
 @ApiStatus.Internal
@@ -72,6 +73,7 @@ public class UnpluggedGamePacketListener extends ServerGamePacketListenerImpl
 	@Override
 	public void disconnect(@NonNull Component message)
 	{
+		UnpluggedAfk.debugLog("UnpluggedGamePacketListener#disconnect(): message: {}", message.getString());
 		UnpluggedServerPlayer sp = (UnpluggedServerPlayer) this.player;
 		if (!sp.isValid()) { return; }
 

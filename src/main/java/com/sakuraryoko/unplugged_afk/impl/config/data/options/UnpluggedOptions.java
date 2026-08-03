@@ -26,8 +26,8 @@ import org.jetbrains.annotations.ApiStatus;
 @ApiStatus.Internal
 public class UnpluggedOptions implements IConfigOption
 {
-	public boolean resetHealthUponDeath;
 	public int defaultUnpluggedTimeout;
+	public boolean resetHealthUponDeath;
 	public boolean unpluggedDisableDamage;
 	public boolean unpluggedHidePlayer;
 	public boolean unpluggedHideFromOps;
@@ -40,8 +40,8 @@ public class UnpluggedOptions implements IConfigOption
 	@Override
 	public void defaults()
 	{
-		this.resetHealthUponDeath = false;
 		this.defaultUnpluggedTimeout = 129600;
+		this.resetHealthUponDeath = false;
 		this.unpluggedDisableDamage = false;
 		this.unpluggedHidePlayer = false;
 		this.unpluggedHideFromOps = false;
@@ -52,8 +52,8 @@ public class UnpluggedOptions implements IConfigOption
 	{
 		UnpluggedOptions opts = (UnpluggedOptions) opt;
 
-		this.resetHealthUponDeath = opts.resetHealthUponDeath;
 		this.defaultUnpluggedTimeout = opts.defaultUnpluggedTimeout;
+		this.resetHealthUponDeath = opts.resetHealthUponDeath;
 		this.unpluggedDisableDamage = opts.unpluggedDisableDamage;
 		this.unpluggedHidePlayer = opts.unpluggedHidePlayer;
 		this.unpluggedHideFromOps = opts.unpluggedHideFromOps;

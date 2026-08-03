@@ -49,6 +49,9 @@ import static net.minecraft.commands.Commands.literal;
 //$$ import net.minecraft.server.players.NameAndId;
 //#endif
 
+/**
+ * This is literary a copy of the "/unplug" command... Just to expose a different variant of the `/afk` command.
+ */
 @ApiStatus.Internal
 public class AfkCommand implements IServerCommand
 {

@@ -20,12 +20,17 @@
 
 package com.sakuraryoko.unplugged_afk.impl.commands;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import com.sakuraryoko.unplugged_afk.impl.UnpluggedAfk;
 import com.sakuraryoko.unplugged_afk.impl.commands.server.AfkCommand;
 import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
 import org.jetbrains.annotations.ApiStatus;
 
+import net.fabricmc.loader.api.FabricLoader;
+
 import com.sakuraryoko.unplugged_afk.impl.commands.server.UnpluggedAdminCommand;
-import com.sakuraryoko.unplugged_afk.impl.commands.server.UnpluggedCommand;
+import com.sakuraryoko.unplugged_afk.impl.commands.server.UnplugCommand;
 import com.sakuraryoko.corelib.impl.commands.CommandManager;
 
 @ApiStatus.Internal
@@ -37,9 +42,24 @@ public class CommandRegister
 
         if (ConfigWrap.mainOpt().unpluggedAfkEnabled)
         {
-            if (ConfigWrap.cmdOpt().enableUnpluggedCommand)
+            if (ConfigWrap.cmdOpt().enableUnplugCommand)
             {
-                CommandManager.getInstance().registerCommandHandler(new UnpluggedCommand());
+                CommandManager.getInstance().registerCommandHandler(new UnplugCommand());
+            }
+
+            if (ConfigWrap.cmdOpt().enableAfkCommand && checkForAfkModConflicts())
+            {
+                UnpluggedAfk.LOGGER.error("/afk command have been registered by another mod, but your config has this command enabled; so it has been disabled.");
+                ConfigWrap.cmdOpt().enableAfkCommand = false;
+
+                if (!ConfigWrap.cmdOpt().enableUnplugCommand)
+                {
+                    UnpluggedAfk.LOGGER.warn("Re-Enabling the disabled '/unplug' command so that users can use this mod.");
+                    ConfigWrap.cmdOpt().enableUnplugCommand = true;
+                    CommandManager.getInstance().registerCommandHandler(new UnplugCommand());
+                }
+
+                return;
             }
 
             if (ConfigWrap.cmdOpt().enableAfkCommand)
@@ -47,5 +67,22 @@ public class CommandRegister
                 CommandManager.getInstance().registerCommandHandler(new AfkCommand());
             }
         }
+    }
+
+    private static boolean checkForAfkModConflicts()
+    {
+        AtomicBoolean conflict = new AtomicBoolean(false);
+
+        FabricLoader.getInstance().getAllMods().forEach(mod ->
+                                                        {
+                                                            final String modId = mod.getMetadata().getId();
+
+                                                            switch (modId)
+                                                            {
+                                                                case "afkplus", "antilogout", "sessility", "autoafk" -> conflict.set(true);
+                                                            }
+                                                        });
+
+        return conflict.get();
     }
 }
