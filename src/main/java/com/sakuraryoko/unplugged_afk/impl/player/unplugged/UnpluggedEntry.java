@@ -35,9 +35,9 @@ import net.minecraft.network.chat.MutableComponent;
 import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
 import com.sakuraryoko.unplugged_afk.impl.modinit.InitWrap;
 import com.sakuraryoko.unplugged_afk.impl.player.PlayerUtils;
-import com.sakuraryoko.unplugged_afk.impl.player.state.UnpluggedStatus;
-import com.sakuraryoko.unplugged_afk.impl.player.state.ProfileWrap;
-import com.sakuraryoko.unplugged_afk.impl.player.state.UnpluggedState;
+import com.sakuraryoko.unplugged_afk.api.state.UnpluggedStatus;
+import com.sakuraryoko.unplugged_afk.impl.player.wrap.ProfileWrap;
+import com.sakuraryoko.unplugged_afk.api.state.UnpluggedState;
 import com.sakuraryoko.corelib.api.time.DurationFormat;
 import com.sakuraryoko.corelib.api.time.TimeFormat;
 
@@ -201,7 +201,7 @@ public class UnpluggedEntry
 	{
 		if (this.reason().isEmpty())
 		{
-			return "§e<empty>";
+			return "§e<>§r";
 		}
 
 		return "§e"+this.reason()+"§r";

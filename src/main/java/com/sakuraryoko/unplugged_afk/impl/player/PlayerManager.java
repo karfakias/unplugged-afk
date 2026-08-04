@@ -39,13 +39,19 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.players.PlayerList;
 
 import com.sakuraryoko.corelib.impl.config.ConfigManager;
+import com.sakuraryoko.unplugged_afk.api.state.GameState;
+import com.sakuraryoko.unplugged_afk.api.state.PosState;
+import com.sakuraryoko.unplugged_afk.api.state.UnpluggedState;
+import com.sakuraryoko.unplugged_afk.api.state.UnpluggedStatus;
 import com.sakuraryoko.unplugged_afk.impl.Reference;
 import com.sakuraryoko.unplugged_afk.impl.UnpluggedAfk;
 import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
 import com.sakuraryoko.unplugged_afk.impl.config.UnpluggedConfigHandler;
 import com.sakuraryoko.unplugged_afk.impl.config.data.options.PlayerOptions;
 import com.sakuraryoko.unplugged_afk.impl.events.ServerEventsHandler;
-import com.sakuraryoko.unplugged_afk.impl.player.state.*;
+import com.sakuraryoko.unplugged_afk.impl.modinit.InitWrap;
+import com.sakuraryoko.unplugged_afk.impl.modinit.UnpluggedInit;
+import com.sakuraryoko.unplugged_afk.impl.player.wrap.*;
 import com.sakuraryoko.unplugged_afk.impl.player.unplugged.*;
 
 @ApiStatus.Internal
@@ -650,7 +656,7 @@ public class PlayerManager
 				found = true;
 			}
 
-			UnpluggedAfk.debugLog("syncConfigEach(): Player ['{}'/{}]; [NEW-ENTRY] newEntry // state: [{}], pos: [{}], game: [{}]", newEntry.name, newEntry.uuid.toString(), newEntry.state.toString(), newEntry.pos.toString(), newEntry.game.toString());
+//			UnpluggedAfk.debugLog("syncConfigEach(): Player ['{}'/{}]; [NEW-ENTRY] newEntry // state: [{}], pos: [{}], game: [{}]", newEntry.name, newEntry.uuid.toString(), newEntry.state.toString(), newEntry.pos.toString(), newEntry.game.toString());
 			newConfig.add(newEntry);
 		}
 
@@ -661,7 +667,7 @@ public class PlayerManager
 			newEntry.pos = pos;
 			newEntry.game = game;
 			newConfig.add(newEntry);
-			UnpluggedAfk.debugLog("syncConfigEach(): Player ['{}'/{}]; [NOT-FOUND] newEntry // state: [{}], pos: [{}], game: [{}]", newEntry.name, newEntry.uuid.toString(), newEntry.state.toString(), newEntry.pos.toString(), newEntry.game.toString());
+//			UnpluggedAfk.debugLog("syncConfigEach(): Player ['{}'/{}]; [NOT-FOUND] newEntry // state: [{}], pos: [{}], game: [{}]", newEntry.name, newEntry.uuid.toString(), newEntry.state.toString(), newEntry.pos.toString(), newEntry.game.toString());
 			dirty = true;
 		}
 
@@ -690,7 +696,7 @@ public class PlayerManager
 					}
 				}
 
-				UnpluggedAfk.debugLog("syncConfigEach(): Player ['{}'/{}]; [DIRTY] newEntry // state: [{}], pos: [{}], game: [{}]", newEntry.name, newEntry.uuid.toString(), newEntry.state.toString(), newEntry.pos.toString(), newEntry.game.toString());
+//				UnpluggedAfk.debugLog("syncConfigEach(): Player ['{}'/{}]; [DIRTY] newEntry // state: [{}], pos: [{}], game: [{}]", newEntry.name, newEntry.uuid.toString(), newEntry.state.toString(), newEntry.pos.toString(), newEntry.game.toString());
 				ConfigWrap.players().add(newEntry);
 			}
 
@@ -751,7 +757,7 @@ public class PlayerManager
 		UnpluggedConfigHandler.getInstance().setStopTime();
 
 		this.flushToConfig(server);
-		UnpluggedAfk.debugLog("onServerStop(): flushing config ...");
+//		UnpluggedAfk.debugLog("onServerStop(): flushing config changes ...");
 		ConfigManager.getInstance().saveEach(UnpluggedConfigHandler.getInstance());
 	}
 
@@ -763,7 +769,7 @@ public class PlayerManager
 
 		if (this.syncConfig(server, false))
 		{
-			UnpluggedAfk.debugLog("onServerStarted(): flushing changes ...");
+//			UnpluggedAfk.debugLog("onServerStarted(): flushing config changes ...");
 			ConfigManager.getInstance().saveEach(UnpluggedConfigHandler.getInstance());
 		}
 	}
@@ -787,7 +793,7 @@ public class PlayerManager
 
 		if (dirty)
 		{
-			UnpluggedAfk.debugLog("onServerResync(): flushing changes ...");
+//			UnpluggedAfk.debugLog("onServerResync(): flushing config changes ...");
 			ConfigManager.getInstance().saveEach(UnpluggedConfigHandler.getInstance());
 		}
 	}
@@ -830,7 +836,7 @@ public class PlayerManager
 							newState = sp.toState();
 						}
 
-						UnpluggedAfk.debugLog("syncEntries --> sync: ['{}'/{}], state: [{}]", sp.getName().getString(), uuid.toString(), newState.toString());
+//						UnpluggedAfk.debugLog("syncEntries --> sync: ['{}'/{}], state: [{}]", sp.getName().getString(), uuid.toString(), newState.toString());
 						this.setState(sp.getGameProfile(), newState);
 						entry.updateState(newState);
 						UnpluggedEntryList.getInstance().syncEntry(sp, entry);
@@ -925,7 +931,15 @@ public class PlayerManager
 						{
 							if (opt.uuid.equals(uuid))
 							{
-								UnpluggedAfk.debugLog("onTickCycle: Scheduling unplugged player: ['{}'/{}], state: [{}]", opt.name, opt.uuid.toString(), opt.state.toString());
+								if (InitWrap.debug())
+								{
+									UnpluggedAfk.debugLog("onTickCycle: Scheduling unplugged player: ['{}'/{}], state: [{}]", opt.name, opt.uuid.toString(), opt.state.toString());
+								}
+								else
+								{
+									UnpluggedAfk.LOGGER.info("PlayerManager#onTickCycle: Scheduling unplugged player: ['{}'/{}]", opt.name, opt.uuid.toString());
+								}
+
 								UnpluggedPendingSpawns.INSTANCE.scheduleSpawn(opt);
 								break;
 							}
@@ -937,7 +951,7 @@ public class PlayerManager
 
 		if (dirty)
 		{
-			UnpluggedAfk.debugLog("onServerResync(): flushing changes ...");
+//			UnpluggedAfk.debugLog("onServerResync(): flushing config changes ...");
 			ConfigManager.getInstance().saveEach(UnpluggedConfigHandler.getInstance());
 		}
 	}

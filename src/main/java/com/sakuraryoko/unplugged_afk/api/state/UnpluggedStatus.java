@@ -18,34 +18,26 @@
  * along with Unplugged-AFK.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.sakuraryoko.unplugged_afk.impl.player.state;
+package com.sakuraryoko.unplugged_afk.api.state;
 
-import javax.annotation.Nonnull;
-
-import org.jetbrains.annotations.ApiStatus;
-
-import net.minecraft.core.BlockPos;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.level.Level;
-
-@ApiStatus.Internal
-public class PosWrap
+public enum UnpluggedStatus
 {
-	public static PosState defaultPos()
-	{
-		return new PosState(Level.OVERWORLD.location().toString(), 0, 0, 0, 0f, 0f);
-	}
+	ACTIVE,
+	INACTIVE,
+	EXPIRED,
+	INTERRUPTED,
+	TERMINATED,
+	;
 
-	public static PosState of(@Nonnull ServerPlayer player)
+	public static String formatStatus(UnpluggedStatus status)
 	{
-		//#if MC >= 1.20.1
-		//$$ ResourceKey<Level> key = player.level().dimension();
-		//#else
-		ResourceKey<Level> key = player.level.dimension();
-		//#endif
-		BlockPos pos = player.blockPosition();
-
-		return new PosState(key.location().toString(), pos.getX(), pos.getY(), pos.getZ(), player.getYRot(), player.getXRot());
+		return switch (status)
+		{
+			case ACTIVE -> "§6Active§r";
+			case INACTIVE -> "§aInactive§r";
+			case EXPIRED -> "§bExpired§r";
+			case INTERRUPTED -> "§cInterrupted§r";
+			case TERMINATED -> "§cTerminated§r";
+		};
 	}
 }

@@ -3,7 +3,7 @@
   "id": "${mod_id}",
   "version": "${mod_version}",
   "name": "${mod_name}",
-  "description": "Shadow players as AFK",
+  "description": "Unplug players as AFK",
   "authors": [
     "${mod_author}"
   ],

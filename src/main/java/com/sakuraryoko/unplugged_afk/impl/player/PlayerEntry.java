@@ -29,9 +29,9 @@ import net.minecraft.network.chat.MutableComponent;
 
 import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
 import com.sakuraryoko.unplugged_afk.impl.modinit.InitWrap;
-import com.sakuraryoko.unplugged_afk.impl.player.state.GameState;
-import com.sakuraryoko.unplugged_afk.impl.player.state.PosState;
-import com.sakuraryoko.unplugged_afk.impl.player.state.UnpluggedState;
+import com.sakuraryoko.unplugged_afk.api.state.GameState;
+import com.sakuraryoko.unplugged_afk.api.state.PosState;
+import com.sakuraryoko.unplugged_afk.api.state.UnpluggedState;
 
 @ApiStatus.Internal
 public record PlayerEntry(UUID uuid, String name, UnpluggedState state, PosState pos, GameState game)

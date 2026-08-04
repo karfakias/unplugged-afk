@@ -73,7 +73,7 @@ public class UnpluggedGamePacketListener extends ServerGamePacketListenerImpl
 	@Override
 	public void disconnect(@NonNull Component message)
 	{
-		UnpluggedAfk.debugLog("UnpluggedGamePacketListener#disconnect(): message: {}", message.getString());
+//		UnpluggedAfk.debugLog("UnpluggedGamePacketListener#disconnect(): message: {}", message.getString());
 		UnpluggedServerPlayer sp = (UnpluggedServerPlayer) this.player;
 		if (!sp.isValid()) { return; }
 

@@ -39,7 +39,7 @@ import com.sakuraryoko.unplugged_afk.impl.UnpluggedAfk;
 import com.sakuraryoko.unplugged_afk.impl.commands.PermsWrap;
 import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
 import com.sakuraryoko.unplugged_afk.impl.modinit.InitWrap;
-import com.sakuraryoko.unplugged_afk.impl.player.state.ProfileWrap;
+import com.sakuraryoko.unplugged_afk.impl.player.wrap.ProfileWrap;
 import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedServerPlayer;
 
 import static net.minecraft.commands.Commands.argument;

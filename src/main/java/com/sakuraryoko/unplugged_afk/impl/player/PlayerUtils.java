@@ -34,7 +34,7 @@ import net.minecraft.world.entity.EntityType;
 
 import com.sakuraryoko.unplugged_afk.impl.commands.server.UnpluggedAdminCommand;
 import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
-import com.sakuraryoko.unplugged_afk.impl.player.state.ProfileWrap;
+import com.sakuraryoko.unplugged_afk.impl.player.wrap.ProfileWrap;
 
 @ApiStatus.Internal
 public class PlayerUtils

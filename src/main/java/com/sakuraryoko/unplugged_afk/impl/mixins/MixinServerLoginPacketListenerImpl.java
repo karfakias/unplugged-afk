@@ -37,7 +37,7 @@ import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedPlayerUtils;
 
 //#if MC >= 1.21.10
 //$$ import net.minecraft.server.players.NameAndId;
-//$$ import com.sakuraryoko.unplugged_afk.impl.player.state.ProfileWrap;
+//$$ import com.sakuraryoko.unplugged_afk.impl.player.wrap.ProfileWrap;
 //#endif
 import com.mojang.authlib.GameProfile;
 

@@ -23,7 +23,10 @@ package com.sakuraryoko.unplugged_afk.impl.config.data.options;
 import java.util.UUID;
 
 import com.sakuraryoko.corelib.api.log.AnsiLogger;
-import com.sakuraryoko.unplugged_afk.impl.player.state.*;
+import com.sakuraryoko.unplugged_afk.api.state.GameState;
+import com.sakuraryoko.unplugged_afk.api.state.PosState;
+import com.sakuraryoko.unplugged_afk.api.state.UnpluggedState;
+import com.sakuraryoko.unplugged_afk.impl.player.wrap.*;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.VisibleForTesting;

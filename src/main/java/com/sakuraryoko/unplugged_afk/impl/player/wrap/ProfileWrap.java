@@ -18,26 +18,46 @@
  * along with Unplugged-AFK.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.sakuraryoko.unplugged_afk.impl.player.state;
+package com.sakuraryoko.unplugged_afk.impl.player.wrap;
 
-public enum UnpluggedStatus
+import java.util.UUID;
+import org.jetbrains.annotations.ApiStatus;
+
+import com.mojang.authlib.GameProfile;
+//#if MC >= 1.21.10
+//$$ import net.minecraft.server.players.NameAndId;
+//#endif
+
+@ApiStatus.Internal
+public class ProfileWrap
 {
-	ACTIVE,
-	INACTIVE,
-	EXPIRED,
-	INTERRUPTED,
-	TERMINATED,
-	;
-
-	public static String formatStatus(UnpluggedStatus status)
+	public static UUID id(GameProfile profile)
 	{
-		return switch (status)
-		{
-			case ACTIVE -> "§6Active§r";
-			case INACTIVE -> "§aInactive§r";
-			case EXPIRED -> "§bExpired§r";
-			case INTERRUPTED -> "§cInterrupted§r";
-			case TERMINATED -> "§cTerminated§r";
-		};
+//#if MC >= 1.21.10
+		//$$ return profile.id();
+//#else
+		return profile.getId();
+//#endif
+	}
+
+	public static String name(GameProfile profile)
+	{
+//#if MC >= 1.21.10
+		//$$ return profile.name();
+//#else
+		return profile.getName();
+//#endif
+	}
+
+	//#if MC >= 1.21.10
+	//$$public static GameProfile profile(NameAndId nameAndId)
+	//$$ {
+		//$$ return new GameProfile(nameAndId.id(), nameAndId.name());
+	//$$ }
+	//#endif
+
+	public static GameProfile profile(UUID id, String name)
+	{
+		return new GameProfile(id, name);
 	}
 }

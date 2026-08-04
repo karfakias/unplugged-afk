@@ -18,9 +18,8 @@
  * along with Unplugged-AFK.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.sakuraryoko.unplugged_afk.impl.player.state;
+package com.sakuraryoko.unplugged_afk.api.state;
 
-import org.jetbrains.annotations.ApiStatus;
 import org.jspecify.annotations.NonNull;
 
 import net.minecraft.network.chat.Component;
@@ -29,7 +28,15 @@ import net.minecraft.network.chat.MutableComponent;
 import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
 import com.sakuraryoko.unplugged_afk.impl.modinit.InitWrap;
 
-@ApiStatus.Internal
+/**
+ * UnpluggedState -- Describes the status and values of an Unplugged Player; or
+ * the stored reason they were removed for recalling as a Feedback message.
+ * @param status Current Status
+ * @param time Time limit in Minutes
+ * @param timeout Timeout Remaining in ms
+ * @param startTime Starting Epoch Time in ms
+ * @param reason Reason why
+ */
 public record UnpluggedState(UnpluggedStatus status, int time, long timeout, long startTime, String reason)
 {
 	public static final UnpluggedState DEFAULT = new UnpluggedState(UnpluggedStatus.INACTIVE, 129600, -1L, -1L, "");
@@ -92,7 +99,7 @@ public record UnpluggedState(UnpluggedStatus status, int time, long timeout, lon
 			).append(
 					InitWrap.text().formatText("§r / R: §e")
 			).append(
-					InitWrap.text().formatText(this.reason.isEmpty() ? "<EMPTY>" : this.reason)
+					InitWrap.text().formatText(this.reason.isEmpty() ? "<>" : this.reason)
 			).append(
 					InitWrap.text().formatText("§r")
 			);
@@ -135,5 +142,10 @@ public record UnpluggedState(UnpluggedStatus status, int time, long timeout, lon
 		}
 
 		return this;
+	}
+
+	public UnpluggedState copy()
+	{
+		return new UnpluggedState(this.status(), this.time(), this.timeout(), this.startTime(), this.reason());
 	}
 }

@@ -171,14 +171,20 @@ public class UnpluggedConfigHandler implements IConfigDispatch
         CONFIG.comment = UnpluggedInit.getInstance().getModVersionString() + " Config";
         CONFIG.config_date = TimeFormat.RFC1123.formatNow(null);
 
-        if (CONFIG.last_start == null || CONFIG.last_start < 1)
+        if (CONFIG.last_start == null || CONFIG.last_start < 1L)
         {
             CONFIG.last_start = System.currentTimeMillis();
         }
 
 	    CONFIG.last_stop = Objects.requireNonNullElse(newConf.last_stop, -1L);
 
-        UnpluggedAfk.debugLog("UnpluggedConfigHandler#update(): save_date: {} --> {}", newConf.config_date, CONFIG.config_date);
+        if (CONFIG.last_stop < 1L)
+        {
+            // last_stop should never be < 1L (Or else thing break)
+            CONFIG.last_stop = CONFIG.last_start - 60000L;     // 1 minute offset
+        }
+
+//        UnpluggedAfk.debugLog("UnpluggedConfigHandler#update(): save_date: {} --> {}", newConf.config_date, CONFIG.config_date);
 
         if (CONFIG.UNPLUGGED.unpluggedHidePlayer && !newConf.UNPLUGGED.unpluggedHidePlayer)
         {
@@ -276,7 +282,7 @@ public class UnpluggedConfigHandler implements IConfigDispatch
         }
 
         // Do this when the Config gets finalized.
-        UnpluggedAfk.debugLog("UnpluggedConfigHandler#execute(): new config_date: {}", CONFIG.config_date);
+//        UnpluggedAfk.debugLog("UnpluggedConfigHandler#execute(): new config_date: {}", CONFIG.config_date);
     }
 
     public void toggleFromReloadCmd(boolean toggle)
@@ -286,13 +292,13 @@ public class UnpluggedConfigHandler implements IConfigDispatch
 
     public void setStartTime()
     {
-        UnpluggedAfk.debugLog("UnpluggedConfigHandler#setStartTime()");
+//        UnpluggedAfk.debugLog("UnpluggedConfigHandler#setStartTime()");
         this.CONFIG.last_start = System.currentTimeMillis();
     }
 
     public void setStopTime()
     {
-        UnpluggedAfk.debugLog("UnpluggedConfigHandler#setStopTime()");
+//        UnpluggedAfk.debugLog("UnpluggedConfigHandler#setStopTime()");
         this.CONFIG.last_stop = System.currentTimeMillis();
     }
 

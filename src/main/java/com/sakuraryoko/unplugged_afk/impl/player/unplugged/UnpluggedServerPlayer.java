@@ -24,6 +24,10 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.sakuraryoko.unplugged_afk.api.state.GameState;
+import com.sakuraryoko.unplugged_afk.api.state.PosState;
+import com.sakuraryoko.unplugged_afk.api.state.UnpluggedState;
+import com.sakuraryoko.unplugged_afk.api.state.UnpluggedStatus;
 import com.sakuraryoko.unplugged_afk.impl.events.PlayerEventsHandler;
 import com.sakuraryoko.unplugged_afk.impl.events.ServerEventsHandler;
 import com.sakuraryoko.unplugged_afk.impl.modinit.InitWrap;
@@ -102,7 +106,7 @@ import net.minecraft.world.level.block.entity.SkullBlockEntity;
 import com.sakuraryoko.unplugged_afk.impl.UnpluggedAfk;
 import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
 import com.sakuraryoko.unplugged_afk.impl.config.data.options.PlayerOptions;
-import com.sakuraryoko.unplugged_afk.impl.player.state.*;
+import com.sakuraryoko.unplugged_afk.impl.player.wrap.*;
 import com.sakuraryoko.corelib.impl.text.BuiltinTextHandler;
 
 @ApiStatus.Internal
@@ -627,7 +631,7 @@ public class UnpluggedServerPlayer extends ServerPlayer
 				dirty = true;
 			}
 
-			UnpluggedAfk.debugLog("fromState: dirty: [{}]", dirty);
+//			UnpluggedAfk.debugLog("fromState: dirty: [{}]", dirty);
 		}
 
 		return dirty;

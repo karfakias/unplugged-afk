@@ -18,18 +18,23 @@
  * along with Unplugged-AFK.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.sakuraryoko.unplugged_afk.impl.player.state;
+package com.sakuraryoko.unplugged_afk.api.state;
 
 import java.util.Objects;
-import org.jetbrains.annotations.ApiStatus;
 import org.jspecify.annotations.NonNull;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 
 import com.sakuraryoko.unplugged_afk.impl.modinit.InitWrap;
+import com.sakuraryoko.unplugged_afk.impl.player.wrap.GameWrap;
 
-@ApiStatus.Internal
+/**
+ * GameState - Wrapper around storing these Player values
+ *
+ * @param gameMode Game Mode
+ * @param flying isFlying
+ */
 public record GameState(String gameMode, boolean flying)
 {
 	@Override
@@ -79,4 +84,8 @@ public record GameState(String gameMode, boolean flying)
 		return text;
 	}
 
+	public GameState copy()
+	{
+		return new GameState(this.gameMode, this.flying);
+	}
 }

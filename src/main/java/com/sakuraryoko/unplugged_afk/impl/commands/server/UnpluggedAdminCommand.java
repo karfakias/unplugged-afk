@@ -60,10 +60,10 @@ import com.sakuraryoko.unplugged_afk.impl.events.ServerEventsHandler;
 import com.sakuraryoko.unplugged_afk.impl.modinit.InitWrap;
 import com.sakuraryoko.unplugged_afk.impl.modinit.UnpluggedInit;
 import com.sakuraryoko.unplugged_afk.impl.player.*;
-import com.sakuraryoko.unplugged_afk.impl.player.state.UnpluggedStatus;
+import com.sakuraryoko.unplugged_afk.api.state.UnpluggedStatus;
 import com.sakuraryoko.unplugged_afk.impl.player.unplugged.*;
-import com.sakuraryoko.unplugged_afk.impl.player.state.ProfileWrap;
-import com.sakuraryoko.unplugged_afk.impl.player.state.UnpluggedState;
+import com.sakuraryoko.unplugged_afk.impl.player.wrap.ProfileWrap;
+import com.sakuraryoko.unplugged_afk.api.state.UnpluggedState;
 
 import static net.minecraft.commands.Commands.argument;
 import static net.minecraft.commands.Commands.literal;

@@ -37,12 +37,12 @@ import com.sakuraryoko.unplugged_afk.impl.UnpluggedAfk;
 import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
 import com.sakuraryoko.unplugged_afk.impl.modinit.InitWrap;
 import com.sakuraryoko.unplugged_afk.impl.player.PlayerManager;
-import com.sakuraryoko.unplugged_afk.impl.player.state.ProfileWrap;
-import com.sakuraryoko.unplugged_afk.impl.player.state.UnpluggedState;
-import com.sakuraryoko.unplugged_afk.impl.player.state.UnpluggedStatus;
+import com.sakuraryoko.unplugged_afk.impl.player.wrap.ProfileWrap;
+import com.sakuraryoko.unplugged_afk.api.state.UnpluggedState;
+import com.sakuraryoko.unplugged_afk.api.state.UnpluggedStatus;
 import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedPlayerUtils;
 import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedServerPlayer;
-import com.sakuraryoko.unplugged_afk.impl.player.state.PosState;
+import com.sakuraryoko.unplugged_afk.api.state.PosState;
 import com.sakuraryoko.corelib.api.events.IPlayerEventsDispatch;
 
 @ApiStatus.Internal
@@ -55,16 +55,16 @@ public class PlayerEventsHandler implements IPlayerEventsDispatch
 	@Override
 	public void onConnection(SocketAddress addr, GameProfile profile, @Nullable Component result)
 	{
-		UnpluggedAfk.debugLog("onConnection(): ['{}'/{}] from addr: [{}] // result: {}", ProfileWrap.name(profile), ProfileWrap.id(profile), addr.toString(),
-		                      result == null
-		                      ? "<NULL>"
-		                      : result.getString());
+//		UnpluggedAfk.debugLog("onConnection(): ['{}'/{}] from addr: [{}] // result: {}", ProfileWrap.name(profile), ProfileWrap.id(profile), addr.toString(),
+//		                      result == null
+//		                      ? "<NULL>"
+//		                      : result.getString());
 	}
 
 	@Override
 	public void onCreatePlayer(ServerPlayer player, @Nullable GameProfile profile)
 	{
-		UnpluggedAfk.debugLog("onCreatePlayer(): ['{}'/{}]", player.getName().getString(), player.getUUID().toString());
+//		UnpluggedAfk.debugLog("onCreatePlayer(): ['{}'/{}]", player.getName().getString(), player.getUUID().toString());
 		if (player instanceof UnpluggedServerPlayer) { return; }
 		PlayerManager.getInstance().syncProfile(profile);
 	}
@@ -72,7 +72,7 @@ public class PlayerEventsHandler implements IPlayerEventsDispatch
 	@Override
 	public void onPlayerJoinPre(ServerPlayer player, Connection connection)
 	{
-		UnpluggedAfk.debugLog("onPlayerJoinPre(): ['{}'/{}]", player.getName().getString(), player.getUUID().toString());
+//		UnpluggedAfk.debugLog("onPlayerJoinPre(): ['{}'/{}]", player.getName().getString(), player.getUUID().toString());
 		PlayerManager.getInstance().updatePlayerData(player);
 	}
 
@@ -88,7 +88,7 @@ public class PlayerEventsHandler implements IPlayerEventsDispatch
 	@Override
 	public void onPlayerJoinPost(ServerPlayer player, Connection connection)
 	{
-		UnpluggedAfk.debugLog("onPlayerJoinPost(): ['{}'/{}]", player.getName().getString(), player.getUUID().toString());
+//		UnpluggedAfk.debugLog("onPlayerJoinPost(): ['{}'/{}]", player.getName().getString(), player.getUUID().toString());
 		MinecraftServer server = this.getServerWrap(player);
 
 		PlayerManager.getInstance().updatePlayerData(player);
@@ -120,7 +120,7 @@ public class PlayerEventsHandler implements IPlayerEventsDispatch
 	@Override
 	public void onPlayerRespawn(ServerPlayer newPlayer)
 	{
-		UnpluggedAfk.debugLog("onPlayerRespawn(): ['{}'/{}]", newPlayer.getName().getString(), newPlayer.getUUID().toString());
+//		UnpluggedAfk.debugLog("onPlayerRespawn(): ['{}'/{}]", newPlayer.getName().getString(), newPlayer.getUUID().toString());
 		MinecraftServer server = this.getServerWrap(newPlayer);
 
 		PlayerManager.getInstance().updatePlayerData(newPlayer);
@@ -136,7 +136,7 @@ public class PlayerEventsHandler implements IPlayerEventsDispatch
 	@Override
 	public void onPlayerLeave(ServerPlayer player)
 	{
-		UnpluggedAfk.debugLog("onPlayerLeave(): ['{}'/{}]", player.getName().getString(), player.getUUID().toString());
+//		UnpluggedAfk.debugLog("onPlayerLeave(): ['{}'/{}]", player.getName().getString(), player.getUUID().toString());
 		PlayerManager.getInstance().updatePlayerData(player);
 		PlayerManager.getInstance().syncProfile(player.getGameProfile());
 	}
@@ -196,7 +196,6 @@ public class PlayerEventsHandler implements IPlayerEventsDispatch
 			return;
 		}
 
-		UnpluggedAfk.debugLog("addShouldHideJoin(): name: [{}]", name);
 		this.shouldHideJoin.add(name);
 	}
 
@@ -208,7 +207,6 @@ public class PlayerEventsHandler implements IPlayerEventsDispatch
 			return;
 		}
 
-		UnpluggedAfk.debugLog("removeShouldHideJoin(): name: [{}]", name);
 		this.shouldHideJoin.remove(name);
 	}
 }

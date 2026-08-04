@@ -18,7 +18,7 @@
  * along with Unplugged-AFK.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.sakuraryoko.unplugged_afk.impl.player.state;
+package com.sakuraryoko.unplugged_afk.impl.player.wrap;
 
 import javax.annotation.Nonnull;
 
@@ -26,6 +26,8 @@ import org.jetbrains.annotations.ApiStatus;
 
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.GameType;
+
+import com.sakuraryoko.unplugged_afk.api.state.GameState;
 
 @ApiStatus.Internal
 public class GameWrap

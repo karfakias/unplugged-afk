@@ -31,8 +31,8 @@ import org.jetbrains.annotations.VisibleForTesting;
 import net.minecraft.network.chat.Component;
 
 import com.sakuraryoko.unplugged_afk.impl.UnpluggedAfk;
-import com.sakuraryoko.unplugged_afk.impl.player.state.UnpluggedState;
-import com.sakuraryoko.unplugged_afk.impl.player.state.UnpluggedStatus;
+import com.sakuraryoko.unplugged_afk.api.state.UnpluggedState;
+import com.sakuraryoko.unplugged_afk.api.state.UnpluggedStatus;
 
 @ApiStatus.Internal
 public class UnpluggedEntryList

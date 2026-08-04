@@ -46,14 +46,15 @@ import net.minecraft.server.players.PlayerList;
 //$$ import com.sakuraryoko.unplugged_afk.impl.player.interfaces.IWaypointManagerInvoker;
 //#endif
 
+import com.sakuraryoko.unplugged_afk.api.UnpluggedAfkEvents;
 import com.sakuraryoko.unplugged_afk.impl.UnpluggedAfk;
 import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
 import com.sakuraryoko.unplugged_afk.impl.events.PlayerEventsHandler;
 import com.sakuraryoko.unplugged_afk.impl.modinit.InitWrap;
 import com.sakuraryoko.unplugged_afk.impl.player.PlayerManager;
-import com.sakuraryoko.unplugged_afk.impl.player.state.ProfileWrap;
-import com.sakuraryoko.unplugged_afk.impl.player.state.UnpluggedState;
-import com.sakuraryoko.unplugged_afk.impl.player.state.UnpluggedStatus;
+import com.sakuraryoko.unplugged_afk.impl.player.wrap.ProfileWrap;
+import com.sakuraryoko.unplugged_afk.api.state.UnpluggedState;
+import com.sakuraryoko.unplugged_afk.api.state.UnpluggedStatus;
 
 @ApiStatus.Internal
 public class UnpluggedPlayerUtils
@@ -333,6 +334,7 @@ public class UnpluggedPlayerUtils
 		}
 
 		newSp.fromState(newState);
+		UnpluggedAfkEvents.UNPLUGGED_RESPAWN.invoker().onUnpluggedEvent(ProfileWrap.id(profile), newState);
 	}
 
 	@ApiStatus.Internal
@@ -344,8 +346,7 @@ public class UnpluggedPlayerUtils
 	@ApiStatus.Internal
 	public static boolean matchesJoinPattern(Component message)
 	{
-		UnpluggedAfk.debugLog("matchesJoinPattern(): {}", message.getString());
-
+//		UnpluggedAfk.debugLog("matchesJoinPattern(): {}", message.getString());
 		if (message.getContents() instanceof TranslatableContents text)
 		{
 			String key = text.getKey();

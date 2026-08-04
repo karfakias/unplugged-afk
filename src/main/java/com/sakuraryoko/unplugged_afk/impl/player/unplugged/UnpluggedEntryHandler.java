@@ -20,18 +20,20 @@
 
 package com.sakuraryoko.unplugged_afk.impl.player.unplugged;
 
+import java.util.UUID;
 import javax.annotation.Nonnull;
 import org.jetbrains.annotations.ApiStatus;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 
+import com.sakuraryoko.unplugged_afk.api.UnpluggedAfkEvents;
 import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
 import com.sakuraryoko.unplugged_afk.impl.modinit.InitWrap;
 import com.sakuraryoko.unplugged_afk.impl.player.PlayerManager;
 import com.sakuraryoko.unplugged_afk.impl.player.interfaces.IPlayerInvoker;
-import com.sakuraryoko.unplugged_afk.impl.player.state.UnpluggedStatus;
-import com.sakuraryoko.unplugged_afk.impl.player.state.UnpluggedState;
+import com.sakuraryoko.unplugged_afk.api.state.UnpluggedStatus;
+import com.sakuraryoko.unplugged_afk.api.state.UnpluggedState;
 
 @ApiStatus.Internal
 public record UnpluggedEntryHandler(UnpluggedEntry entry)
@@ -89,6 +91,8 @@ public record UnpluggedEntryHandler(UnpluggedEntry entry)
                 PlayerManager.getInstance().setState(player.getGameProfile(), newState);
             }
         }
+
+        UnpluggedAfkEvents.UNPLUGGED_START.invoker().onUnpluggedEvent(player.getUUID(), state);
     }
 
     @ApiStatus.Internal
@@ -134,6 +138,8 @@ public record UnpluggedEntryHandler(UnpluggedEntry entry)
             }
         }
 
+        final UUID uuid = this.entry().player() != null ? this.entry().player().getUUID() : null;
+        UnpluggedAfkEvents.UNPLUGGED_END.invoker().onUnpluggedEvent(uuid, new UnpluggedState(reason, this.entry().timer(), this.entry().timeout(), this.entry().startTimeMs(), this.entry().reason()));
         this.entry().clearPlayer();
         this.entry().reset();
     }

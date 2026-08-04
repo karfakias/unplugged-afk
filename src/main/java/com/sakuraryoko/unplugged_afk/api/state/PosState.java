@@ -18,10 +18,9 @@
  * along with Unplugged-AFK.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.sakuraryoko.unplugged_afk.impl.player.state;
+package com.sakuraryoko.unplugged_afk.api.state;
 
 import javax.annotation.Nonnull;
-import org.jetbrains.annotations.ApiStatus;
 import org.jspecify.annotations.NonNull;
 
 import net.minecraft.network.chat.Component;
@@ -29,8 +28,17 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.level.ServerPlayer;
 
 import com.sakuraryoko.unplugged_afk.impl.modinit.InitWrap;
+import com.sakuraryoko.unplugged_afk.impl.player.wrap.PosWrap;
 
-@ApiStatus.Internal
+/**
+ * PosState - Wrapper around a Players' location, and rotations
+ * @param location Level Identifier
+ * @param x Entity Block X
+ * @param y Entity Block Y
+ * @param z Entity Block Z
+ * @param yaw Entity Yaw (XRot)
+ * @param pitch Entity Rotation (YRot)
+ */
 public record PosState(String location, int x, int y, int z, float yaw, float pitch)
 {
 	@Override
@@ -102,5 +110,10 @@ public record PosState(String location, int x, int y, int z, float yaw, float pi
 		);
 
 		return text;
+	}
+
+	public PosState copy()
+	{
+		return new PosState(this.location(), this.x(), this.y(), this.z(), this.yaw(), this.pitch());
 	}
 }
