@@ -21,7 +21,7 @@
 ## Commands
 
 ### Player Commands
-* **`/unplugged [<minutes>] [<reason>]`**: Disconnects you and leaves an unplugged bot in your place.
+* **`/unplug [<minutes>] [<reason>]`**: Disconnects you and leaves an unplugged bot in your place.
   * *Note: This command cannot be used by the single-player server owner*.
 
 ### Admin Commands
