@@ -24,7 +24,6 @@ import org.jetbrains.annotations.ApiStatus;
 
 import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.CommandDispatcher;
-import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.commands.CommandBuildContext;
@@ -48,22 +47,28 @@ import com.sakuraryoko.unplugged_afk.impl.player.wrap.ProfileWrap;
 import static net.minecraft.commands.Commands.argument;
 import static net.minecraft.commands.Commands.literal;
 
+import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 @ApiStatus.Internal
 public class UnplugCommand implements IServerCommand
 {
+	private static final Pattern DURATION_PART = Pattern.compile("(\\d+)([hms])", Pattern.CASE_INSENSITIVE);
+	private static final String MAXIMUM_DURATION_MESSAGE = "\u00a7cYou cannot use /unplug for more than 6 hours.\u00a7r";
     @Override
     public void register(CommandDispatcher<CommandSourceStack> dispatcher, CommandBuildContext registryAccess, Commands.CommandSelection environment)
     {
         dispatcher.register(
                 literal(this.getName())
                         .requires(PermsWrap.check(this.getNode(), ConfigWrap.cmdOpt().unplugCommandPermissions))
-                        .executes(ctx -> this.setUnpluggedAfk(ctx, -1, ""))
-                        .then(argument("minutes", IntegerArgumentType.integer(1))
+                        .executes(ctx -> this.setUnpluggedAfk(ctx, null, ""))
+                        .then(argument("duration", StringArgumentType.word())
                                       .requires(PermsWrap.check(this.getNode(), ConfigWrap.cmdOpt().unplugCommandPermissions))
-                                      .executes(ctx -> this.setUnpluggedAfk(ctx, IntegerArgumentType.getInteger(ctx, "minutes"), ""))
+                                      .executes(ctx -> this.setUnpluggedAfk(ctx, StringArgumentType.getString(ctx, "duration"), ""))
                                       .then(argument("reason", StringArgumentType.greedyString())
                                                     .requires(PermsWrap.check(this.getNode(), ConfigWrap.cmdOpt().unplugCommandPermissions))
-                                                    .executes(ctx -> this.setUnpluggedAfk(ctx, IntegerArgumentType.getInteger(ctx, "minutes"), StringArgumentType.getString(ctx, "reason")))
+                                                    .executes(ctx -> this.setUnpluggedAfk(ctx, StringArgumentType.getString(ctx, "duration"), StringArgumentType.getString(ctx, "reason")))
                                       )
                         )
         );
@@ -81,7 +86,7 @@ public class UnplugCommand implements IServerCommand
         return Reference.MOD_ID;
     }
 
-    private int setUnpluggedAfk(CommandContext<CommandSourceStack> context, int time, String reason)
+    private int setUnpluggedAfk(CommandContext<CommandSourceStack> context, String durationString, String reason)
     {
         CommandSourceStack src = context.getSource();
         if (src.getPlayer() == null) { return 0; }
@@ -116,14 +121,33 @@ public class UnplugCommand implements IServerCommand
             return 1;
         }
 
-        if (time < 0)
+        long timeout;
+        int time;
+        if (durationString == null)
         {
             time = ConfigWrap.unplugged().defaultUnpluggedTimeout;
+            if (time <= 0) { time = 360; }
+            try { timeout = Math.multiplyExact(Math.multiplyExact((long) time, 60L), 1000L); }
+            catch (ArithmeticException ex) { return invalidDuration(context); }
+        }
+        else
+        {
+            try { timeout = parseDurationMillis(durationString); }
+            catch (IllegalArgumentException ex) { return invalidDuration(context); }
+            time = (int) Math.max(1L, timeout / 60_000L + (timeout % 60_000L == 0L ? 0L : 1L));
+        }
 
-            if (time < 0)
-            {
-                time = 129600;
-            }
+        long maximumTimeout;
+        try { maximumTimeout = Math.multiplyExact(Math.multiplyExact((long) ConfigWrap.unplugged().maximumUnpluggedTimeout, 60L), 1000L); }
+        catch (ArithmeticException ex) { maximumTimeout = 0L; }
+        if (maximumTimeout <= 0L || timeout > maximumTimeout)
+        {
+            //#if MC >= 1.20.1
+            //$$ context.getSource().sendSuccess(() -> InitWrap.text().formatTextSafe(MAXIMUM_DURATION_MESSAGE), false);
+            //#else
+            context.getSource().sendSuccess(InitWrap.text().formatTextSafe(MAXIMUM_DURATION_MESSAGE), false);
+            //#endif
+            return 0;
         }
         if (reason == null || reason.isEmpty())
         {
@@ -135,7 +159,7 @@ public class UnplugCommand implements IServerCommand
             }
         }
 
-        if (UnpluggedServerPlayer.createFromPlayer(server, player, time, reason) == null)
+        if (UnpluggedServerPlayer.createFromPlayer(server, player, time, timeout, reason) == null)
         {
             UnpluggedAfk.LOGGER.error("Error creating Unplugged Player from: {}", player.getName().getString());
             return 0;
@@ -143,5 +167,46 @@ public class UnplugCommand implements IServerCommand
 
         UnpluggedAfk.debugLog("setUnpluggedAfk: player: ['{}'/{}] // T: {}m, R: '{}'", ProfileWrap.name(profile), ProfileWrap.id(profile), time, reason);
         return 1;
+    }
+
+    private int invalidDuration(CommandContext<CommandSourceStack> context)
+    {
+        final String message = "\u00a7cInvalid duration. Use values such as 10s, 60m, 1h30m, or 60.\u00a7r";
+        //#if MC >= 1.20.1
+        //$$ context.getSource().sendSuccess(() -> InitWrap.text().formatTextSafe(message), false);
+        //#else
+        context.getSource().sendSuccess(InitWrap.text().formatTextSafe(message), false);
+        //#endif
+        return 0;
+    }
+
+    private static long parseDurationMillis(String input)
+    {
+        String value = input.toLowerCase(Locale.ROOT);
+        if (value.matches("\\d+"))
+        {
+            try { return Math.multiplyExact(Math.multiplyExact(Long.parseLong(value), 60L), 1000L); }
+            catch (ArithmeticException | NumberFormatException ex) { throw new IllegalArgumentException(); }
+        }
+
+        Matcher matcher = DURATION_PART.matcher(value);
+        long seconds = 0L;
+        int end = 0;
+        boolean found = false;
+        while (matcher.find())
+        {
+            if (matcher.start() != end) { throw new IllegalArgumentException(); }
+            long amount;
+            try { amount = Long.parseLong(matcher.group(1)); }
+            catch (NumberFormatException ex) { throw new IllegalArgumentException(); }
+            long unit = switch (matcher.group(2).charAt(0)) { case 'h' -> 3600L; case 'm' -> 60L; default -> 1L; };
+            try { seconds = Math.addExact(seconds, Math.multiplyExact(amount, unit)); }
+            catch (ArithmeticException ex) { throw new IllegalArgumentException(); }
+            end = matcher.end();
+            found = true;
+        }
+        if (!found || end != value.length() || seconds <= 0L) { throw new IllegalArgumentException(); }
+        try { return Math.multiplyExact(seconds, 1000L); }
+        catch (ArithmeticException ex) { throw new IllegalArgumentException(); }
     }
 }

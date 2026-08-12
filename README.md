@@ -46,7 +46,8 @@ The mod features a highly customizable `unplugged_afk.json` file. Key options in
 | **Main**      | `debugMode`                        | Enables debugging output.                                                                                 | `false`  |
 | **Main**      | `reducedListDebugInfo`             | Enables Reduced output for various information commands.                                                  | `true`   |
 | **Main**      | `advancedAdminOptions`             | Enables advanced Admin options, such as 'set'.                                                            | `false`  |
-| **Unplugged** | `defaultUnpluggedTimeout`          | Set the default timeout (in minutes).  The default is for 90 days.                                        | `129600` |
+| **Unplugged** | `defaultUnpluggedTimeout`          | Default duration in minutes when `/unplug` has no duration.                                                | `360`    |
+| **Unplugged** | `maximumUnpluggedTimeout`          | Absolute maximum duration in minutes allowed for `/unplug`.                                                | `360`    |
 | **Unplugged** | `resetHealthUponDeath`             | Resets the AFK bots Health when killed.                                                                   | `false`  |
 | **Unplugged** | `unpluggedDisableDamage`           | Prevents the AFK bot from taking damage.                                                                  | `false`  |
 | **Unplugged** | `unpluggedHidePlayer`              | Makes the bot invisible to others.                                                                        | `false`  |

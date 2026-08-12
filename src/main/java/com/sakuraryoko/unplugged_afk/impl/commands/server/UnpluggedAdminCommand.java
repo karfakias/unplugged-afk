@@ -562,7 +562,6 @@ public class UnpluggedAdminCommand implements IServerCommand
     @ApiStatus.Internal
     private int createUnplugged(CommandContext<CommandSourceStack> ctx, String result, int time, String reason)
     {
-        ImmutableList<GameProfile> list = PlayerManager.getInstance().getSpawnCommandSuggestions(ctx);
         boolean found = false;
         String reply = "";
 
@@ -585,21 +584,17 @@ public class UnpluggedAdminCommand implements IServerCommand
             }
         }
 
-        for (GameProfile entry : list)
+        for (PlayerOptions opts : ConfigWrap.players())
         {
-            if (ProfileWrap.name(entry).equals(result))
+            if (opts.name.equalsIgnoreCase(result)
+                && ctx.getSource().getServer().getPlayerList().getPlayer(opts.uuid) == null)
             {
                 try
                 {
-                    PlayerOptions opts = ConfigWrap.players().stream()
-                            .filter(opt -> opt.uuid.equals(ProfileWrap.id(entry)))
-                                                   .findFirst()
-                                                   .orElseThrow();
-
                     UnpluggedAfk.debugLog("createUnplugged: Scheduling Unplugged player: ['{}'/{}]", opts.name, opts.uuid.toString());
                     reply = "§eScheduling unplugged spawn for: §7"+ result + "§r";
                     opts.state = new UnpluggedState(UnpluggedStatus.ACTIVE, time, (time * 60L) * 1000L, System.currentTimeMillis(), reason);
-                    PlayerManager.getInstance().setState(entry, opts.state);
+                    PlayerManager.getInstance().setState(ProfileWrap.profile(opts.uuid, opts.name), opts.state);
                     PlayerManager.getInstance().flushToConfig(ctx.getSource().getServer());
                     ServerEventsHandler.getInstance().toggleSpawnSafe(false);
                     UnpluggedPendingSpawns.INSTANCE.scheduleSpawn(opts);

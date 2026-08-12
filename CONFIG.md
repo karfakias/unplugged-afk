@@ -20,7 +20,8 @@
         "enableAfkCommand": false
     },
     "unplugged": {
-        "defaultUnpluggedTimeout": 129600,
+        "defaultUnpluggedTimeout": 360,
+        "maximumUnpluggedTimeout": 360,
         "resetHealthUponDeath": false,
         "unpluggedDisableDamage": false,
         "unpluggedHidePlayer": false,

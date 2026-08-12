@@ -381,12 +381,15 @@ public class UnpluggedServerPlayer extends ServerPlayer
 	@Nullable
 	public static UnpluggedServerPlayer createFromPlayer(MinecraftServer server, ServerPlayer player, int time, String reason)
 	{
+		return createFromPlayer(server, player, time, (time * 60L) * 1000L, reason);
+	}
+
+	public static UnpluggedServerPlayer createFromPlayer(MinecraftServer server, ServerPlayer player, int time, long timeout, String reason)
+	{
 		if (time <= 0)
 		{
 			time = 129600;      // Hard coded in case of stupid
 		}
-
-		final long timeout = (time * 60L) * 1000L;
 		final String name = player.getName().getString();
 		final String duration = ConfigWrap.mess().duration.option.format(timeout);
 		final String kickStr = ConfigWrap.mess().unpluggedKickMessage
