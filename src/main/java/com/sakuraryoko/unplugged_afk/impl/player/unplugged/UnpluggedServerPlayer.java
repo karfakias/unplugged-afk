@@ -747,7 +747,6 @@ public class UnpluggedServerPlayer extends ServerPlayer
 				final Component reason = InitWrap.text().formatTextSafe("Invalid");
 
 				this.kill(reason);
-				server.getPlayerList().remove(this);
 
 				if (!ConfigWrap.mess().hideUnpluggedJoin)
 				{
@@ -812,7 +811,6 @@ public class UnpluggedServerPlayer extends ServerPlayer
 
 			if (!entry.tickTimeout(tickDelta))
 			{
-				PlayerList pl = server.getPlayerList();
 				String mess = ConfigWrap.mess().unpluggedExpiredReason;
 
 				if (mess == null || mess.isEmpty())
@@ -845,7 +843,6 @@ public class UnpluggedServerPlayer extends ServerPlayer
 
 				Component reason = InitWrap.text().formatTextSafe(mess);
 				this.kill(reason);
-				pl.remove(this);
 
 				if (ConfigWrap.mess().hideUnpluggedJoin)
 				{

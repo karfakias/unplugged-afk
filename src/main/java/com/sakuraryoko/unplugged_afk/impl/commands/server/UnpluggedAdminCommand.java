@@ -667,7 +667,6 @@ public class UnpluggedAdminCommand implements IServerCommand
                             Component name = sp.getName();
                             Component message = Component.literal("Killed");
                             sp.kill(message);
-                            playerList.remove(player);
 
                             if (ConfigWrap.mess().hideUnpluggedJoin)
                             {

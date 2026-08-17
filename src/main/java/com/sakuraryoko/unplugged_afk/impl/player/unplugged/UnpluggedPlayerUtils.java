@@ -287,7 +287,6 @@ public class UnpluggedPlayerUtils
 
 			String str = ConfigWrap.mess().unpluggedReplaced;
 			sp.kill(InitWrap.text().formatText(str));
-			playerList.remove(player);
 		}
 	}
 
