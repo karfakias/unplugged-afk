@@ -122,6 +122,7 @@ public class UnpluggedServerPlayer extends ServerPlayer
 	private long timeout = -1L;
 	private long lastTick = -1L;
 	private boolean isValid = false;
+	private boolean disconnectPending = false;
 	private boolean expired = false;
 
 	//#if MC >= 1.20.2
@@ -409,7 +410,6 @@ public class UnpluggedServerPlayer extends ServerPlayer
 			PlayerEventsHandler.getInstance().addShouldHideJoin(name);
 		}
 
-		pl.remove(player);
 		player.connection.disconnect(kickMsg);
 
 		//#if MC >= 1.20.1
@@ -686,6 +686,11 @@ public class UnpluggedServerPlayer extends ServerPlayer
 
 	public void kill(Component message)
 	{
+		if (this.disconnectPending)
+		{
+			return;
+		}
+		this.disconnectPending = true;
 		this.dismount();
 		this.killShadow(message);
 		//#if MC >= 1.21.2
@@ -743,15 +748,9 @@ public class UnpluggedServerPlayer extends ServerPlayer
 			// Remove invalid Shadows that are still ticking (Why?)
 			if (!this.freshPlayer && !this.isValid())
 			{
-				final Component name = this.getName();
 				final Component reason = InitWrap.text().formatTextSafe("Invalid");
 
 				this.kill(reason);
-
-				if (!ConfigWrap.mess().hideUnpluggedJoin)
-				{
-					UnpluggedPlayerUtils.sendLeaveMessage(server, name);
-				}
 			}
 
 			this.tickUnplugged(server);

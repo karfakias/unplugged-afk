@@ -55,7 +55,6 @@ import java.util.regex.Pattern;
 public class UnplugCommand implements IServerCommand
 {
 	private static final Pattern DURATION_PART = Pattern.compile("(\\d+)([hms])", Pattern.CASE_INSENSITIVE);
-	private static final String MAXIMUM_DURATION_MESSAGE = "\u00a7cYou cannot use /unplug for more than 6 hours.\u00a7r";
     @Override
     public void register(CommandDispatcher<CommandSourceStack> dispatcher, CommandBuildContext registryAccess, Commands.CommandSelection environment)
     {
@@ -142,10 +141,13 @@ public class UnplugCommand implements IServerCommand
         catch (ArithmeticException ex) { maximumTimeout = 0L; }
         if (maximumTimeout <= 0L || timeout > maximumTimeout)
         {
+			String message = "\u00a7cYou cannot use /unplug for more than "
+					+ formatDuration(ConfigWrap.unplugged().maximumUnpluggedTimeout)
+					+ ".\u00a7r";
             //#if MC >= 1.20.1
-            //$$ context.getSource().sendSuccess(() -> InitWrap.text().formatTextSafe(MAXIMUM_DURATION_MESSAGE), false);
+            //$$ context.getSource().sendSuccess(() -> InitWrap.text().formatTextSafe(message), false);
             //#else
-            context.getSource().sendSuccess(InitWrap.text().formatTextSafe(MAXIMUM_DURATION_MESSAGE), false);
+            context.getSource().sendSuccess(InitWrap.text().formatTextSafe(message), false);
             //#endif
             return 0;
         }
@@ -178,6 +180,25 @@ public class UnplugCommand implements IServerCommand
         context.getSource().sendSuccess(InitWrap.text().formatTextSafe(message), false);
         //#endif
         return 0;
+    }
+
+    private static String formatDuration(int minutes)
+    {
+        if (minutes % 60 == 0)
+        {
+            int hours = minutes / 60;
+            return hours + (hours == 1 ? " hour" : " hours");
+        }
+
+        if (minutes > 60)
+        {
+            int hours = minutes / 60;
+            int remainingMinutes = minutes % 60;
+            return hours + (hours == 1 ? " hour " : " hours ")
+                    + remainingMinutes + (remainingMinutes == 1 ? " minute" : " minutes");
+        }
+
+        return minutes + (minutes == 1 ? " minute" : " minutes");
     }
 
     private static long parseDurationMillis(String input)
