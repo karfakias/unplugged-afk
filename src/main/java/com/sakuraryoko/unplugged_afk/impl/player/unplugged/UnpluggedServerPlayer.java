@@ -266,7 +266,8 @@ public class UnpluggedServerPlayer extends ServerPlayer
 			//$$ {
 				//$$ temp = p;
 			//$$ }
-			//$$ createFromConfigPhase2(server, level, temp, state, pos, game);
+		//$$ GameProfile restoredProfile = temp;
+		//$$ server.execute(() -> createFromConfigPhase2(server, level, restoredProfile, state, pos, game));
 		//$$ });
 		//#elseif MC >= 1.20.2
 		//$$ GameProfile tempProfile = profile;
@@ -277,7 +278,8 @@ public class UnpluggedServerPlayer extends ServerPlayer
 			//$$ {
 				//$$ temp = opt.get();
 			//$$ }
-			//$$ createFromConfigPhase2(server, level, temp, state, pos, game);
+		//$$ GameProfile restoredProfile = temp;
+		//$$ server.execute(() -> createFromConfigPhase2(server, level, restoredProfile, state, pos, game));
 		//$$ });
 		//#else
 		if (profile.getProperties().containsKey("textures"))
