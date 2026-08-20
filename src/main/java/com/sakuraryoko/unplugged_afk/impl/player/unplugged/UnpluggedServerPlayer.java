@@ -435,13 +435,9 @@ public class UnpluggedServerPlayer extends ServerPlayer
 		//$$ shadow.setChatSession(player.getChatSession());
 		//#endif
 
-		//#if MC >= 1.20.6
-		//$$ pl.placeNewPlayer(new UnpluggedConnection(PacketFlow.SERVERBOUND), shadow, new CommonListenerCookie(profile, 0, player.clientInformation(), true));
-		//#elseif MC >= 1.20.2
-		//$$ pl.placeNewPlayer(new UnpluggedConnection(PacketFlow.SERVERBOUND), shadow, new CommonListenerCookie(profile, 0, player.clientInformation()));
-		//#else
-		pl.placeNewPlayer(new UnpluggedConnection(PacketFlow.SERVERBOUND), shadow);
-		//#endif
+		// Wait one server tick so the real player's disconnect/leave event is
+		// processed before the replacement player is announced as joining.
+		placeShadowNextTick(server, pl, shadow, profile);
 
 		//#if MC >= 1.21.10
 		//$$ loadPlayerNbt(shadow);
@@ -490,6 +486,33 @@ public class UnpluggedServerPlayer extends ServerPlayer
 		shadow.isValid = true;
 
 		return shadow;
+	}
+
+	private static void placeShadowNextTick(MinecraftServer server, PlayerList playerList,
+	                                        UnpluggedServerPlayer shadow, GameProfile profile)
+	{
+		//#if MC >= 1.21.8
+		//$$ server.schedule(new TickTask(server.getTickCount(), () ->
+		//$$ {
+		//$$     playerList.placeNewPlayer(new UnpluggedConnection(PacketFlow.SERVERBOUND), shadow,
+		//$$             new CommonListenerCookie(profile, 0, shadow.clientInformation(), true));
+		//$$ }));
+		//#elseif MC >= 1.21.2
+		//$$ server.schedule(new TickTask(server.getTickCount(), () ->
+		//$$     playerList.placeNewPlayer(new UnpluggedConnection(PacketFlow.SERVERBOUND), shadow,
+		//$$             new CommonListenerCookie(profile, 0, shadow.clientInformation(), true))));
+		//#elseif MC >= 1.20.6
+		//$$ server.tell(new TickTask(server.getTickCount(), () ->
+		//$$     playerList.placeNewPlayer(new UnpluggedConnection(PacketFlow.SERVERBOUND), shadow,
+		//$$             new CommonListenerCookie(profile, 0, shadow.clientInformation(), true))));
+		//#elseif MC >= 1.20.2
+		//$$ server.tell(new TickTask(server.getTickCount(), () ->
+		//$$     playerList.placeNewPlayer(new UnpluggedConnection(PacketFlow.SERVERBOUND), shadow,
+		//$$             new CommonListenerCookie(profile, 0, shadow.clientInformation()))));
+		//#else
+		server.tell(new TickTask(server.getTickCount(), () ->
+				playerList.placeNewPlayer(new UnpluggedConnection(PacketFlow.SERVERBOUND), shadow)));
+		//#endif
 	}
 
 	//#if MC >= 1.21.10
