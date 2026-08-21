@@ -62,13 +62,19 @@ public class UnpluggedPlayerUtils
 	@ApiStatus.Internal
 	public static boolean ensureSafeForUUID(@Nonnull MinecraftServer server, @Nonnull UUID uuid)
 	{
+		return ensureSafeForUUID(server, uuid, null);
+	}
+
+	@ApiStatus.Internal
+	public static boolean ensureSafeForUUID(@Nonnull MinecraftServer server, @Nonnull UUID uuid, ServerPlayer ignoredPlayer)
+	{
 		PlayerList playerList = server.getPlayerList();
 		List<ServerPlayer> players = playerList.getPlayers();
 		boolean isSafe = true;
 
 		for (ServerPlayer player : players)
 		{
-			if (player.getUUID().equals(uuid))
+			if (player != ignoredPlayer && player.getUUID().equals(uuid))
 			{
 				isSafe = false;
 				break;

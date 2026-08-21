@@ -428,7 +428,7 @@ public class UnpluggedServerPlayer extends ServerPlayer
 		UnpluggedServerPlayer shadow = new UnpluggedServerPlayer(server, level, profile, player.getProfilePublicKey());
 		//#endif
 
-		if (!UnpluggedPlayerUtils.ensureSafeForUUID(server, player.getUUID()))
+		if (!UnpluggedPlayerUtils.ensureSafeForUUID(server, player.getUUID(), player))
 		{
 			return null;
 		}
