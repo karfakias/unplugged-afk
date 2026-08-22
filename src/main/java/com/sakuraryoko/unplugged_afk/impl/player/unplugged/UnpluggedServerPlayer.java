@@ -437,11 +437,6 @@ public class UnpluggedServerPlayer extends ServerPlayer
 		//$$ shadow.setChatSession(player.getChatSession());
 		//#endif
 
-		// Wait one server tick so the real player's disconnect/leave event is
-		// processed before the replacement player is announced as joining.
-		shadow.isValid = true;
-		placeShadowNextTick(server, pl, shadow, profile);
-
 		//#if MC >= 1.21.10
 		//$$ loadPlayerNbt(shadow);
 		//#endif
@@ -489,6 +484,9 @@ public class UnpluggedServerPlayer extends ServerPlayer
 		}
 
 		UnpluggedAfk.debugLog("createFromPlayer: player: ['{}'/{}], state: [{}]", ProfileWrap.name(profile), ProfileWrap.id(profile), state.toString());
+		// Register the complete session before the delayed replacement joins.
+		shadow.isValid = true;
+		placeShadowNextTick(server, pl, shadow, profile);
 
 		return shadow;
 	}
