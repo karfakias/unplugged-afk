@@ -496,24 +496,57 @@ public class UnpluggedServerPlayer extends ServerPlayer
 		//#if MC >= 1.21.8
 		//$$ server.schedule(new TickTask(server.getTickCount(), () ->
 		//$$ {
+		//$$     if (playerList.getPlayer(shadow.getUUID()) != null)
+		//$$     {
+		//$$         placeShadowNextTick(server, playerList, shadow, profile);
+		//$$         return;
+		//$$     }
 		//$$     playerList.placeNewPlayer(new UnpluggedConnection(PacketFlow.SERVERBOUND), shadow,
 		//$$             new CommonListenerCookie(profile, 0, shadow.clientInformation(), true));
 		//$$ }));
 		//#elseif MC >= 1.21.2
 		//$$ server.schedule(new TickTask(server.getTickCount(), () ->
+		//$$ {
+		//$$     if (playerList.getPlayer(shadow.getUUID()) != null)
+		//$$     {
+		//$$         placeShadowNextTick(server, playerList, shadow, profile);
+		//$$         return;
+		//$$     }
 		//$$     playerList.placeNewPlayer(new UnpluggedConnection(PacketFlow.SERVERBOUND), shadow,
-		//$$             new CommonListenerCookie(profile, 0, shadow.clientInformation(), true))));
+		//$$             new CommonListenerCookie(profile, 0, shadow.clientInformation(), true));
+		//$$ }));
 		//#elseif MC >= 1.20.6
 		//$$ server.tell(new TickTask(server.getTickCount(), () ->
+		//$$ {
+		//$$     if (playerList.getPlayer(shadow.getUUID()) != null)
+		//$$     {
+		//$$         placeShadowNextTick(server, playerList, shadow, profile);
+		//$$         return;
+		//$$     }
 		//$$     playerList.placeNewPlayer(new UnpluggedConnection(PacketFlow.SERVERBOUND), shadow,
-		//$$             new CommonListenerCookie(profile, 0, shadow.clientInformation(), true))));
+		//$$             new CommonListenerCookie(profile, 0, shadow.clientInformation(), true));
+		//$$ }));
 		//#elseif MC >= 1.20.2
 		//$$ server.tell(new TickTask(server.getTickCount(), () ->
+		//$$ {
+		//$$     if (playerList.getPlayer(shadow.getUUID()) != null)
+		//$$     {
+		//$$         placeShadowNextTick(server, playerList, shadow, profile);
+		//$$         return;
+		//$$     }
 		//$$     playerList.placeNewPlayer(new UnpluggedConnection(PacketFlow.SERVERBOUND), shadow,
-		//$$             new CommonListenerCookie(profile, 0, shadow.clientInformation()))));
+		//$$             new CommonListenerCookie(profile, 0, shadow.clientInformation()));
+		//$$ }));
 		//#else
 		server.tell(new TickTask(server.getTickCount(), () ->
-				playerList.placeNewPlayer(new UnpluggedConnection(PacketFlow.SERVERBOUND), shadow)));
+		{
+			if (playerList.getPlayer(shadow.getUUID()) != null)
+			{
+				placeShadowNextTick(server, playerList, shadow, profile);
+				return;
+			}
+			playerList.placeNewPlayer(new UnpluggedConnection(PacketFlow.SERVERBOUND), shadow);
+		}));
 		//#endif
 	}
 
