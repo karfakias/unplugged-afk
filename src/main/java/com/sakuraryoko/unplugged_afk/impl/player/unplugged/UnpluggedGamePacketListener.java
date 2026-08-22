@@ -102,25 +102,5 @@ public class UnpluggedGamePacketListener extends ServerGamePacketListenerImpl
 	{
 		super.teleport(x, y, z, yaw, pitch, relativeSet, dismountVehicle);
 	//#endif
-
-		//#if MC >= 1.21.8
-		//$$ if (this.player.level().getPlayerByUUID(this.player.getUUID()) != null)
-		//$$ {
-			//$$ this.resetPosition();
-			//$$ this.player.level().getChunkSource().move(this.player);
-		//$$ }
-		//#elseif MC >= 1.20.1
-		//$$ if (this.player.serverLevel().getPlayerByUUID(this.player.getUUID()) != null)
-		//$$ {
-			//$$ this.resetPosition();
-			//$$ this.player.serverLevel().getChunkSource().move(this.player);
-		//$$ }
-		//#else
-		if (this.player.getLevel().getPlayerByUUID(this.player.getUUID()) != null)
-		{
-			this.resetPosition();
-			this.player.getLevel().getChunkSource().move(this.player);
-		}
-		//#endif
 	}
 }
