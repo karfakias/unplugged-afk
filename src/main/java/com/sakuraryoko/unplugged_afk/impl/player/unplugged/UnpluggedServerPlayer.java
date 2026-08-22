@@ -854,6 +854,11 @@ public class UnpluggedServerPlayer extends ServerPlayer
 
 		if (entry != null)
 		{
+			if (entry.status() == UnpluggedStatus.ACTIVE && entry.timeout() <= 0L && this.timeout > 0L)
+			{
+				entry.updateState(new UnpluggedState(UnpluggedStatus.ACTIVE, this.time, this.timeout, this.startTime, this.reason));
+			}
+
 			if (entry.status() != UnpluggedStatus.ACTIVE)
 			{
 				UnpluggedState state = PlayerManager.getInstance().getState(this.getGameProfile());
