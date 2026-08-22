@@ -412,6 +412,7 @@ public class UnpluggedServerPlayer extends ServerPlayer
 			PlayerEventsHandler.getInstance().addShouldHideJoin(name);
 		}
 
+		pl.remove(player);
 		player.connection.disconnect(kickMsg);
 
 		//#if MC >= 1.20.1
