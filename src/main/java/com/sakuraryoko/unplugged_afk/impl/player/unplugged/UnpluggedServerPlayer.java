@@ -844,6 +844,10 @@ public class UnpluggedServerPlayer extends ServerPlayer
 		this.lastTick = now;
 
 		UnpluggedEntry entry = UnpluggedEntryList.getInstance().get(this);
+		if (entry == null && this.isValid && !this.disconnectPending && !this.expired)
+		{
+			entry = UnpluggedEntryList.getInstance().add(this, this.toState());
+		}
 
 		if (entry != null)
 		{
