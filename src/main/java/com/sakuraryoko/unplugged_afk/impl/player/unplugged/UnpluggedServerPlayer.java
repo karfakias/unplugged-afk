@@ -477,6 +477,9 @@ public class UnpluggedServerPlayer extends ServerPlayer
 
 		UnpluggedState state = new UnpluggedState(UnpluggedStatus.ACTIVE, time, shadow.timeout, shadow.startTime, reason);
 		PlayerManager.getInstance().setState(profile, state);
+		// A stale entry can remain briefly while an expired/replaced shadow is
+		// being removed. Do not reuse its old timeout for this new session.
+		UnpluggedEntryList.getInstance().remove(ProfileWrap.id(profile), true, UnpluggedStatus.INTERRUPTED);
 		UnpluggedEntry entry = UnpluggedEntryList.getInstance().add(shadow, state);
 
 		if (entry != null)
