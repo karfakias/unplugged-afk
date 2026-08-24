@@ -22,6 +22,10 @@ package com.sakuraryoko.unplugged_afk.impl.commands.server;
 
 import org.jetbrains.annotations.ApiStatus;
 
+import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -47,10 +51,6 @@ import com.sakuraryoko.unplugged_afk.impl.player.wrap.ProfileWrap;
 import static net.minecraft.commands.Commands.argument;
 import static net.minecraft.commands.Commands.literal;
 
-import java.util.Locale;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 @ApiStatus.Internal
 public class UnplugCommand implements IServerCommand
 {
@@ -61,7 +61,7 @@ public class UnplugCommand implements IServerCommand
         dispatcher.register(
                 literal(this.getName())
                         .requires(PermsWrap.check(this.getNode(), ConfigWrap.cmdOpt().unplugCommandPermissions))
-                        .executes(ctx -> this.setUnpluggedAfk(ctx, null, ""))
+                        .executes(ctx -> this.setUnpluggedAfk(ctx, "", ""))
                         .then(argument("duration", StringArgumentType.word())
                                       .requires(PermsWrap.check(this.getNode(), ConfigWrap.cmdOpt().unplugCommandPermissions))
                                       .executes(ctx -> this.setUnpluggedAfk(ctx, StringArgumentType.getString(ctx, "duration"), ""))
@@ -85,7 +85,7 @@ public class UnplugCommand implements IServerCommand
         return Reference.MOD_ID;
     }
 
-    private int setUnpluggedAfk(CommandContext<CommandSourceStack> context, String durationString, String reason)
+	private int setUnpluggedAfk(CommandContext<CommandSourceStack> context, String duration, String reason)
     {
         CommandSourceStack src = context.getSource();
         if (src.getPlayer() == null) { return 0; }
@@ -120,37 +120,35 @@ public class UnplugCommand implements IServerCommand
             return 1;
         }
 
-        long timeout;
-        int time;
-        if (durationString == null)
-        {
-            time = ConfigWrap.unplugged().defaultUnpluggedTimeout;
-            if (time <= 0) { time = 360; }
-            try { timeout = Math.multiplyExact(Math.multiplyExact((long) time, 60L), 1000L); }
-            catch (ArithmeticException ex) { return invalidDuration(context); }
-        }
-        else
-        {
-            try { timeout = parseDurationMillis(durationString); }
-            catch (IllegalArgumentException ex) { return invalidDuration(context); }
-            time = (int) Math.max(1L, timeout / 60_000L + (timeout % 60_000L == 0L ? 0L : 1L));
-        }
-
-        long maximumTimeout;
-        try { maximumTimeout = Math.multiplyExact(Math.multiplyExact((long) ConfigWrap.unplugged().maximumUnpluggedTimeout, 60L), 1000L); }
-        catch (ArithmeticException ex) { maximumTimeout = 0L; }
-        if (maximumTimeout <= 0L || timeout > maximumTimeout)
-        {
-			String message = "\u00a7cYou cannot use /unplug for more than "
-					+ formatDuration(ConfigWrap.unplugged().maximumUnpluggedTimeout)
-					+ ".\u00a7r";
-            //#if MC >= 1.20.1
-            //$$ context.getSource().sendSuccess(() -> InitWrap.text().formatTextSafe(message), false);
-            //#else
-            context.getSource().sendSuccess(InitWrap.text().formatTextSafe(message), false);
-            //#endif
-            return 0;
-        }
+		int time = parseDurationMinutes(duration);
+		int maximumTime = ConfigWrap.unplugged().maximumUnpluggedTimeout;
+		if (!duration.isEmpty() && time < 0)
+		{
+			String msg = "§cInvalid duration. Use 1h30m30s, 90m, 30s, or 60.§r";
+			//#if MC >= 1.20.1
+			//$$ context.getSource().sendSuccess(() -> InitWrap.text().formatTextSafe(msg), false);
+			//#else
+			context.getSource().sendSuccess(InitWrap.text().formatTextSafe(msg), false);
+			//#endif
+			return 0;
+		}
+		if (time < 0)
+		{
+			time = duration.isEmpty() && maximumTime > 0
+				? maximumTime
+				: ConfigWrap.unplugged().defaultUnpluggedTimeout;
+			if (time < 0) time = 129600;
+		}
+		if (maximumTime > 0 && time > maximumTime)
+		{
+			String msg = "§cYou can only AFK for " + formatDuration(maximumTime) + ".§r";
+			//#if MC >= 1.20.1
+			//$$ context.getSource().sendSuccess(() -> InitWrap.text().formatTextSafe(msg), false);
+			//#else
+			context.getSource().sendSuccess(InitWrap.text().formatTextSafe(msg), false);
+			//#endif
+			return 0;
+		}
         if (reason == null || reason.isEmpty())
         {
             reason = ConfigWrap.mess().defaultUnpluggedReason;
@@ -161,73 +159,53 @@ public class UnplugCommand implements IServerCommand
             }
         }
 
-        if (UnpluggedServerPlayer.createFromPlayer(server, player, time, timeout, reason) == null)
-        {
-            UnpluggedAfk.LOGGER.error("Error creating Unplugged Player from: {}", player.getName().getString());
-            return 0;
-        }
+        final int finalTime = time;
+        final String finalReason = reason;
+
+        server.execute(() -> UnpluggedServerPlayer.createFromPlayer(server, player, finalTime, finalReason));
 
         UnpluggedAfk.debugLog("setUnpluggedAfk: player: ['{}'/{}] // T: {}m, R: '{}'", ProfileWrap.name(profile), ProfileWrap.id(profile), time, reason);
-        return 1;
-    }
+		return 1;
+	}
 
-    private int invalidDuration(CommandContext<CommandSourceStack> context)
-    {
-        final String message = "\u00a7cInvalid duration. Use values such as 10s, 60m, 1h30m, or 60.\u00a7r";
-        //#if MC >= 1.20.1
-        //$$ context.getSource().sendSuccess(() -> InitWrap.text().formatTextSafe(message), false);
-        //#else
-        context.getSource().sendSuccess(InitWrap.text().formatTextSafe(message), false);
-        //#endif
-        return 0;
-    }
+	private static int parseDurationMinutes(String input)
+	{
+		if (input == null || input.isEmpty()) return -1;
+		if (input.matches("\\d+"))
+		{
+			try { return Math.toIntExact(Long.parseLong(input)); }
+			catch (NumberFormatException | ArithmeticException error) { return -1; }
+		}
 
-    private static String formatDuration(int minutes)
-    {
-        if (minutes % 60 == 0)
-        {
-            int hours = minutes / 60;
-            return hours + (hours == 1 ? " hour" : " hours");
-        }
+		Matcher matcher = DURATION_PART.matcher(input);
+		long seconds = 0L;
+		int end = 0;
+		boolean found = false;
+		while (matcher.find())
+		{
+			if (matcher.start() != end) return -1;
+			long amount;
+			try { amount = Long.parseLong(matcher.group(1)); }
+			catch (NumberFormatException error) { return -1; }
+			long multiplier = switch (matcher.group(2).toLowerCase(Locale.ROOT))
+			{
+				case "h" -> 3600L;
+				case "m" -> 60L;
+				default -> 1L;
+			};
+			try { seconds = Math.addExact(seconds, Math.multiplyExact(amount, multiplier)); }
+			catch (ArithmeticException error) { return -1; }
+			end = matcher.end();
+			found = true;
+		}
+		if (!found || end != input.length() || seconds < 1L) return -1;
+		long minutes = (seconds + 59L) / 60L;
+		return minutes > Integer.MAX_VALUE ? -1 : (int) minutes;
+	}
 
-        if (minutes > 60)
-        {
-            int hours = minutes / 60;
-            int remainingMinutes = minutes % 60;
-            return hours + (hours == 1 ? " hour " : " hours ")
-                    + remainingMinutes + (remainingMinutes == 1 ? " minute" : " minutes");
-        }
-
-        return minutes + (minutes == 1 ? " minute" : " minutes");
-    }
-
-    private static long parseDurationMillis(String input)
-    {
-        String value = input.toLowerCase(Locale.ROOT);
-        if (value.matches("\\d+"))
-        {
-            try { return Math.multiplyExact(Math.multiplyExact(Long.parseLong(value), 60L), 1000L); }
-            catch (ArithmeticException | NumberFormatException ex) { throw new IllegalArgumentException(); }
-        }
-
-        Matcher matcher = DURATION_PART.matcher(value);
-        long seconds = 0L;
-        int end = 0;
-        boolean found = false;
-        while (matcher.find())
-        {
-            if (matcher.start() != end) { throw new IllegalArgumentException(); }
-            long amount;
-            try { amount = Long.parseLong(matcher.group(1)); }
-            catch (NumberFormatException ex) { throw new IllegalArgumentException(); }
-            long unit = switch (matcher.group(2).charAt(0)) { case 'h' -> 3600L; case 'm' -> 60L; default -> 1L; };
-            try { seconds = Math.addExact(seconds, Math.multiplyExact(amount, unit)); }
-            catch (ArithmeticException ex) { throw new IllegalArgumentException(); }
-            end = matcher.end();
-            found = true;
-        }
-        if (!found || end != value.length() || seconds <= 0L) { throw new IllegalArgumentException(); }
-        try { return Math.multiplyExact(seconds, 1000L); }
-        catch (ArithmeticException ex) { throw new IllegalArgumentException(); }
-    }
+	private static String formatDuration(int minutes)
+	{
+		if (minutes % 60 == 0) return (minutes / 60) + " hours";
+		return minutes + " minutes";
+	}
 }

@@ -42,7 +42,7 @@ public class UnpluggedOptions implements IConfigOption
 	public void defaults()
 	{
 		this.defaultUnpluggedTimeout = 360;
-		this.maximumUnpluggedTimeout = 360;
+		this.maximumUnpluggedTimeout = 600;
 		this.resetHealthUponDeath = false;
 		this.unpluggedDisableDamage = false;
 		this.unpluggedHidePlayer = false;

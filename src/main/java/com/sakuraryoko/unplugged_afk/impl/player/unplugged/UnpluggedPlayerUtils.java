@@ -23,12 +23,20 @@ package com.sakuraryoko.unplugged_afk.impl.player.unplugged;
 import java.util.List;
 import java.util.UUID;
 import javax.annotation.Nonnull;
+//#if MC >= 1.21.8
+//$$ import org.slf4j.Logger;
+//$$ import org.slf4j.LoggerFactory;
+//#endif
+//#if MC >= 1.20.2
+//$$ import java.util.Optional;
+//#endif
 
 import com.google.common.collect.ImmutableList;
 import org.jetbrains.annotations.ApiStatus;
 
 import com.mojang.authlib.GameProfile;
 import net.minecraft.ChatFormatting;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoPacket;
@@ -38,6 +46,17 @@ import net.minecraft.network.protocol.game.ClientboundPlayerInfoPacket;
 //#if MC >= 1.21.11
 //$$ import net.minecraft.server.permissions.Permissions;
 //#endif
+//#if MC >= 1.21.10
+//$$ import net.minecraft.core.UUIDUtil;
+//$$ import net.minecraft.server.players.NameAndId;
+//$$ import net.minecraft.server.players.OldUsersConverter;
+//$$ import net.minecraft.world.item.component.ResolvableProfile;
+//#endif
+//#if MC >= 1.21.8
+//$$ import net.minecraft.world.level.storage.TagValueInput;
+//$$ import net.minecraft.world.level.storage.ValueInput;
+//$$ import net.minecraft.util.ProblemReporter;
+//#endif
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.players.PlayerList;
@@ -46,8 +65,10 @@ import net.minecraft.server.players.PlayerList;
 //$$ import com.sakuraryoko.unplugged_afk.impl.player.interfaces.IWaypointManagerInvoker;
 //#endif
 
+//#if MC >= 1.21.8
+//$$ import com.sakuraryoko.unplugged_afk.impl.Reference;
+//#endif
 import com.sakuraryoko.unplugged_afk.api.UnpluggedAfkEvents;
-import com.sakuraryoko.unplugged_afk.impl.UnpluggedAfk;
 import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
 import com.sakuraryoko.unplugged_afk.impl.events.PlayerEventsHandler;
 import com.sakuraryoko.unplugged_afk.impl.modinit.InitWrap;
@@ -62,19 +83,13 @@ public class UnpluggedPlayerUtils
 	@ApiStatus.Internal
 	public static boolean ensureSafeForUUID(@Nonnull MinecraftServer server, @Nonnull UUID uuid)
 	{
-		return ensureSafeForUUID(server, uuid, null);
-	}
-
-	@ApiStatus.Internal
-	public static boolean ensureSafeForUUID(@Nonnull MinecraftServer server, @Nonnull UUID uuid, ServerPlayer ignoredPlayer)
-	{
 		PlayerList playerList = server.getPlayerList();
 		List<ServerPlayer> players = playerList.getPlayers();
 		boolean isSafe = true;
 
 		for (ServerPlayer player : players)
 		{
-			if (player != ignoredPlayer && player.getUUID().equals(uuid))
+			if (player.getUUID().equals(uuid))
 			{
 				isSafe = false;
 				break;
@@ -293,6 +308,9 @@ public class UnpluggedPlayerUtils
 
 			String str = ConfigWrap.mess().unpluggedReplaced;
 			sp.kill(InitWrap.text().formatText(str));
+			MinecraftServer server = playerList.getServer();
+//				                       ((IMixinPlayerList) server.getPlayerList()).unplugged$save(player);
+			server.getPlayerList().remove(player);
 		}
 	}
 
@@ -378,4 +396,91 @@ public class UnpluggedPlayerUtils
 			server.getPlayerList().broadcastSystemMessage(Component.translatable("multiplayer.player.left", name).withStyle(ChatFormatting.YELLOW), false);
 		}
 	}
+
+	//#if MC >= 1.21.10
+	//$$ private final static Logger DUMB_LOGGER = LoggerFactory.getLogger(Reference.MOD_ID);
+	//$$ protected static void loadPlayerNbt(UnpluggedServerPlayer player)
+	//$$ {
+		//$$ try (ProblemReporter.ScopedCollector logger = new ProblemReporter.ScopedCollector(player.problemPath(), DUMB_LOGGER))
+		//$$ {
+			//$$ Optional<ValueInput> opt = player.level()
+				//$$ .getServer().getPlayerList()
+				//$$ .loadPlayerData(player.nameAndId())
+			//$$ .map((nbt) ->
+				//$$ TagValueInput.create(logger, player.registryAccess(), nbt)
+			//$$ );
+			//$$ opt.ifPresent((data) ->
+			//$$ {
+				//$$ player.load(data);
+				//$$ player.loadAndSpawnEnderPearls(data);
+				//$$ player.loadAndSpawnParentVehicle(data);
+			//$$ });
+		//$$ }
+	//$$ }
+	//#elseif MC >= 1.21.8
+	//$$ private final static Logger DUMB_LOGGER = LoggerFactory.getLogger(Reference.MOD_ID);
+	//$$ protected static void loadPlayerNbt(UnpluggedServerPlayer player)
+	//$$ {
+		//$$ try (ProblemReporter.ScopedCollector logger = new ProblemReporter.ScopedCollector(player.problemPath(), DUMB_LOGGER))
+		//$$ {
+			//$$ Optional<ValueInput> opt = player.level().getServer().getPlayerList().load(player, logger);
+			//$$ if (opt.isPresent())
+			//$$ {
+				//$$ ValueInput data = opt.get();
+				//$$ player.load(data);
+				//$$ player.loadAndSpawnEnderPearls(data);
+				//$$ player.loadAndSpawnParentVehicle(data);
+			//$$ }
+		//$$ }
+	//$$ }
+	//#elseif MC >= 1.21.5
+	//$$ protected static void loadPlayerNbt(UnpluggedServerPlayer player)
+	//$$ {
+		//$$ Optional<CompoundTag> opt = player.level().getServer().getPlayerList().load(player);
+		//$$ if (opt.isPresent())
+		//$$ {
+			//$$ CompoundTag data = opt.get();
+			//$$ player.load(data);
+			//$$ player.loadAndSpawnEnderPearls(data);
+			//$$ player.loadAndSpawnParentVehicle(data);
+		//$$ }
+	//$$ }
+	//#elseif MC >= 1.21.2
+	//$$ protected static void loadPlayerNbt(UnpluggedServerPlayer player)
+	//$$ {
+		//$$ Optional<CompoundTag> opt = player.level().getServer().getPlayerList().load(player);
+		//$$ if (opt.isPresent())
+		//$$ {
+			//$$ CompoundTag data = opt.get();
+			//$$ player.load(data);
+			//$$ player.loadAndSpawnEnderpearls(opt);
+			//$$ player.loadAndSpawnParentVehicle(opt);
+		//$$ }
+	//$$ }
+	//#elseif MC >= 1.20.6
+	//$$ protected static void loadPlayerNbt(UnpluggedServerPlayer player)
+	//$$ {
+		//$$ MinecraftServer server = player.getServer();
+		//$$ if (server != null)
+		//$$ {
+			//$$ Optional<CompoundTag> opt = server.getPlayerList().load(player);
+			//$$ opt.ifPresent(player::load);
+		//$$ }
+	//$$ }
+	//#else
+	protected static void loadPlayerNbt(UnpluggedServerPlayer player)
+	{
+		MinecraftServer server = player.getServer();
+
+		if (server != null)
+		{
+			CompoundTag tags = server.getPlayerList().load(player);
+
+			if (tags != null)
+			{
+				player.load(tags);
+			}
+		}
+	}
+	//#endif
 }

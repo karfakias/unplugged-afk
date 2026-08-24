@@ -77,10 +77,14 @@ public class UnpluggedGamePacketListener extends ServerGamePacketListenerImpl
 		UnpluggedServerPlayer sp = (UnpluggedServerPlayer) this.player;
 		if (!sp.isValid()) { return; }
 
-		boolean disconnectMessage = message.getContents() instanceof TranslatableContents text &&
+		if (message.getContents() instanceof TranslatableContents text &&
 			(text.getKey().equals("multiplayer.disconnect.idling") ||
-			 text.getKey().equals("multiplayer.disconnect.duplicate_login"));
-		if (disconnectMessage || !ConfigWrap.unplugged().resetHealthUponDeath)
+			 text.getKey().equals("multiplayer.disconnect.duplicate_login")))
+		{
+			sp.kill(message);
+		}
+
+		if (!ConfigWrap.unplugged().resetHealthUponDeath)
 		{
 			sp.kill(message);
 		}
@@ -102,5 +106,25 @@ public class UnpluggedGamePacketListener extends ServerGamePacketListenerImpl
 	{
 		super.teleport(x, y, z, yaw, pitch, relativeSet, dismountVehicle);
 	//#endif
+
+		//#if MC >= 1.21.8
+		//$$ if (this.player.level().getPlayerByUUID(this.player.getUUID()) != null)
+		//$$ {
+			//$$ this.resetPosition();
+			//$$ this.player.level().getChunkSource().move(this.player);
+		//$$ }
+		//#elseif MC >= 1.20.1
+		//$$ if (this.player.serverLevel().getPlayerByUUID(this.player.getUUID()) != null)
+		//$$ {
+			//$$ this.resetPosition();
+			//$$ this.player.serverLevel().getChunkSource().move(this.player);
+		//$$ }
+		//#else
+		if (this.player.getLevel().getPlayerByUUID(this.player.getUUID()) != null)
+		{
+			this.resetPosition();
+			this.player.getLevel().getChunkSource().move(this.player);
+		}
+		//#endif
 	}
 }

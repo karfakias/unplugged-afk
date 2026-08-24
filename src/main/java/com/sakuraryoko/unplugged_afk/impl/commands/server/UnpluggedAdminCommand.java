@@ -564,16 +564,27 @@ public class UnpluggedAdminCommand implements IServerCommand
     {
         boolean found = false;
         String reply = "";
+        int maximumTime = ConfigWrap.unplugged().maximumUnpluggedTimeout;
 
         if (time < 0)
         {
-            time = ConfigWrap.unplugged().defaultUnpluggedTimeout;
+            time = maximumTime > 0 ? maximumTime : ConfigWrap.unplugged().defaultUnpluggedTimeout;
 
             if (time < 0)
             {
                 time = 129600;
             }
         }
+		if (maximumTime > 0 && time > maximumTime)
+		{
+			String limitReply = "§cYou can only AFK for " + formatDuration(maximumTime) + ".§r";
+			//#if MC >= 1.20.1
+			//$$ ctx.getSource().sendSuccess(() -> InitWrap.text().formatText(limitReply), false);
+			//#else
+			ctx.getSource().sendSuccess(InitWrap.text().formatText(limitReply), false);
+			//#endif
+			return 0;
+		}
         if (reason == null || reason.isEmpty())
         {
             reason = ConfigWrap.mess().defaultUnpluggedReason;
@@ -633,6 +644,12 @@ public class UnpluggedAdminCommand implements IServerCommand
         }
 
         return 1;
+    }
+
+    private static String formatDuration(int minutes)
+    {
+        if (minutes % 60 == 0) return (minutes / 60) + " hours";
+        return minutes + " minutes";
     }
 
     @ApiStatus.Internal

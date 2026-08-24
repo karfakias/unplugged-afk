@@ -24,21 +24,9 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.sakuraryoko.unplugged_afk.api.state.GameState;
-import com.sakuraryoko.unplugged_afk.api.state.PosState;
-import com.sakuraryoko.unplugged_afk.api.state.UnpluggedState;
-import com.sakuraryoko.unplugged_afk.api.state.UnpluggedStatus;
-import com.sakuraryoko.unplugged_afk.impl.events.PlayerEventsHandler;
-import com.sakuraryoko.unplugged_afk.impl.events.ServerEventsHandler;
-import com.sakuraryoko.unplugged_afk.impl.modinit.InitWrap;
-import com.sakuraryoko.unplugged_afk.impl.player.PlayerManager;
 import org.jetbrains.annotations.ApiStatus;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
-//#if MC >= 1.21.10
-//$$ import org.slf4j.Logger;
-//$$ import org.slf4j.LoggerFactory;
-//#endif
 //#if MC >= 1.20.2
 //$$ import java.util.Optional;
 //$$ import java.util.concurrent.CompletableFuture;
@@ -60,12 +48,10 @@ import com.mojang.authlib.GameProfile;
 //$$ import net.minecraft.core.UUIDUtil;
 //$$ import net.minecraft.server.players.NameAndId;
 //$$ import net.minecraft.server.players.OldUsersConverter;
+//$$ import net.minecraft.server.level.ParticleStatus;
 //$$ import net.minecraft.world.item.component.ResolvableProfile;
-//$$ import net.minecraft.world.level.storage.TagValueInput;
-//$$ import net.minecraft.world.level.storage.ValueInput;
-//$$ import net.minecraft.util.ProblemReporter;
+//$$ import net.minecraft.world.entity.player.ChatVisiblity;
 //#endif
-import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoPacket;
@@ -99,10 +85,16 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.SkullBlockEntity;
+import net.minecraft.world.phys.Vec3;
 
-//#if MC >= 1.21.10
-//$$ import com.sakuraryoko.unplugged_afk.impl.Reference;
-//#endif
+import com.sakuraryoko.unplugged_afk.api.state.GameState;
+import com.sakuraryoko.unplugged_afk.api.state.PosState;
+import com.sakuraryoko.unplugged_afk.api.state.UnpluggedState;
+import com.sakuraryoko.unplugged_afk.api.state.UnpluggedStatus;
+import com.sakuraryoko.unplugged_afk.impl.events.PlayerEventsHandler;
+import com.sakuraryoko.unplugged_afk.impl.events.ServerEventsHandler;
+import com.sakuraryoko.unplugged_afk.impl.modinit.InitWrap;
+import com.sakuraryoko.unplugged_afk.impl.player.PlayerManager;
 import com.sakuraryoko.unplugged_afk.impl.UnpluggedAfk;
 import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
 import com.sakuraryoko.unplugged_afk.impl.config.data.options.PlayerOptions;
@@ -122,7 +114,6 @@ public class UnpluggedServerPlayer extends ServerPlayer
 	private long timeout = -1L;
 	private long lastTick = -1L;
 	private boolean isValid = false;
-	private boolean disconnectPending = false;
 	private boolean expired = false;
 
 	//#if MC >= 1.20.2
@@ -140,6 +131,17 @@ public class UnpluggedServerPlayer extends ServerPlayer
 	{
 		super(server, level, profile, profilePublicKey);
 	}
+	//#endif
+
+	//#if MC >= 1.20.2
+	//$$ private static ClientInformation createUnpluggedClientInformation()
+	//$$ {
+		//#if MC >= 1.21.10
+		//$$ return new ClientInformation("en_us", 2, ChatVisiblity.FULL, true, 0, Player.DEFAULT_MAIN_HAND, false, true, ParticleStatus.ALL);
+		//#else
+		//$$ return ClientInformation.createDefault();
+		//#endif
+	//$$ }
 	//#endif
 
 	//#if MC >= 1.21.10
@@ -266,8 +268,8 @@ public class UnpluggedServerPlayer extends ServerPlayer
 			//$$ {
 				//$$ temp = p;
 			//$$ }
-		//$$ GameProfile restoredProfile = temp;
-		//$$ server.execute(() -> createFromConfigPhase2(server, level, restoredProfile, state, pos, game));
+			//$$ final GameProfile finalProfile = temp;
+			//$$ server.execute(() -> createFromConfigPhase2(server, level, finalProfile, state, pos, game));
 		//$$ });
 		//#elseif MC >= 1.20.2
 		//$$ GameProfile tempProfile = profile;
@@ -278,8 +280,8 @@ public class UnpluggedServerPlayer extends ServerPlayer
 			//$$ {
 				//$$ temp = opt.get();
 			//$$ }
-		//$$ GameProfile restoredProfile = temp;
-		//$$ server.execute(() -> createFromConfigPhase2(server, level, restoredProfile, state, pos, game));
+			//$$ final GameProfile finalProfile = temp;
+			//$$ server.execute(() -> createFromConfigPhase2(server, level, finalProfile, state, pos, game));
 		//$$ });
 		//#else
 		if (profile.getProperties().containsKey("textures"))
@@ -289,7 +291,8 @@ public class UnpluggedServerPlayer extends ServerPlayer
 			profile = result.get();
 		}
 
-		createFromConfigPhase2(server, level, profile, state, pos, game);
+		final GameProfile finalProfile = profile;
+		server.execute(() -> createFromConfigPhase2(server, level, finalProfile, state, pos, game));
 		//#endif
 	}
 
@@ -301,18 +304,17 @@ public class UnpluggedServerPlayer extends ServerPlayer
 		final String name = ProfileWrap.name(profile);
 
 		//#if MC >= 1.20.2
-		//$$ UnpluggedServerPlayer shadow = new UnpluggedServerPlayer(server, level, profile, ClientInformation.createDefault());
+		//$$ UnpluggedServerPlayer shadow = new UnpluggedServerPlayer(server, level, profile, createUnpluggedClientInformation());
 		//#elseif MC >= 1.19.3
 		//$$ UnpluggedServerPlayer shadow = new UnpluggedServerPlayer(server, level, profile);
 		//#else
 		UnpluggedServerPlayer shadow = new UnpluggedServerPlayer(server, level, profile, null);
 		//#endif
 
-		//#if MC >= 1.21.10
-		//$$ shadow.startingPosition = () -> shadow.snapTo(pos.x(), pos.y(), pos.z(), pos.yaw(), pos.pitch());
-		//#else
-		shadow.startingPosition = () -> shadow.moveTo(pos.x(), pos.y(), pos.z(), pos.yaw(), pos.pitch());
-		//#endif
+		if (!pos.isEmpty())
+		{
+			shadow.startingPosition = () -> onStartingPositonWrap(shadow, pos);
+		}
 
 		if (ConfigWrap.mess().hideUnpluggedJoin)
 		{
@@ -320,18 +322,20 @@ public class UnpluggedServerPlayer extends ServerPlayer
 		}
 
 		//#if MC >= 1.20.6
-		//$$ pl.placeNewPlayer(new UnpluggedConnection(PacketFlow.SERVERBOUND), shadow, new CommonListenerCookie(profile, 0, ClientInformation.createDefault(), true));
+		//$$ pl.placeNewPlayer(new UnpluggedConnection(PacketFlow.SERVERBOUND), shadow, new CommonListenerCookie(profile, 0, createUnpluggedClientInformation(), true));
 		//#elseif MC >= 1.20.2
-		//$$ pl.placeNewPlayer(new UnpluggedConnection(PacketFlow.SERVERBOUND), shadow, new CommonListenerCookie(profile, 0, ClientInformation.createDefault()));
+		//$$ pl.placeNewPlayer(new UnpluggedConnection(PacketFlow.SERVERBOUND), shadow, new CommonListenerCookie(profile, 0, createUnpluggedClientInformation()));
 		//#else
 		pl.placeNewPlayer(new UnpluggedConnection(PacketFlow.SERVERBOUND), shadow);
 		//#endif
 
-		//#if MC >= 1.21.10
-		//$$ loadPlayerNbt(shadow);
-		//#endif
+		UnpluggedPlayerUtils.loadPlayerNbt(shadow);
+
 		shadow.setHealth(20.0f);
-		shadow.connection.teleport(pos.x(), pos.y(), pos.z(), pos.yaw(), pos.pitch());
+		if (!pos.matches(shadow) && !pos.isEmpty())
+		{
+			shadow.connection.teleport(pos.x(), pos.y(), pos.z(), pos.yaw(), pos.pitch());
+		}
 		shadow.gameMode.changeGameModeForPlayer(gameType);
 		shadow.unsetRemoved();
 		//#if MC >= 1.20.6
@@ -381,18 +385,14 @@ public class UnpluggedServerPlayer extends ServerPlayer
 		return shadow;
 	}
 
-	@Nullable
-	public static UnpluggedServerPlayer createFromPlayer(MinecraftServer server, ServerPlayer player, int time, String reason)
-	{
-		return createFromPlayer(server, player, time, (time * 60L) * 1000L, reason);
-	}
-
-	public static UnpluggedServerPlayer createFromPlayer(MinecraftServer server, ServerPlayer player, int time, long timeout, String reason)
+	public static void createFromPlayer(MinecraftServer server, ServerPlayer player, int time, String reason)
 	{
 		if (time <= 0)
 		{
 			time = 129600;      // Hard coded in case of stupid
 		}
+
+		final long timeout = (time * 60L) * 1000L;
 		final String name = player.getName().getString();
 		final String duration = ConfigWrap.mess().duration.option.format(timeout);
 		final String kickStr = ConfigWrap.mess().unpluggedKickMessage
@@ -400,7 +400,13 @@ public class UnpluggedServerPlayer extends ServerPlayer
 				   ? ConfigWrap.mess().whenUnpluggedDurationPrefix + duration
 				   : "");
 		Component kickMsg = InitWrap.text().formatText(kickStr);
-		PlayerList pl = server.getPlayerList();
+
+		final GameProfile profile = player.getGameProfile();
+		final PosState pos = PosWrap.of(player);
+		final GameState game = GameWrap.of(player);
+		final int finalTime = time;
+		final float health = player.getHealth();
+		final boolean isFlying = player.getAbilities().flying;
 
 		if (kickMsg == null || kickMsg.toString().isEmpty())
 		{
@@ -412,38 +418,70 @@ public class UnpluggedServerPlayer extends ServerPlayer
 			PlayerEventsHandler.getInstance().addShouldHideJoin(name);
 		}
 
-		pl.remove(player);
+		server.getPlayerList().remove(player);
 		player.connection.disconnect(kickMsg);
 
-		//#if MC >= 1.20.1
-		//$$ ServerLevel level = player.serverLevel();
-		//#else
-		ServerLevel level = player.getLevel();
-		//#endif
-		GameProfile profile = player.getGameProfile();
+		server.execute(() -> createFromPlayerPhase2(server, profile, finalTime, timeout, reason, pos, game, health, isFlying));
+	}
+
+	public static void createFromPlayerPhase2(MinecraftServer server, GameProfile profile,
+	                                          int time, final long timeout, String reason,
+	                                          PosState pos, GameState game,
+	                                          float health, boolean isFlying)
+	{
+		GameType gameType = GameType.byName(game.gameMode(), GameType.DEFAULT_MODE);
+		final UUID uuid = ProfileWrap.id(profile);
+		ResourceLocation id = ResourceLocation.tryParse(pos.location());
+		AtomicReference<ResourceKey<Level>> ref = new AtomicReference<>(Level.OVERWORLD);
+
+		if (id != null)
+		{
+			server.levelKeys().forEach(levelKey ->
+			                           {
+				                           if (levelKey.location().equals(id))
+				                           {
+					                           ref.set(levelKey);
+				                           }
+			                           });
+		}
+
+		PlayerList pl = server.getPlayerList();
+		ServerLevel level = server.getLevel(ref.get());
+
 		//#if MC >= 1.20.2
-		//$$ UnpluggedServerPlayer shadow = new UnpluggedServerPlayer(server, level, profile, player.clientInformation());
+		//$$ UnpluggedServerPlayer shadow = new UnpluggedServerPlayer(server, level, profile, createUnpluggedClientInformation());
 		//#elseif MC >= 1.19.3
 		//$$ UnpluggedServerPlayer shadow = new UnpluggedServerPlayer(server, level, profile);
 		//#else
-		UnpluggedServerPlayer shadow = new UnpluggedServerPlayer(server, level, profile, player.getProfilePublicKey());
+		UnpluggedServerPlayer shadow = new UnpluggedServerPlayer(server, level, profile, null);
 		//#endif
 
-		if (!UnpluggedPlayerUtils.ensureSafeForUUID(server, player.getUUID(), player))
+		if (!UnpluggedPlayerUtils.ensureSafeForUUID(server, uuid))
 		{
-			return null;
+			return;
 		}
 
-		//#if MC >= 1.19.3
-		//$$ shadow.setChatSession(player.getChatSession());
+		if (!pos.isEmpty())
+		{
+			shadow.startingPosition = () -> onStartingPositonWrap(shadow, pos);
+		}
+
+		//#if MC >= 1.20.6
+		//$$ pl.placeNewPlayer(new UnpluggedConnection(PacketFlow.SERVERBOUND), shadow, new CommonListenerCookie(profile, 0, createUnpluggedClientInformation(), true));
+		//#elseif MC >= 1.20.2
+		//$$ pl.placeNewPlayer(new UnpluggedConnection(PacketFlow.SERVERBOUND), shadow, new CommonListenerCookie(profile, 0, createUnpluggedClientInformation()));
+		//#else
+		pl.placeNewPlayer(new UnpluggedConnection(PacketFlow.SERVERBOUND), shadow);
 		//#endif
 
-		//#if MC >= 1.21.10
-		//$$ loadPlayerNbt(shadow);
-		//#endif
-		shadow.setHealth(player.getHealth());
-		shadow.connection.teleport(player.getX(), player.getY(), player.getZ(), player.getYRot(), player.getXRot());
-		shadow.gameMode.changeGameModeForPlayer(player.gameMode.getGameModeForPlayer());
+		UnpluggedPlayerUtils.loadPlayerNbt(shadow);
+
+		shadow.setHealth(health);
+		if (!pos.matches(shadow) && !pos.isEmpty())
+		{
+			shadow.connection.teleport(pos.x(), pos.y(), pos.z(), pos.yaw(), pos.pitch());
+		}
+		shadow.gameMode.changeGameModeForPlayer(gameType);
 		//#if MC >= 1.20.6
 		//$$ shadow.getAttribute(Attributes.STEP_HEIGHT).setBaseValue(0.6F);
 		//#elseif MC >= 1.19.4
@@ -451,7 +489,7 @@ public class UnpluggedServerPlayer extends ServerPlayer
 		//#else
 		shadow.maxUpStep = 0.6f;
 		//#endif
-		shadow.entityData.set(DATA_PLAYER_MODE_CUSTOMISATION, player.getEntityData().get(DATA_PLAYER_MODE_CUSTOMISATION));
+		shadow.entityData.set(DATA_PLAYER_MODE_CUSTOMISATION, (byte) 0x7f);
 
 		if (shadow.gameMode.isSurvival())
 		{
@@ -461,7 +499,7 @@ public class UnpluggedServerPlayer extends ServerPlayer
 		}
 		else
 		{
-			shadow.getAbilities().flying = player.getAbilities().flying;
+			shadow.getAbilities().flying = isFlying;
 		}
 
 		shadow.time = time;
@@ -473,9 +511,6 @@ public class UnpluggedServerPlayer extends ServerPlayer
 
 		UnpluggedState state = new UnpluggedState(UnpluggedStatus.ACTIVE, time, shadow.timeout, shadow.startTime, reason);
 		PlayerManager.getInstance().setState(profile, state);
-		// A stale entry can remain briefly while an expired/replaced shadow is
-		// being removed. Do not reuse its old timeout for this new session.
-		UnpluggedEntryList.getInstance().remove(ProfileWrap.id(profile), true, UnpluggedStatus.INTERRUPTED);
 		UnpluggedEntry entry = UnpluggedEntryList.getInstance().add(shadow, state);
 
 		if (entry != null)
@@ -485,94 +520,8 @@ public class UnpluggedServerPlayer extends ServerPlayer
 		}
 
 		UnpluggedAfk.debugLog("createFromPlayer: player: ['{}'/{}], state: [{}]", ProfileWrap.name(profile), ProfileWrap.id(profile), state.toString());
-		// Register the complete session before the delayed replacement joins.
 		shadow.isValid = true;
-		placeShadowNextTick(server, pl, shadow, profile);
-
-		return shadow;
 	}
-
-	private static void placeShadowNextTick(MinecraftServer server, PlayerList playerList,
-	                                        UnpluggedServerPlayer shadow, GameProfile profile)
-	{
-		//#if MC >= 1.21.8
-		//$$ server.schedule(new TickTask(server.getTickCount(), () ->
-		//$$ {
-		//$$     if (playerList.getPlayer(shadow.getUUID()) != null)
-		//$$     {
-		//$$         placeShadowNextTick(server, playerList, shadow, profile);
-		//$$         return;
-		//$$     }
-		//$$     playerList.placeNewPlayer(new UnpluggedConnection(PacketFlow.SERVERBOUND), shadow,
-		//$$             new CommonListenerCookie(profile, 0, shadow.clientInformation(), true));
-		//$$ }));
-		//#elseif MC >= 1.21.2
-		//$$ server.schedule(new TickTask(server.getTickCount(), () ->
-		//$$ {
-		//$$     if (playerList.getPlayer(shadow.getUUID()) != null)
-		//$$     {
-		//$$         placeShadowNextTick(server, playerList, shadow, profile);
-		//$$         return;
-		//$$     }
-		//$$     playerList.placeNewPlayer(new UnpluggedConnection(PacketFlow.SERVERBOUND), shadow,
-		//$$             new CommonListenerCookie(profile, 0, shadow.clientInformation(), true));
-		//$$ }));
-		//#elseif MC >= 1.20.6
-		//$$ server.tell(new TickTask(server.getTickCount(), () ->
-		//$$ {
-		//$$     if (playerList.getPlayer(shadow.getUUID()) != null)
-		//$$     {
-		//$$         placeShadowNextTick(server, playerList, shadow, profile);
-		//$$         return;
-		//$$     }
-		//$$     playerList.placeNewPlayer(new UnpluggedConnection(PacketFlow.SERVERBOUND), shadow,
-		//$$             new CommonListenerCookie(profile, 0, shadow.clientInformation(), true));
-		//$$ }));
-		//#elseif MC >= 1.20.2
-		//$$ server.tell(new TickTask(server.getTickCount(), () ->
-		//$$ {
-		//$$     if (playerList.getPlayer(shadow.getUUID()) != null)
-		//$$     {
-		//$$         placeShadowNextTick(server, playerList, shadow, profile);
-		//$$         return;
-		//$$     }
-		//$$     playerList.placeNewPlayer(new UnpluggedConnection(PacketFlow.SERVERBOUND), shadow,
-		//$$             new CommonListenerCookie(profile, 0, shadow.clientInformation()));
-		//$$ }));
-		//#else
-		server.tell(new TickTask(server.getTickCount(), () ->
-		{
-			if (playerList.getPlayer(shadow.getUUID()) != null)
-			{
-				placeShadowNextTick(server, playerList, shadow, profile);
-				return;
-			}
-			playerList.placeNewPlayer(new UnpluggedConnection(PacketFlow.SERVERBOUND), shadow);
-		}));
-		//#endif
-	}
-
-	//#if MC >= 1.21.10
-	//$$ private final static Logger DUMB_LOGGER = LoggerFactory.getLogger(Reference.MOD_ID);
-	//$$ private static void loadPlayerNbt(UnpluggedServerPlayer player)
-	//$$ {
-		//$$ try (ProblemReporter.ScopedCollector logger = new ProblemReporter.ScopedCollector(player.problemPath(), DUMB_LOGGER))
-		//$$ {
-			//$$ Optional<ValueInput> opt = player.level()
-				//$$ .getServer().getPlayerList()
-				//$$ .loadPlayerData(player.nameAndId())
-				//$$ .map((nbt) ->
-					//$$ TagValueInput.create(logger, player.registryAccess(), nbt)
-				//$$ );
-				//$$ opt.ifPresent((data) ->
-				//$$ {
-					//$$ player.load(data);
-					//$$ player.loadAndSpawnEnderPearls(data);
-					//$$ player.loadAndSpawnParentVehicle(data);
-				//$$ });
-			//$$ }
-		//$$ }
-	//#endif
 
 	//#if MC >= 1.20.2
 	//$$ public static UnpluggedServerPlayer respawnUnplugged(MinecraftServer server, ServerLevel level, GameProfile profile, ClientInformation ci)
@@ -595,10 +544,23 @@ public class UnpluggedServerPlayer extends ServerPlayer
 	{
 		UnpluggedServerPlayer shadow = new UnpluggedServerPlayer(server, level, profile, profilePublicKey);
 		UnpluggedAfk.debugLog("respawnUnplugged: player: ['{}'/{}]", ProfileWrap.name(profile), ProfileWrap.id(profile));
+		UnpluggedPlayerUtils.loadPlayerNbt(shadow);
 		shadow.isValid = true;
 		return shadow;
 	}
 	//#endif
+
+	private static void onStartingPositonWrap(UnpluggedServerPlayer sp, PosState pos)
+	{
+		if (!pos.matches(sp) && !pos.isEmpty())
+		{
+			//#if MC >= 1.21.10
+			//$$ sp.startingPosition = () -> sp.snapTo(pos.x(), pos.y(), pos.z(), pos.yaw(), pos.pitch());
+			//#else
+			sp.startingPosition = () -> sp.moveTo(pos.x(), pos.y(), pos.z(), pos.yaw(), pos.pitch());
+			//#endif
+		}
+	}
 
 	private void createUnpluggedPost(MinecraftServer server)
 	{
@@ -746,11 +708,6 @@ public class UnpluggedServerPlayer extends ServerPlayer
 
 	public void kill(Component message)
 	{
-		if (this.disconnectPending)
-		{
-			return;
-		}
-		this.disconnectPending = true;
 		this.dismount();
 		this.killShadow(message);
 		//#if MC >= 1.21.2
@@ -808,9 +765,17 @@ public class UnpluggedServerPlayer extends ServerPlayer
 			// Remove invalid Shadows that are still ticking (Why?)
 			if (!this.freshPlayer && !this.isValid())
 			{
+				final Component name = this.getName();
 				final Component reason = InitWrap.text().formatTextSafe("Invalid");
 
 				this.kill(reason);
+//										   ((IMixinPlayerList) server.getPlayerList()).unplugged$save(this);
+				server.getPlayerList().remove(this);
+
+				if (!ConfigWrap.mess().hideUnpluggedJoin)
+				{
+					UnpluggedPlayerUtils.sendLeaveMessage(server, name);
+				}
 			}
 
 			this.tickUnplugged(server);
@@ -846,18 +811,9 @@ public class UnpluggedServerPlayer extends ServerPlayer
 		this.lastTick = now;
 
 		UnpluggedEntry entry = UnpluggedEntryList.getInstance().get(this);
-		if (entry == null && this.isValid && !this.disconnectPending && !this.expired)
-		{
-			entry = UnpluggedEntryList.getInstance().add(this, this.toState());
-		}
 
 		if (entry != null)
 		{
-			if (entry.status() == UnpluggedStatus.ACTIVE && entry.timeout() <= 0L && this.timeout > 0L)
-			{
-				entry.updateState(new UnpluggedState(UnpluggedStatus.ACTIVE, this.time, this.timeout, this.startTime, this.reason));
-			}
-
 			if (entry.status() != UnpluggedStatus.ACTIVE)
 			{
 				UnpluggedState state = PlayerManager.getInstance().getState(this.getGameProfile());
@@ -870,15 +826,16 @@ public class UnpluggedServerPlayer extends ServerPlayer
 			}
 
 			PosState pos = PlayerManager.getInstance().getPos(this.uuid);
-			BlockPos blockPos = this.blockPosition();
+			Vec3 currentPos = this.position();
 
-			if (blockPos.getX() != pos.x() || blockPos.getY() != pos.y() || blockPos.getZ() != pos.z())
+			if (currentPos.x() != pos.x() || currentPos.y() != pos.y() || currentPos.z() != pos.z())
 			{
 				PlayerManager.getInstance().updatePlayerData(this);
 			}
 
 			if (!entry.tickTimeout(tickDelta))
 			{
+				PlayerList pl = server.getPlayerList();
 				String mess = ConfigWrap.mess().unpluggedExpiredReason;
 
 				if (mess == null || mess.isEmpty())
@@ -911,6 +868,8 @@ public class UnpluggedServerPlayer extends ServerPlayer
 
 				Component reason = InitWrap.text().formatTextSafe(mess);
 				this.kill(reason);
+//										   ((IMixinPlayerList) server.getPlayerList()).unplugged$save(this);
+				server.getPlayerList().remove(this);
 
 				if (ConfigWrap.mess().hideUnpluggedJoin)
 				{

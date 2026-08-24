@@ -120,15 +120,26 @@ public class AfkCommand implements IServerCommand
             return 1;
         }
 
+        int maximumTime = ConfigWrap.unplugged().maximumUnpluggedTimeout;
         if (time < 0)
         {
-            time = ConfigWrap.unplugged().defaultUnpluggedTimeout;
+            time = maximumTime > 0 ? maximumTime : ConfigWrap.unplugged().defaultUnpluggedTimeout;
 
             if (time < 0)
             {
                 time = 129600;
             }
         }
+		if (maximumTime > 0 && time > maximumTime)
+		{
+			String msg = "§cYou can only AFK for " + formatDuration(maximumTime) + ".§r";
+			//#if MC >= 1.20.1
+			//$$ context.getSource().sendSuccess(() -> InitWrap.text().formatTextSafe(msg), false);
+			//#else
+			context.getSource().sendSuccess(InitWrap.text().formatTextSafe(msg), false);
+			//#endif
+			return 0;
+		}
         if (reason == null || reason.isEmpty())
         {
             reason = ConfigWrap.mess().defaultUnpluggedReason;
@@ -139,13 +150,18 @@ public class AfkCommand implements IServerCommand
             }
         }
 
-        if (UnpluggedServerPlayer.createFromPlayer(server, player, time, reason) == null)
-        {
-            UnpluggedAfk.LOGGER.error("Error creating Unplugged Player from: {}", player.getName().getString());
-            return 0;
-        }
+        final int finalTime = time;
+        final String finalReason = reason;
+
+        server.execute(() -> UnpluggedServerPlayer.createFromPlayer(server, player, finalTime, finalReason));
 
         UnpluggedAfk.debugLog("setUnpluggedAfk: player: ['{}'/{}] // T: {}m, R: '{}'", ProfileWrap.name(profile), ProfileWrap.id(profile), time, reason);
         return 1;
     }
+
+	private static String formatDuration(int minutes)
+	{
+		if (minutes % 60 == 0) return (minutes / 60) + " hours";
+		return minutes + " minutes";
+	}
 }
