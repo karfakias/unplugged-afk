@@ -13,6 +13,7 @@
         "MixinPlayerList_core",
         "MixinPlayerList_messageSuppress",
         "MixinServerLoginPacketListenerImpl",
+        "MixinServerGamePacketListenerImpl",
         "MixinServerPlayer_core",
         "MixinServerPlayer_fakeMovement",
         "MixinServerPlayer_messageSuppress",

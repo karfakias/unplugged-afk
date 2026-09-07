@@ -31,6 +31,7 @@ import net.minecraft.network.Connection;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
 //#if MC >= 1.20.2
 //$$ import net.minecraft.server.level.ClientInformation;
 //$$ import net.minecraft.server.network.CommonListenerCookie;
@@ -59,16 +60,27 @@ import net.minecraft.nbt.CompoundTag;
 import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedGamePacketListener;
 import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedPlayerUtils;
 import com.sakuraryoko.unplugged_afk.impl.player.unplugged.UnpluggedServerPlayer;
+import com.sakuraryoko.unplugged_afk.impl.player.interfaces.IPlayerListInvoker;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-@Mixin(PlayerList.class)
+@Mixin(value = PlayerList.class, priority = 2000)
 @ApiStatus.Internal
-public abstract class MixinPlayerList_core
+public abstract class MixinPlayerList_core implements IPlayerListInvoker
 {
 	@Shadow @Final private MinecraftServer server;
+	@Shadow @Final private List<ServerPlayer> players;
 	@Shadow @Final private Map<UUID, ServerPlayer> playersByUUID;
+
+	@Override
+	public void unplugged$removePlayerWithoutHooks(ServerPlayer player)
+	{
+		player.remove(Entity.RemovalReason.UNLOADED_WITH_PLAYER);
+		this.players.remove(player);
+		this.playersByUUID.remove(player.getUUID(), player);
+	}
 
 	//#if MC >= 1.21.10
 	//$$ @Inject(method = "placeNewPlayer",

@@ -20,7 +20,10 @@
 
 package com.sakuraryoko.unplugged_afk.impl.player.interfaces;
 
+import net.minecraft.server.level.ServerPlayer;
+
 public interface IPlayerListInvoker
 {
 	void unplugged$toggleHideBroadcastMessage(boolean toggle);
+	void unplugged$removePlayerWithoutHooks(ServerPlayer player);
 }

@@ -95,6 +95,7 @@ import com.sakuraryoko.unplugged_afk.impl.events.PlayerEventsHandler;
 import com.sakuraryoko.unplugged_afk.impl.events.ServerEventsHandler;
 import com.sakuraryoko.unplugged_afk.impl.modinit.InitWrap;
 import com.sakuraryoko.unplugged_afk.impl.player.PlayerManager;
+import com.sakuraryoko.unplugged_afk.impl.player.interfaces.IPlayerListInvoker;
 import com.sakuraryoko.unplugged_afk.impl.UnpluggedAfk;
 import com.sakuraryoko.unplugged_afk.impl.config.ConfigWrap;
 import com.sakuraryoko.unplugged_afk.impl.config.data.options.PlayerOptions;
@@ -420,8 +421,12 @@ public class UnpluggedServerPlayer extends ServerPlayer
 
 		server.getPlayerList().remove(player);
 		player.connection.disconnect(kickMsg);
-
+		//#if MC >= 1.21.2
+		//$$ server.schedule(new TickTask(server.getTickCount() + 2,
+		//$$ 		() -> createFromPlayerPhase2(server, profile, finalTime, timeout, reason, pos, game, health, isFlying)));
+		//#else
 		server.execute(() -> createFromPlayerPhase2(server, profile, finalTime, timeout, reason, pos, game, health, isFlying));
+		//#endif
 	}
 
 	public static void createFromPlayerPhase2(MinecraftServer server, GameProfile profile,
@@ -770,7 +775,7 @@ public class UnpluggedServerPlayer extends ServerPlayer
 
 				this.kill(reason);
 //										   ((IMixinPlayerList) server.getPlayerList()).unplugged$save(this);
-				server.getPlayerList().remove(this);
+				((IPlayerListInvoker) server.getPlayerList()).unplugged$removePlayerWithoutHooks(this);
 
 				if (!ConfigWrap.mess().hideUnpluggedJoin)
 				{
@@ -869,7 +874,7 @@ public class UnpluggedServerPlayer extends ServerPlayer
 				Component reason = InitWrap.text().formatTextSafe(mess);
 				this.kill(reason);
 //										   ((IMixinPlayerList) server.getPlayerList()).unplugged$save(this);
-				server.getPlayerList().remove(this);
+				((IPlayerListInvoker) server.getPlayerList()).unplugged$removePlayerWithoutHooks(this);
 
 				if (ConfigWrap.mess().hideUnpluggedJoin)
 				{
