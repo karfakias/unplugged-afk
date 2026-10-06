@@ -9,7 +9,14 @@
 
 ## Prerequisites & Installation
 * **Mod Loader:** Fabric
-* **Minecraft Version:** 1.19.2 up to 26.2
+* **Minecraft Version:** 1.19.2 up to 26.3
+* **Minecraft 26.3:** Requires Java 25+ and Fabric Loader 0.19.5+. Core Lib API 0.3.0 and the required Fabric API modules are bundled.
+
+### Building
+
+Use JDK 25 or newer. Run `./gradlew :26.3:build` (`.\gradlew.bat :26.3:build` on Windows) for Minecraft 26.3, or `./gradlew build` for all supported versions. The installable 26.3 JAR is in `versions/26.3/build/libs/`; use the JAR without the `-sources` suffix.
+
+Core Lib API 0.3.0 currently logs a missing `/assets/core-lib-api/lang/en_us.json` resource because its JAR still packages that file under `assets/corelib/lang/`. This dependency issue did not prevent server startup, bot spawning, inventory persistence across restarts, or timeout expiry in the 26.3 server checks.
 
 ## Features
 * **Go Green:** Turn off your PC while your player-bot continues to AFK for you.

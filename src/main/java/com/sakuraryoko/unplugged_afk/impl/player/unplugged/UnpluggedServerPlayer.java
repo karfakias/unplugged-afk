@@ -113,7 +113,7 @@ public class UnpluggedServerPlayer extends ServerPlayer
 	private String reason;
 	private long startTime = -1L;
 	private long timeout = -1L;
-	private long lastTick = -1L;
+	private long lastTick = System.currentTimeMillis();
 	private boolean isValid = false;
 	private boolean expired = false;
 
@@ -352,7 +352,11 @@ public class UnpluggedServerPlayer extends ServerPlayer
 		{
 			// Survival players shouldn't be able to fly, or be invulnerable.
 			shadow.getAbilities().flying = false;
+			//#if MC >= 26.3
+			//$$ shadow.setPermanentlyInvulnerable(false);
+			//#else
 			shadow.setInvulnerable(false);
+			//#endif
 		}
 		else
 		{
@@ -364,6 +368,7 @@ public class UnpluggedServerPlayer extends ServerPlayer
 		shadow.reason = state.reason();
 		shadow.freshPlayer = true;
 		shadow.freshHoldTime = System.currentTimeMillis();
+		shadow.lastTick = shadow.freshHoldTime;
 		shadow.startTime = state.startTime() <= 0 ? shadow.freshHoldTime : state.startTime();
 
 		if (shadow.getStartTime() != state.startTime())
@@ -500,7 +505,11 @@ public class UnpluggedServerPlayer extends ServerPlayer
 		{
 			// Survival players shouldn't be able to fly, or be invulnerable.
 			shadow.getAbilities().flying = false;
+			//#if MC >= 26.3
+			//$$ shadow.setPermanentlyInvulnerable(false);
+			//#else
 			shadow.setInvulnerable(false);
+			//#endif
 		}
 		else
 		{
@@ -512,6 +521,7 @@ public class UnpluggedServerPlayer extends ServerPlayer
 		shadow.reason = reason;
 		shadow.freshPlayer = true;
 		shadow.freshHoldTime = System.currentTimeMillis();
+		shadow.lastTick = shadow.freshHoldTime;
 		shadow.startTime = shadow.freshHoldTime;
 
 		UnpluggedState state = new UnpluggedState(UnpluggedStatus.ACTIVE, time, shadow.timeout, shadow.startTime, reason);
@@ -783,7 +793,6 @@ public class UnpluggedServerPlayer extends ServerPlayer
 				}
 			}
 
-			this.tickUnplugged(server);
 			this.connection.resetPosition();
 			//#if MC >= 1.21.8
 			//$$ this.level().getChunkSource().move(this);
@@ -803,16 +812,16 @@ public class UnpluggedServerPlayer extends ServerPlayer
 		catch (NullPointerException ignored) {}
 	}
 
-	private void tickUnplugged(MinecraftServer server)
+	@ApiStatus.Internal
+	public void tickUnplugged(MinecraftServer server)
 	{
-		final long now = System.currentTimeMillis();
-
-		if (this.lastTick < 0L)
+		if (!this.isValid() || this.expired)
 		{
-			this.lastTick = now;
+			return;
 		}
 
-		final long tickDelta = now - this.lastTick;
+		final long now = System.currentTimeMillis();
+		final long tickDelta = Math.max(0L, now - this.lastTick);
 		this.lastTick = now;
 
 		UnpluggedEntry entry = UnpluggedEntryList.getInstance().get(this);
@@ -830,6 +839,9 @@ public class UnpluggedServerPlayer extends ServerPlayer
 				this.timeout = entry.timeout();
 			}
 
+			final boolean hasTimeRemaining = entry.tickTimeout(tickDelta);
+			this.timeout = entry.timeout();
+
 			PosState pos = PlayerManager.getInstance().getPos(this.uuid);
 			Vec3 currentPos = this.position();
 
@@ -838,7 +850,7 @@ public class UnpluggedServerPlayer extends ServerPlayer
 				PlayerManager.getInstance().updatePlayerData(this);
 			}
 
-			if (!entry.tickTimeout(tickDelta))
+			if (!hasTimeRemaining)
 			{
 				PlayerList pl = server.getPlayerList();
 				String mess = ConfigWrap.mess().unpluggedExpiredReason;

@@ -21,6 +21,7 @@
 package com.sakuraryoko.unplugged_afk.impl.events;
 
 import java.util.Collection;
+import java.util.ArrayList;
 import java.util.List;
 import org.jetbrains.annotations.ApiStatus;
 
@@ -115,6 +116,19 @@ public class ServerEventsHandler implements IServerEventsDispatch
 		// Every Tick -->
 		UnpluggedPendingSpawns.INSTANCE.tick(server);
 		final long now = System.currentTimeMillis();
+
+		// Session timeouts must advance even when the player's entity is not ticking.
+		if (server.getTickCount() % 10 == 0)
+		{
+			// Expiration removes players, so iterate a snapshot of the player list.
+			for (ServerPlayer player : new ArrayList<>(server.getPlayerList().getPlayers()))
+			{
+				if (player instanceof UnpluggedServerPlayer unplugged)
+				{
+					unplugged.tickUnplugged(server);
+				}
+			}
+		}
 
 		// Hold additional tick tasks until server has been running for at least 1 tick cycle.
 		if (this.tickingLock)

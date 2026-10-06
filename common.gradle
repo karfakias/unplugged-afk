@@ -92,7 +92,8 @@ dependencies {
 	// AFKPlus Specific
 //	autoImplementation include("com.github.sakura-ryoko.corelib:corelib-mc${project.minecraft_version}:${project.corelib_version}")
 //	autoImplementation include("com.github.sakura-ryoko.more-color-api:more-color-api-mc${project.minecraft_version}:${project.more_color_api_version}")
-	autoImplementation include("com.sakuraryoko:corelib:${project.corelib_version}-mc${project.minecraft_version}")
+	def corelibArtifact = mcVersion >= 26_03_00 ? 'core-lib-api' : 'corelib'
+	autoImplementation include("com.sakuraryoko:${corelibArtifact}:${project.corelib_version}-mc${project.minecraft_version}")
 //	autoImplementation include("com.sakuraryoko:more-color-api:${project.more_color_api_version}-mc${project.minecraft_version}")
 	autoImplementation include("me.lucko:fabric-permissions-api:${project.fabric_permissions_api_version}")
 //	autoImplementation "eu.pb4:placeholder-api:${project.placeholder_api_version}"
@@ -200,6 +201,8 @@ processResources {
 			"mod_author" 		  : project.mod_author,
 			"maven_group" 		  : project.maven_group,
 			"minecraft_dependency": project.minecraft_dependency,
+			"corelib_mod_id"       : mcVersion >= 26_03_00 ? 'core-lib-api' : 'corelib',
+			"loader_dependency"    : mcVersion >= 26_03_00 ? '>=0.19.5' : '>=0.11.4',
 	]
 	inputs.properties(modProperties)
 
